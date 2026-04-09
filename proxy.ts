@@ -1,7 +1,8 @@
+// proxy.ts
 import { type NextRequest, NextResponse } from "next/server";
-import { createServerClient } from "@supabase/ssr";
+import { createServerClient, type CookieOptions } from "@supabase/ssr";
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -16,14 +17,7 @@ export async function middleware(request: NextRequest) {
           cookiesToSet: {
             name: string;
             value: string;
-            options?: {
-              path?: string;
-              maxAge?: number;
-              domain?: string;
-              secure?: boolean;
-              httpOnly?: boolean;
-              sameSite?: "lax" | "strict" | "none";
-            };
+            options?: CookieOptions;
           }[],
         ) {
           cookiesToSet.forEach(({ name, value, options }) => {
@@ -36,21 +30,12 @@ export async function middleware(request: NextRequest) {
     },
   );
 
-  // Refresh session — this is critical for Server Components to work with auth
   await supabase.auth.getUser();
-
   return response;
 }
 
 export const config = {
   matcher: [
-    /*
-     * Match all routes except:
-     * - _next/static (static files)
-     * - _next/image (image optimization)
-     * - favicon.ico
-     * - public folder
-     */
     "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
