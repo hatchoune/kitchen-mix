@@ -9,7 +9,6 @@ import type {
   Recette,
   RecetteCard,
   RecetteFilters,
-  PlanSemaine,
   RecipeComment,
 } from "@/types";
 import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
@@ -179,10 +178,6 @@ export async function incrementVues(id: string): Promise<void> {
   }
 }
 
-// ─── Recherche ───────────────────────────────────────────────
-
-// ─── Favoris ─────────────────────────────────────────────────
-
 export async function getFavoris(userId: string): Promise<RecetteCard[]> {
   const supabase = await createServerSupabase();
   const { data, error } = await supabase
@@ -198,24 +193,6 @@ export async function getFavoris(userId: string): Promise<RecetteCard[]> {
       return r as unknown as RecetteCard;
     })
     .filter(Boolean);
-}
-
-// ─── Planificateur ───────────────────────────────────────────
-
-export async function getPlanSemaine(
-  userId: string,
-  semaine: string,
-): Promise<PlanSemaine | null> {
-  const supabase = await createServerSupabase();
-  const { data, error } = await supabase
-    .from("planificateur")
-    .select("*")
-    .eq("user_id", userId)
-    .eq("semaine", semaine)
-    .single();
-
-  if (error) return null;
-  return data as PlanSemaine;
 }
 
 // ─── Comments ────────────────────────────────────────────────

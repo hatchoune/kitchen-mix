@@ -120,35 +120,6 @@ export interface Favori {
   created_at: string;
 }
 
-// ─── Planificateur ───────────────────────────────────────────
-
-export interface PlanSemaine {
-  id: string;
-  user_id: string;
-  semaine: string; // DATE as ISO string
-  lundi: string | null;
-  mardi: string | null;
-  mercredi: string | null;
-  jeudi: string | null;
-  vendredi: string | null;
-  samedi: string | null;
-  dimanche: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-export const JOURS_SEMAINE = [
-  "lundi",
-  "mardi",
-  "mercredi",
-  "jeudi",
-  "vendredi",
-  "samedi",
-  "dimanche",
-] as const;
-
-export type JourSemaine = (typeof JOURS_SEMAINE)[number];
-
 // ─── Comments ────────────────────────────────────────────────
 
 export interface RecipeComment {

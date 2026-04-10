@@ -27,7 +27,7 @@ import {
 export default function AdminPage() {
   const { user, loading: authLoading, isAdmin: authIsAdmin } = useAuth();
   const router = useRouter();
-  const supabase = createClient();
+  const [supabase] = useState(() => createClient());
 
   const [recettesEnAttente, setRecettesEnAttente] = useState<Recette[]>([]);
   const [allRecettes, setAllRecettes] = useState<Recette[]>([]);

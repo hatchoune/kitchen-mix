@@ -58,7 +58,7 @@ const MAX_SLOTS = 3;
 export default function PlanificateurPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
-  const supabase = createClient();
+  const [supabase] = useState(() => createClient());
 
   const [plan, setPlan] = useState<WeekPlan>({});
   const [loading, setLoading] = useState(true);
@@ -74,6 +74,7 @@ export default function PlanificateurPage() {
   const [showListe, setShowListe] = useState(false);
   const [selectedDays, setSelectedDays] = useState<Set<number>>(new Set());
   const [listeItems, setListeItems] = useState<ListeItem[]>([]);
+  const [listeLoading, setListeLoading] = useState(false);
 
   // Mobile accordion
   const [openDay, setOpenDay] = useState<number | null>(null);
@@ -277,7 +278,7 @@ export default function PlanificateurPage() {
 
   const generateListe = async () => {
     if (selectedDays.size === 0) return;
-    setLoading(true); // ou un état local pour le bouton
+    setListeLoading(true); // ← pas setLoading
     try {
       const items = await getShoppingListForDays(
         semaine,
@@ -285,10 +286,10 @@ export default function PlanificateurPage() {
       );
       setListeItems(items);
       setShowListe(true);
-    } catch (err: any) {
-      alert("Erreur : " + err.message);
+    } catch (err: unknown) {
+      alert("Erreur : " + (err instanceof Error ? err.message : ""));
     } finally {
-      setLoading(false);
+      setListeLoading(false);
     }
   };
 
