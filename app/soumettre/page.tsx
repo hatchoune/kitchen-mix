@@ -182,8 +182,8 @@ export default function SoumettrePage() {
       const payload = { ...data };
       await soumettreRecette(payload);
       setSuccess(true);
-    } catch (err: any) {
-      setSubmitError(err.message || "Erreur inconnue");
+    } catch (err: unknown) {
+      setSubmitError(err instanceof Error ? err.message : "Erreur inconnue");
     }
   };
 
