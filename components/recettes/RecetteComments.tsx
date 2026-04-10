@@ -52,7 +52,7 @@ interface VoteCounts {
 
 export default function RecetteComments({ recetteId }: { recetteId: string }) {
   const { user } = useAuth();
-  const supabase = createClient();
+  const [supabase] = useState(() => createClient());
 
   const [comments, setComments] = useState<CommentData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -214,17 +214,12 @@ export default function RecetteComments({ recetteId }: { recetteId: string }) {
     try {
       let imageUrl: string | null = null;
       if (!parentId && photoFile) {
-        // Upload de l'image
-        const ext = photoFile.name.split(".").pop() || "jpg";
-        const fileName = `${user.id}/${Date.now()}.${ext}`;
-        const { error: uploadError } = await supabase.storage
-          .from("comment-images")
-          .upload(fileName, photoFile, { contentType: photoFile.type });
-        if (uploadError) throw uploadError;
-        const {
-          data: { publicUrl },
-        } = supabase.storage.from("comment-images").getPublicUrl(fileName);
-        imageUrl = publicUrl;
+        imageUrl = await uploadPhoto();
+        if (imageUrl === null && photoFile) {
+          alert("Erreur lors de l'upload de la photo.");
+          setIsSubmitting(false);
+          return;
+        }
       }
 
       await createComment(recetteId, text, parentId, imageUrl);

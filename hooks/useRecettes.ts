@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/client";
 import type { RecetteFilters, RecetteCard } from "@/types";
 import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
 
+const supabaseClient = createClient(); // singleton module-level
+
 const CARD_FIELDS = `
   id, slug, titre, description, image_url,
   temps_preparation, temps_cuisson, difficulte,
@@ -13,7 +15,7 @@ const CARD_FIELDS = `
 `;
 
 async function fetchRecettes(filters: RecetteFilters) {
-  const supabase = createClient();
+  const supabase = supabaseClient;
   const page = filters.page || 1;
   const limit = filters.limit || DEFAULT_PAGE_SIZE;
   const offset = (page - 1) * limit;

@@ -41,7 +41,7 @@ interface MaRecette {
 export default function ProfilPage() {
   const { user, profil, loading, signOut, refreshProfil } = useAuth();
   const router = useRouter();
-  const supabase = createClient(); // On initialise le client ici pour tout le composant
+  const [supabase] = useState(() => createClient());
 
   const [mesRecettes, setMesRecettes] = useState<MaRecette[]>([]);
   const [saving, setSaving] = useState(false);

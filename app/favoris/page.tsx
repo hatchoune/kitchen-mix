@@ -11,18 +11,23 @@ import type { RecetteCard } from "@/types";
 
 export default function FavorisPage() {
   const { user, loading: authLoading } = useAuth();
+  const [supabase] = useState(() => createClient());
   const [recettes, setRecettes] = useState<RecetteCard[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (authLoading) return;
-    if (!user) { setLoading(false); return; }
+    if (!user) {
+      setLoading(false);
+      return;
+    }
 
     const load = async () => {
-      const supabase = createClient();
+      // supabase vient du state, plus besoin de le créer ici
       const { data } = await supabase
         .from("favoris")
-        .select(`
+        .select(
+          `
           recette_id,
           recettes (
             id, slug, titre, description, image_url,
@@ -31,7 +36,8 @@ export default function FavorisPage() {
             regime, note_moyenne, nombre_notes,
             nutriscore, calories_par_portion
           )
-        `)
+        `,
+        )
         .eq("user_id", user.id);
 
       const fav = (data || [])
@@ -79,7 +85,8 @@ export default function FavorisPage() {
           Mes Favoris
         </h1>
         <p className="text-muted-foreground mt-1">
-          {recettes.length} recette{recettes.length > 1 ? "s" : ""} sauvegardée{recettes.length > 1 ? "s" : ""}
+          {recettes.length} recette{recettes.length > 1 ? "s" : ""} sauvegardée
+          {recettes.length > 1 ? "s" : ""}
         </p>
       </div>
 
