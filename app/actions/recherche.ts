@@ -3,6 +3,14 @@
 import { createServerSupabase } from "@/lib/supabase/server";
 import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
 
+const CARD_FIELDS = `
+  id, slug, titre, description, image_url,
+  temps_preparation, temps_cuisson, difficulte,
+  nombre_portions, modele_thermomix, categories,
+  regime, note_moyenne, nombre_notes,
+  nutriscore, calories_par_portion
+`;
+
 export async function rechercherRecettes(
   query: string,
   filters?: {
@@ -12,6 +20,12 @@ export async function rechercherRecettes(
     limit?: number;
   },
 ) {
+  // Validation longueur + sanitisation
+  if (!query?.trim() || query.length > 200) {
+    return { data: [], count: 0, page: 1, limit: DEFAULT_PAGE_SIZE };
+  }
+  const safeQuery = query.replace(/[%_,]/g, "\\$&").trim();
+
   const supabase = await createServerSupabase();
   const page = filters?.page || 1;
   const limit = filters?.limit || DEFAULT_PAGE_SIZE;
@@ -19,10 +33,10 @@ export async function rechercherRecettes(
 
   let dbQuery = supabase
     .from("recettes")
-    .select("*", { count: "exact" })
+    .select(CARD_FIELDS, { count: "exact" })
     .eq("approuve", true)
     .eq("publie", true)
-    .or(`titre.ilike.%${query}%,description.ilike.%${query}%`);
+    .or(`titre.ilike.%${safeQuery}%,description.ilike.%${safeQuery}%`);
 
   if (filters?.categorie) {
     dbQuery = dbQuery.contains("categories", [filters.categorie]);

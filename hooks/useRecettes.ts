@@ -4,6 +4,14 @@ import { createClient } from "@/lib/supabase/client";
 import type { RecetteFilters, RecetteCard } from "@/types";
 import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
 
+const CARD_FIELDS = `
+  id, slug, titre, description, image_url,
+  temps_preparation, temps_cuisson, difficulte,
+  nombre_portions, modele_thermomix, categories,
+  regime, note_moyenne, nombre_notes,
+  nutriscore, calories_par_portion
+`;
+
 async function fetchRecettes(filters: RecetteFilters) {
   const supabase = createClient();
   const page = filters.page || 1;
@@ -12,7 +20,7 @@ async function fetchRecettes(filters: RecetteFilters) {
 
   let query = supabase
     .from("recettes")
-    .select("*", { count: "exact" })
+    .select(CARD_FIELDS, { count: "exact" })
     .eq("approuve", true)
     .eq("publie", true);
 

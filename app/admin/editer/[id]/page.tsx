@@ -36,7 +36,7 @@ interface PageProps {
 export default function AdminEditerPage({ params }: PageProps) {
   const { user, isAdmin, loading: authLoading } = useAuth();
   const router = useRouter();
-  const supabase = createClient();
+  const [supabase] = useState(() => createClient());
 
   const [recette, setRecette] = useState<Recette | null>(null);
   const [loading, setLoading] = useState(true);

@@ -1,11 +1,25 @@
 "use server";
 
-import { createAdminSupabase } from "@/lib/supabase/server";
+import {
+  createAdminSupabase,
+  createServerSupabase,
+} from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { isAdmin } from "@/lib/supabase/queries";
-import type { Recette } from "@/types";
+
+// Helper interne — vérifie admin ou throw
+async function requireAdmin() {
+  const supabase = await createServerSupabase();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Non autorisé");
+  const admin = await isAdmin(user.id);
+  if (!admin) throw new Error("Accès refusé");
+}
 
 export async function approveRecette(id: string) {
+  await requireAdmin();
   const adminClient = createAdminSupabase();
   const { error } = await adminClient
     .from("recettes")
@@ -18,6 +32,7 @@ export async function approveRecette(id: string) {
 }
 
 export async function rejectRecette(id: string, raison: string) {
+  await requireAdmin();
   const adminClient = createAdminSupabase();
   const { error } = await adminClient
     .from("recettes")
@@ -29,6 +44,7 @@ export async function rejectRecette(id: string, raison: string) {
 }
 
 export async function approveComment(id: string) {
+  await requireAdmin();
   const adminClient = createAdminSupabase();
   const { error } = await adminClient
     .from("recipe_comments")
@@ -40,6 +56,7 @@ export async function approveComment(id: string) {
 }
 
 export async function deleteComment(id: string) {
+  await requireAdmin();
   const adminClient = createAdminSupabase();
   const { error } = await adminClient
     .from("recipe_comments")
@@ -50,7 +67,11 @@ export async function deleteComment(id: string) {
   return { success: true };
 }
 
-export async function updateRecette(id: string, updates: any) {
+export async function updateRecette(
+  id: string,
+  updates: Record<string, unknown>,
+) {
+  await requireAdmin();
   const adminClient = createAdminSupabase();
   const { error } = await adminClient
     .from("recettes")
@@ -63,13 +84,12 @@ export async function updateRecette(id: string, updates: any) {
 }
 
 export async function deleteRecette(id: string) {
+  await requireAdmin();
   const adminClient = createAdminSupabase();
-  // Supprimer les données liées d'abord
   await adminClient.from("recipe_ratings").delete().eq("recette_id", id);
   await adminClient.from("recipe_comments").delete().eq("recette_id", id);
   await adminClient.from("favoris").delete().eq("recette_id", id);
   await adminClient.from("meal_plans").delete().eq("recette_id", id);
-  // Puis la recette elle-même
   const { error } = await adminClient.from("recettes").delete().eq("id", id);
   if (error) throw new Error(error.message);
   revalidatePath("/admin");

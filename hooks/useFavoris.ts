@@ -7,7 +7,7 @@ import { toggleFavori } from "@/app/actions/favoris";
 export function useFavoris(userId: string | null) {
   const [favorisIds, setFavorisIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
-  const supabase = createClient();
+  const [supabase] = useState(() => createClient());
 
   // Charger les favoris de l'utilisateur (inchangé)
   useEffect(() => {

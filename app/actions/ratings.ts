@@ -31,7 +31,6 @@ export async function rateRecipe(recetteId: string, rating: number) {
   }
 
   // Revalider la page de la recette pour mettre à jour l'affichage
-  revalidatePath(`/recettes/${recetteId}`);
-
+  revalidatePath("/recettes", "layout");
   return { data };
 }

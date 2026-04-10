@@ -3,16 +3,6 @@
 import { createServerSupabase } from "@/lib/supabase/server";
 import type { Ingredient, ListeCoursesItem } from "@/types";
 
-const JOURS_KEYS = [
-  "lundi",
-  "mardi",
-  "mercredi",
-  "jeudi",
-  "vendredi",
-  "samedi",
-  "dimanche",
-];
-
 export async function getShoppingListForDays(
   weekStart: string,
   dayIndices: number[],
@@ -26,45 +16,43 @@ export async function getShoppingListForDays(
     throw new Error("Non autorisé");
   }
 
-  // Récupérer le plan de la semaine
-  const { data: plan } = await supabase
-    .from("planificateur")
-    .select("*")
+  if (dayIndices.length === 0) {
+    return [];
+  }
+
+  // Récupérer toutes les lignes meal_plans pour les jours demandés
+  const { data: rows, error } = await supabase
+    .from("meal_plans")
+    .select("recette_id")
     .eq("user_id", user.id)
-    .eq("semaine", weekStart)
-    .single();
+    .eq("week_start", weekStart)
+    .in("day_index", dayIndices);
 
-  if (!plan) {
-    return [];
-  }
+  if (error) throw new Error(error.message);
+  if (!rows || rows.length === 0) return [];
 
-  // Collecter les IDs des recettes pour les jours demandés
-  const recetteIds: string[] = [];
-  for (const idx of dayIndices) {
-    const dayKey = JOURS_KEYS[idx];
-    const recId = plan[dayKey as keyof typeof plan] as string | null;
-    if (recId) recetteIds.push(recId);
-  }
+  // Dédupliquer les IDs (si même recette placée plusieurs fois)
+  const recetteIds = [
+    ...new Set(rows.map((r) => r.recette_id).filter(Boolean)),
+  ];
 
-  if (recetteIds.length === 0) {
-    return [];
-  }
+  if (recetteIds.length === 0) return [];
 
-  // Récupérer les recettes correspondantes
-  const { data: recettes } = await supabase
+  // Récupérer les ingrédients des recettes
+  const { data: recettes, error: recError } = await supabase
     .from("recettes")
     .select("ingredients")
     .in("id", recetteIds);
 
-  if (!recettes) {
-    return [];
-  }
+  if (recError) throw new Error(recError.message);
+  if (!recettes) return [];
 
   // Agrégation des ingrédients
   const aggregated = new Map<string, ListeCoursesItem>();
 
   for (const recette of recettes) {
     const ingredients = recette.ingredients as Ingredient[];
+    if (!ingredients) continue;
     for (const ing of ingredients) {
       const key = `${ing.nom.toLowerCase()}-${ing.unite}`;
       const existing = aggregated.get(key);

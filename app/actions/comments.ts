@@ -50,7 +50,8 @@ export async function createComment(
 
   if (error) throw new Error(error.message);
 
-  revalidatePath(`/recettes/${recetteId}`);
+  // Revalider toutes les pages recettes (slug inconnu ici)
+  revalidatePath("/recettes", "layout");
   return data;
 }
 
@@ -74,7 +75,8 @@ export async function updateComment(
 
   if (error) throw new Error(error.message);
 
-  revalidatePath(`/recettes/${recetteId}`);
+  // Revalider toutes les pages recettes (slug inconnu ici)
+  revalidatePath("/recettes", "layout");
   return { success: true };
 }
 
@@ -94,7 +96,8 @@ export async function deleteComment(commentId: string, recetteId: string) {
 
   if (error) throw new Error(error.message);
 
-  revalidatePath(`/recettes/${recetteId}`);
+  // Revalider toutes les pages recettes (slug inconnu ici)
+  revalidatePath("/recettes", "layout");
   return { success: true };
 }
 
@@ -141,6 +144,7 @@ export async function voteComment(
       .insert({ user_id: user.id, comment_id: commentId, vote_type: voteType });
   }
 
-  revalidatePath(`/recettes/${recetteId}`);
+  // Revalider toutes les pages recettes (slug inconnu ici)
+  revalidatePath("/recettes", "layout");
   return { success: true };
 }

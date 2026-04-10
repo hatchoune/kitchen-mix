@@ -10,7 +10,7 @@ export function useAuth() {
   const [profil, setProfil] = useState<Profil | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
-  const supabase = createClient();
+  const [supabase] = useState(() => createClient());
 
   const loadUserData = useCallback(
     async (userId: string) => {

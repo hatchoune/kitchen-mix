@@ -7,7 +7,7 @@ import { rateRecipe } from "@/app/actions/ratings";
 export function useRatings(recetteId: string, userId: string | null) {
   const [userRating, setUserRating] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
-  const supabase = createClient();
+  const [supabase] = useState(() => createClient());
 
   useEffect(() => {
     if (!userId) {
