@@ -41,6 +41,9 @@ The content is organized as follows:
 
 <directory_structure>
 app/
+  a-propos/
+    layout.tsx
+    page.tsx
   actions/
     admin.ts
     comments.ts
@@ -62,6 +65,9 @@ app/
     layout.tsx
     page.tsx
   favoris/
+    layout.tsx
+    page.tsx
+  mentions-legales/
     layout.tsx
     page.tsx
   parametres/
@@ -175,6 +181,7 @@ supabase/
     storage-migration
     storage-version
 types/
+  css.d.ts
   index.ts
 .gitignore
 dump.sql
@@ -191,6 +198,377 @@ vercel.json
 
 <files>
 This section contains the contents of the repository's files.
+
+<file path="app/a-propos/layout.tsx">
+// app/a-propos/layout.tsx
+import type { Metadata } from "next";
+import { SITE_NAME } from "@/lib/constants";
+
+export const metadata: Metadata = {
+  title: `À propos | ${SITE_NAME}`,
+  robots: { index: true, follow: true },
+};
+
+export default function AProposLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return <>{children}</>;
+}
+</file>
+
+<file path="app/a-propos/page.tsx">
+// app/a-propos/page.tsx
+import type { Metadata } from "next";
+import Link from "next/link";
+import { ChefHat, Heart, Sparkles, Users } from "lucide-react";
+import Logo from "@/components/ui/Logo";
+import { SITE_NAME, SITE_URL } from "@/lib/constants";
+import { getPageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = getPageMetadata({
+  title: `À propos de ${SITE_NAME}`,
+  description: `Découvrez l'histoire et la mission de ${SITE_NAME} : partager des recettes originales et fiables pour robots cuiseurs multifonction, avec simulateur intégré et planificateur de repas.`,
+  path: "/a-propos",
+});
+
+export default function AProposPage() {
+  return (
+    <div className="max-w-3xl mx-auto py-8 space-y-12 animate-fade-in">
+      {/* Hero */}
+      <section className="text-center space-y-6">
+        <div className="flex justify-center">
+          <Logo className="w-20 h-auto" />
+        </div>
+        <h1 className="font-display font-bold text-4xl">
+          À propos de <span className="text-accent">{SITE_NAME}</span>
+        </h1>
+        <p className="text-muted-foreground text-lg max-w-2xl mx-auto leading-relaxed">
+          La cuisine maison, sans stress et avec passion.
+        </p>
+      </section>
+
+      {/* Notre histoire */}
+      <section className="glass-card p-8 space-y-4">
+        <h2 className="font-display font-bold text-2xl flex items-center gap-3">
+          <ChefHat className="w-6 h-6 text-accent" />
+          Notre histoire
+        </h2>
+        <div className="space-y-4 text-muted-foreground leading-relaxed">
+          <p>
+            <strong>{SITE_NAME}</strong> est né d&apos;une passion commune pour
+            la cuisine au robot multifonction. Nous avons constaté que les
+            recettes disponibles en ligne étaient souvent mal adaptées, peu
+            fiables ou difficiles à suivre pour des débutants.
+          </p>
+          <p>
+            Nous avons donc décidé de créer un espace où chaque recette est
+            testée, détaillée et accompagnée d&apos;instructions claires pour
+            votre robot. Notre objectif : vous faire gagner du temps et vous
+            donner envie de cuisiner chaque jour.
+          </p>
+          <p>
+            Aujourd&apos;hui, {SITE_NAME} est une communauté de passionnés qui
+            partagent leurs meilleures créations, avec un simulateur intégré et
+            un planificateur de repas pour simplifier votre quotidien.
+          </p>
+        </div>
+      </section>
+
+      {/* Nos valeurs */}
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <ValueCard
+          icon={<Sparkles className="w-6 h-6" />}
+          title="Fiabilité"
+          description="Chaque recette est vérifiée et approuvée avant publication. Vous pouvez cuisiner en toute confiance."
+        />
+        <ValueCard
+          icon={<Users className="w-6 h-6" />}
+          title="Communauté"
+          description="Partagez vos propres recettes, notez celles des autres et échangez en commentaires."
+        />
+        <ValueCard
+          icon={<Heart className="w-6 h-6" />}
+          title="Passion"
+          description="Nous aimons la bonne cuisine et nous vous transmettons cette passion à travers nos contenus."
+        />
+      </section>
+
+      {/* Contact / techno */}
+      <section className="glass-card p-8 space-y-4">
+        <h2 className="font-display font-bold text-2xl">Technologie</h2>
+        <p className="text-muted-foreground leading-relaxed">
+          {SITE_NAME} est construit avec les technologies web modernes :
+          Next.js, Supabase, Tailwind CSS. Le site est hébergé sur Vercel et
+          optimisé pour une expérience rapide et fluide, que vous soyez sur
+          mobile, tablette ou ordinateur.
+        </p>
+        <p className="text-muted-foreground leading-relaxed">
+          Une question, une suggestion ? N&apos;hésitez pas à nous contacter via
+          les réseaux sociaux ou à nous écrire à{" "}
+          <a
+            href="mailto:contact@mcmalnus.com"
+            className="text-accent hover:underline"
+          >
+            contact@mcmalnus.com
+          </a>
+          .
+        </p>
+      </section>
+    </div>
+  );
+}
+
+// Petit composant interne
+function ValueCard({
+  icon,
+  title,
+  description,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="glass-card p-6 text-center space-y-3">
+      <div className="w-12 h-12 rounded-full bg-accent/15 text-accent flex items-center justify-center mx-auto">
+        {icon}
+      </div>
+      <h3 className="font-display font-semibold text-lg">{title}</h3>
+      <p className="text-sm text-muted-foreground leading-relaxed">
+        {description}
+      </p>
+    </div>
+  );
+}
+</file>
+
+<file path="app/mentions-legales/layout.tsx">
+// app/mentions-legales/layout.tsx
+import type { Metadata } from "next";
+import { SITE_NAME } from "@/lib/constants";
+
+export const metadata: Metadata = {
+  title: `Mentions légales | ${SITE_NAME}`,
+  robots: { index: true, follow: true },
+};
+
+export default function MentionsLegalesLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return <>{children}</>;
+}
+</file>
+
+<file path="app/mentions-legales/page.tsx">
+// app/mentions-legales/page.tsx
+import type { Metadata } from "next";
+import { SITE_NAME, SITE_URL } from "@/lib/constants";
+import { getPageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = getPageMetadata({
+  title: "Mentions légales & CGU",
+  description: `Mentions légales, conditions générales d'utilisation et politique de confidentialité de ${SITE_NAME}.`,
+  path: "/mentions-legales",
+  noIndex: false, // On indexe cette page (utile pour la transparence)
+});
+
+export default function MentionsLegalesPage() {
+  const lastUpdate = "10 avril 2026";
+
+  return (
+    <div className="max-w-3xl mx-auto py-8 space-y-10 animate-fade-in">
+      <header className="space-y-2">
+        <h1 className="font-display font-bold text-4xl">
+          Mentions légales & CGU
+        </h1>
+        <p className="text-muted-foreground">
+          Dernière mise à jour : {lastUpdate}
+        </p>
+      </header>
+
+      {/* Section 1 : Éditeur du site */}
+      <Section title="1. Éditeur du site">
+        <p>
+          <strong>{SITE_NAME}</strong> est édité par :
+        </p>
+        <ul className="list-disc list-inside space-y-1">
+          <li>
+            <strong>Nom du responsable :</strong> Khaled LARIBI
+          </li>
+          <li>
+            <strong>Adresse :</strong> [Votre adresse complète]
+          </li>
+          <li>
+            <strong>Email :</strong>{" "}
+            <a
+              href="mailto:laribi.khaled69150@gmail.com"
+              className="text-accent hover:underline"
+            >
+              laribi.khaled69150@gmail.com
+            </a>
+          </li>
+          <li>
+            <strong>Numéro de téléphone :</strong> [Votre numéro]
+          </li>
+          <li>
+            <strong>Numéro SIRET :</strong> [Votre SIRET si applicable]
+          </li>
+        </ul>
+      </Section>
+
+      {/* Section 2 : Hébergeur */}
+      <Section title="2. Hébergement">
+        <p>
+          Le site <strong>{SITE_NAME}</strong> est hébergé par :
+        </p>
+        <ul className="list-disc list-inside space-y-1">
+          <li>
+            <strong>Vercel Inc.</strong>
+          </li>
+          <li>340 S Lemon Ave #4133, Walnut, CA 91789, USA</li>
+          <li>
+            <a
+              href="https://vercel.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-accent hover:underline"
+            >
+              vercel.com
+            </a>
+          </li>
+        </ul>
+      </Section>
+
+      {/* Section 3 : Propriété intellectuelle */}
+      <Section title="3. Propriété intellectuelle">
+        <p>
+          L&apos;ensemble du code source, du design, des logos et des contenus
+          éditoriaux (hors recettes soumises par les utilisateurs) est la
+          propriété exclusive de l&apos;éditeur et est protégé par les lois
+          françaises et internationales relatives à la propriété intellectuelle.
+        </p>
+        <p className="mt-2">
+          Toute reproduction, distribution ou modification, même partielle, est
+          strictement interdite sans autorisation écrite préalable.
+        </p>
+        <p className="mt-2">
+          Les recettes soumises par les utilisateurs restent leur propriété,
+          mais leur publication sur {SITE_NAME} confère au site une licence non
+          exclusive de diffusion.
+        </p>
+      </Section>
+
+      {/* Section 4 : Conditions Générales d'Utilisation */}
+      <Section title="4. Conditions Générales d'Utilisation (CGU)">
+        <p>
+          L&apos;utilisation du site {SITE_NAME} implique l&apos;acceptation
+          pleine et entière des conditions générales d&apos;utilisation décrites
+          ci-dessous.
+        </p>
+
+        <SubSection title="4.1 Accès au site">
+          Le site est accessible gratuitement à tout utilisateur disposant
+          d&apos;un accès à Internet. Tous les coûts afférents à l&apos;accès au
+          site (matériel, logiciel, connexion) sont à la charge exclusive de
+          l&apos;utilisateur.
+        </SubSection>
+
+        <SubSection title="4.2 Compte utilisateur">
+          La création d&apos;un compte est nécessaire pour accéder à certaines
+          fonctionnalités (favoris, commentaires, soumission de recettes).
+          L&apos;utilisateur est responsable de la confidentialité de ses
+          identifiants et s&apos;engage à fournir des informations exactes.
+        </SubSection>
+
+        <SubSection title="4.3 Contenu utilisateur">
+          En soumettant une recette ou un commentaire, l&apos;utilisateur
+          garantit qu&apos;il détient les droits nécessaires et autorise{" "}
+          {SITE_NAME} à publier, modifier et diffuser ce contenu sur le site et
+          ses réseaux sociaux. {SITE_NAME} se réserve le droit de modérer ou de
+          refuser tout contenu sans préavis.
+        </SubSection>
+
+        <SubSection title="4.4 Limitation de responsabilité">
+          Les recettes et conseils présents sur {SITE_NAME} sont fournis à titre
+          informatif. L&apos;utilisateur est seul responsable de
+          l&apos;utilisation qu&apos;il en fait, notamment en ce qui concerne
+          les allergies, les régimes spécifiques ou l&apos;utilisation des
+          robots de cuisine. {SITE_NAME} ne pourra être tenu responsable des
+          dommages directs ou indirects résultant de l&apos;utilisation du site.
+        </SubSection>
+
+        <SubSection title="4.5 Liens hypertextes">
+          Le site peut contenir des liens vers d&apos;autres sites web.{" "}
+          {SITE_NAME} n&apos;exerce aucun contrôle sur ces sites et décline
+          toute responsabilité quant à leur contenu.
+        </SubSection>
+      </Section>
+
+      {/* Section 5 : Données personnelles */}
+      <Section title="5. Données personnelles et cookies">
+        <p>
+          Conformément au Règlement Général sur la Protection des Données (RGPD)
+          et à la loi Informatique et Libertés, vous disposez d&apos;un droit
+          d&apos;accès, de rectification et de suppression de vos données
+          personnelles. Pour l&apos;exercer, contactez-nous à l&apos;adresse
+          email indiquée ci-dessus.
+        </p>
+        <p className="mt-2">
+          Le site utilise des cookies strictement nécessaires à son
+          fonctionnement (authentification, préférences de thème). Aucun cookie
+          publicitaire n&apos;est déposé sans votre consentement.
+        </p>
+      </Section>
+
+      {/* Section 6 : Droit applicable */}
+      <Section title="6. Droit applicable">
+        <p>
+          Les présentes mentions légales et CGU sont régies par le droit
+          français. En cas de litige, les tribunaux français seront seuls
+          compétents.
+        </p>
+      </Section>
+    </div>
+  );
+}
+
+// Composants auxiliaires pour une mise en page cohérente
+function Section({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="glass-card p-6 space-y-3">
+      <h2 className="font-display font-bold text-xl text-accent">{title}</h2>
+      <div className="text-muted-foreground leading-relaxed space-y-2">
+        {children}
+      </div>
+    </section>
+  );
+}
+
+function SubSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="mt-4">
+      <h3 className="font-semibold text-foreground mb-1">{title}</h3>
+      <div className="text-muted-foreground leading-relaxed">{children}</div>
+    </div>
+  );
+}
+</file>
 
 <file path="app/actions/favoris.ts">
 "use server";
@@ -1912,985 +2290,6 @@ export default function SoumettreLayout({ children }: { children: React.ReactNod
 }
 </file>
 
-<file path="app/soumettre/page.tsx">
-"use client";
-
-import { useState, useRef } from "react";
-import { useRouter } from "next/navigation";
-import { useForm, useFieldArray, SubmitHandler } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  Plus,
-  Trash2,
-  Upload,
-  Image as ImageIcon,
-  Loader2,
-  Check,
-  AlertCircle,
-  Send,
-  Clock,
-  Thermometer,
-  Gauge,
-  Wrench,
-  Lightbulb,
-  RotateCcw,
-  ChevronUp,
-  ChevronDown,
-  Zap,
-} from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
-import {
-  CATEGORIES,
-  REGIMES,
-  MODELES_THERMOMIX,
-  DIFFICULTES,
-  INGREDIENT_CATEGORIES,
-  MAX_IMAGE_SIZE_MB,
-} from "@/lib/constants";
-import {
-  VITESSES_BASE,
-  ACCESSOIRES_TM,
-  TURBO_DUREES,
-  getTemperaturesForModels,
-  getModesForModels,
-  formatVitesse,
-  formatTimeMMSS,
-} from "@/lib/thermomix-specs";
-import { cn } from "@/lib/utils";
-import Link from "next/link";
-import ApplianceSelector from "@/components/ui/ApplianceSelector";
-import { soumettreRecette } from "@/app/actions/recettes";
-import { recetteSchema, type RecetteFormData } from "@/lib/validation";
-import ImageUploader from "@/components/ui/ImageUploader";
-
-const UNITES = [
-  "g",
-  "kg",
-  "ml",
-  "l",
-  "c. à café",
-  "c. à soupe",
-  "pièce",
-  "pincée",
-  "tranche",
-  "feuille",
-  "gousse",
-  "brin",
-  "sachet",
-  "boîte",
-  "verre",
-];
-const NUTRI_OPTIONS = ["", "A", "B", "C", "D", "E"];
-
-export default function SoumettrePage() {
-  const { user, loading: authLoading } = useAuth();
-  const router = useRouter();
-
-  // Multi‑étapes
-  const [step, setStep] = useState(1);
-  const STEPS = 5;
-
-  // React Hook Form
-  const {
-    register,
-    control,
-    handleSubmit,
-    watch,
-    setValue,
-    trigger,
-    formState: { errors, isSubmitting },
-  } = useForm<RecetteFormData>({
-    resolver: zodResolver(recetteSchema),
-    defaultValues: {
-      titre: "",
-      description: "",
-      image_url: null,
-      video_youtube_id: null,
-      temps_preparation: 15,
-      temps_cuisson: 20,
-      difficulte: "facile",
-      nombre_portions: 4,
-      modele_thermomix: ["TM6", "TM7"],
-      categories: ["plat"],
-      regime: [],
-      tags: [], // ← obligatoire
-      calories_par_portion: null,
-      nutriscore: null,
-      nutriscore_note: null,
-      ingredients: [
-        { nom: "", quantite: 0, unite: "g", categorie: "Épicerie" },
-      ],
-      etapes: [
-        {
-          instruction: "",
-          vitesse: "",
-          turboDuree: "1s",
-          temperature: "",
-          dureeMin: 0,
-          dureeSec: 0,
-          accessoire: "",
-          sensInverse: false,
-          modeSpecial: "",
-          conseil: "",
-        },
-      ],
-      faq: null, // ← obligatoire
-    },
-  });
-
-  // Tableaux dynamiques
-  const {
-    fields: ingredientFields,
-    append: addIngredient,
-    remove: removeIngredient,
-  } = useFieldArray({ control, name: "ingredients" });
-  const {
-    fields: etapeFields,
-    append: addEtape,
-    remove: removeEtape,
-  } = useFieldArray({ control, name: "etapes" });
-  const {
-    fields: faqFields,
-    append: addFaq,
-    remove: removeFaq,
-  } = useFieldArray({ control, name: "faq" });
-
-  // Valeurs surveillées
-  const modeles = watch("modele_thermomix");
-  const cats = watch("categories");
-  const regimes = watch("regime");
-
-  // Helper toggle pour les boutons multi‑sélection
-  const toggleArray = (
-    arr: string[],
-    value: string,
-    onChange: (val: string[]) => void,
-  ) => {
-    if (arr.includes(value)) onChange(arr.filter((v) => v !== value));
-    else onChange([...arr, value]);
-  };
-
-  // Navigation avec validation partielle
-  const nextStep = async () => {
-    let fieldsToValidate: (keyof RecetteFormData)[] = [];
-    if (step === 1)
-      fieldsToValidate = [
-        "titre",
-        "description",
-        "modele_thermomix",
-        "categories",
-      ];
-    if (step === 2) fieldsToValidate = ["ingredients"];
-    if (step === 3) fieldsToValidate = ["etapes"];
-    const isValid = await trigger(fieldsToValidate);
-    if (isValid) setStep(step + 1);
-  };
-
-  // Soumission finale
-  const [submitError, setSubmitError] = useState("");
-  const [success, setSuccess] = useState(false);
-
-  const onSubmit: SubmitHandler<RecetteFormData> = async (data) => {
-    setSubmitError("");
-    try {
-      // Plus de gestion manuelle de l'image : elle est déjà dans data.image_url via ImageUploader
-      const payload = { ...data };
-      await soumettreRecette(payload);
-      setSuccess(true);
-    } catch (err: any) {
-      setSubmitError(err.message || "Erreur inconnue");
-    }
-  };
-
-  // États de chargement / non connecté
-  if (authLoading) {
-    return (
-      <div className="max-w-3xl mx-auto px-4 py-12">
-        <div className="skeleton h-12 w-3/4 mb-8 rounded-xl" />
-        <div className="space-y-6">
-          <div className="skeleton h-32 w-full rounded-2xl" />
-          <div className="skeleton h-64 w-full rounded-2xl" />
-        </div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return (
-      <div className="text-center py-20 space-y-6 max-w-md mx-auto px-4">
-        <div className="w-20 h-20 bg-accent/10 rounded-full flex items-center justify-center mx-auto">
-          <Plus className="w-10 h-10 text-accent" />
-        </div>
-        <h1 className="font-display font-bold text-3xl">
-          Proposer une recette
-        </h1>
-        <p className="text-muted-foreground">
-          Connectez-vous pour partager vos créations.
-        </p>
-        <Link
-          href="/connexion?next=/soumettre"
-          className="inline-flex px-8 py-4 rounded-2xl bg-accent text-black font-bold hover:bg-accent-hover transition-all"
-        >
-          Se connecter
-        </Link>
-      </div>
-    );
-  }
-
-  if (success) {
-    return (
-      <div className="max-w-xl mx-auto text-center py-20 space-y-6">
-        <div className="w-20 h-20 rounded-full bg-sage/15 flex items-center justify-center mx-auto">
-          <Check className="w-10 h-10 text-sage" />
-        </div>
-        <h1 className="font-display font-bold text-2xl">Recette soumise !</h1>
-        <p className="text-muted-foreground">
-          Votre recette sera examinée avant publication. Suivez son statut dans
-          votre{" "}
-          <Link href="/profil" className="text-accent hover:underline">
-            profil
-          </Link>
-          .
-        </p>
-        <div className="flex gap-3 justify-center">
-          <Link
-            href="/profil"
-            className="px-6 py-3 rounded-xl bg-accent text-black font-medium"
-          >
-            Mon profil
-          </Link>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-6 py-3 rounded-xl border border-border hover:bg-card-hover"
-          >
-            Nouvelle recette
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // Données dynamiques pour les étapes
-  const availTemps = getTemperaturesForModels(modeles);
-  const availModes = getModesForModels(modeles);
-
-  return (
-    <div className="max-w-3xl mx-auto space-y-8">
-      <div className="text-center space-y-2">
-        <h1 className="font-display font-bold text-3xl">Créer une recette</h1>
-        <p className="text-muted-foreground">
-          Partagez vos créations. Chaque recette est vérifiée.
-        </p>
-      </div>
-
-      {/* Progress bar */}
-      <div className="space-y-2">
-        <div className="flex justify-between text-xs text-muted-foreground">
-          <span>
-            Étape {step}/{STEPS}
-          </span>
-          <span>
-            {
-              [
-                "Informations",
-                "Ingrédients",
-                "Préparation",
-                "Médias & FAQ",
-                "Résumé",
-              ][step - 1]
-            }
-          </span>
-        </div>
-        <div className="h-2 bg-card rounded-full overflow-hidden">
-          <div
-            className="h-full bg-accent rounded-full transition-all duration-500"
-            style={{ width: `${(step / STEPS) * 100}%` }}
-          />
-        </div>
-      </div>
-
-      <form onSubmit={handleSubmit(onSubmit)}>
-        {/* ÉTAPE 1 */}
-        {step === 1 && (
-          <div className="glass-card p-6 space-y-6 animate-fade-in">
-            <h2 className="font-display font-bold text-xl flex items-center gap-3">
-              <span className="w-8 h-8 rounded-full bg-accent/15 text-accent text-sm flex items-center justify-center">
-                1
-              </span>
-              Informations générales
-            </h2>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Titre *</label>
-              <input
-                {...register("titre")}
-                placeholder="Velouté de butternut..."
-                className="input-field"
-              />
-              {errors.titre && (
-                <p className="text-xs text-error">{errors.titre.message}</p>
-              )}
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Description *</label>
-              <textarea
-                {...register("description")}
-                rows={3}
-                className="input-field resize-none"
-              />
-              {errors.description && (
-                <p className="text-xs text-error">
-                  {errors.description.message}
-                </p>
-              )}
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium">Difficulté</label>
-                <select {...register("difficulte")} className="input-field">
-                  {DIFFICULTES.map((d) => (
-                    <option key={d.value} value={d.value}>
-                      {d.emoji} {d.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium">Prépa (min)</label>
-                <input
-                  type="number"
-                  {...register("temps_preparation", { valueAsNumber: true })}
-                  className="input-field"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium">Cuisson (min)</label>
-                <input
-                  type="number"
-                  {...register("temps_cuisson", { valueAsNumber: true })}
-                  className="input-field"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium">Portions</label>
-                <input
-                  type="number"
-                  {...register("nombre_portions", { valueAsNumber: true })}
-                  className="input-field"
-                />
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">
-                Appareils compatibles *
-              </label>
-              <ApplianceSelector
-                selected={modeles}
-                onChange={(val) => setValue("modele_thermomix", val)}
-                max={4}
-              />
-              {errors.modele_thermomix && (
-                <p className="text-xs text-error">
-                  {errors.modele_thermomix.message}
-                </p>
-              )}
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Catégories *</label>
-              <div className="flex flex-wrap gap-2">
-                {CATEGORIES.map((c) => (
-                  <button
-                    type="button"
-                    key={c.value}
-                    onClick={() =>
-                      toggleArray(cats, c.value, (val) =>
-                        setValue("categories", val),
-                      )
-                    }
-                    className={cn(
-                      "px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
-                      cats.includes(c.value)
-                        ? "bg-accent text-black"
-                        : "bg-card border border-border",
-                    )}
-                  >
-                    {c.label}
-                  </button>
-                ))}
-              </div>
-              {errors.categories && (
-                <p className="text-xs text-error">
-                  {errors.categories.message}
-                </p>
-              )}
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">
-                Régimes alimentaires
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {REGIMES.map((r) => (
-                  <button
-                    type="button"
-                    key={r.value}
-                    onClick={() =>
-                      toggleArray(regimes, r.value, (val) =>
-                        setValue("regime", val),
-                      )
-                    }
-                    className={cn(
-                      "px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
-                      regimes.includes(r.value)
-                        ? "bg-[#7A9E7E] text-white"
-                        : "bg-card border border-border",
-                    )}
-                  >
-                    {r.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">
-                Tags (séparés par des virgules)
-              </label>
-              <input
-                {...register("tags")}
-                placeholder="rapide, automne, familial"
-                className="input-field"
-              />
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium">Nutri-Score</label>
-                <select {...register("nutriscore")} className="input-field">
-                  {NUTRI_OPTIONS.map((n) => (
-                    <option key={n} value={n}>
-                      {n || "—"}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium">
-                  Calories / portion
-                </label>
-                <input
-                  type="number"
-                  {...register("calories_par_portion", { valueAsNumber: true })}
-                  className="input-field"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium">Note Nutri-Score</label>
-                <input
-                  {...register("nutriscore_note")}
-                  placeholder="Estimation..."
-                  className="input-field"
-                />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ÉTAPE 2 : Ingrédients */}
-        {step === 2 && (
-          <div className="glass-card p-6 space-y-6 animate-fade-in">
-            <h2 className="font-display font-bold text-xl flex items-center gap-3">
-              <span className="w-8 h-8 rounded-full bg-accent/15 text-accent text-sm flex items-center justify-center">
-                2
-              </span>
-              Ingrédients
-            </h2>
-            <div className="space-y-3">
-              {ingredientFields.map((field, idx) => (
-                <div key={field.id} className="flex gap-2 items-start">
-                  <span className="text-xs text-muted-foreground pt-3 w-5 text-right">
-                    {idx + 1}.
-                  </span>
-                  <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    <input
-                      {...register(`ingredients.${idx}.nom`)}
-                      placeholder="Ingrédient"
-                      className="input-field col-span-2 sm:col-span-1"
-                    />
-                    <input
-                      type="number"
-                      {...register(`ingredients.${idx}.quantite`, {
-                        valueAsNumber: true,
-                      })}
-                      placeholder="Qté"
-                      className="input-field"
-                    />
-                    <select
-                      {...register(`ingredients.${idx}.unite`)}
-                      className="input-field"
-                    >
-                      {UNITES.map((u) => (
-                        <option key={u} value={u}>
-                          {u}
-                        </option>
-                      ))}
-                    </select>
-                    <select
-                      {...register(`ingredients.${idx}.categorie`)}
-                      className="input-field"
-                    >
-                      {INGREDIENT_CATEGORIES.map((c) => (
-                        <option key={c} value={c}>
-                          {c}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => removeIngredient(idx)}
-                    disabled={ingredientFields.length === 1}
-                    className="p-2 text-muted-foreground hover:text-error disabled:opacity-30"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
-              <button
-                type="button"
-                onClick={() =>
-                  addIngredient({
-                    nom: "",
-                    quantite: 0,
-                    unite: "g",
-                    categorie: "Épicerie",
-                  })
-                }
-                className="flex items-center gap-2 text-sm text-accent hover:underline"
-              >
-                <Plus className="w-4 h-4" /> Ajouter un ingrédient
-              </button>
-              {errors.ingredients && (
-                <p className="text-xs text-error">
-                  {errors.ingredients.message}
-                </p>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* ÉTAPE 3 : Étapes */}
-        {step === 3 && (
-          <div className="glass-card p-6 space-y-6 animate-fade-in">
-            <h2 className="font-display font-bold text-xl flex items-center gap-3">
-              <span className="w-8 h-8 rounded-full bg-accent/15 text-accent text-sm flex items-center justify-center">
-                3
-              </span>
-              Étapes de préparation
-            </h2>
-            <div className="space-y-6">
-              {etapeFields.map((field, idx) => {
-                const vitesse = watch(`etapes.${idx}.vitesse`);
-                return (
-                  <div
-                    key={field.id}
-                    className="p-4 rounded-xl bg-card/50 border border-border space-y-4"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-display font-bold text-sm text-accent">
-                        Étape {idx + 1}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => removeEtape(idx)}
-                        disabled={etapeFields.length === 1}
-                        className="text-muted-foreground hover:text-error"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                    <textarea
-                      {...register(`etapes.${idx}.instruction`)}
-                      rows={2}
-                      placeholder="Décrivez cette étape..."
-                      className="input-field resize-none"
-                    />
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                      <div className="space-y-1">
-                        <label className="text-xs">Vitesse</label>
-                        <select
-                          {...register(`etapes.${idx}.vitesse`)}
-                          className="input-field text-xs"
-                        >
-                          <option value="">—</option>
-                          {VITESSES_BASE.map((v) => (
-                            <option key={String(v)} value={String(v)}>
-                              {formatVitesse(v)}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      {vitesse === "Turbo" && (
-                        <div className="space-y-1">
-                          <label className="text-xs">Durée Turbo</label>
-                          <select
-                            {...register(`etapes.${idx}.turboDuree`)}
-                            className="input-field text-xs"
-                          >
-                            {TURBO_DUREES.map((d) => (
-                              <option key={d} value={d}>
-                                {d}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                      )}
-                      <div className="space-y-1">
-                        <label className="text-xs">Température</label>
-                        <select
-                          {...register(`etapes.${idx}.temperature`)}
-                          className="input-field text-xs"
-                        >
-                          <option value="">—</option>
-                          {availTemps.map((t) => (
-                            <option key={String(t)} value={String(t)}>
-                              {typeof t === "number" ? `${t}°C` : t}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-xs">Accessoire</label>
-                        <select
-                          {...register(`etapes.${idx}.accessoire`)}
-                          className="input-field text-xs"
-                        >
-                          <option value="">—</option>
-                          {ACCESSOIRES_TM.map((a) => (
-                            <option key={a} value={a}>
-                              {a}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      {availModes.length > 0 && (
-                        <div className="space-y-1">
-                          <label className="text-xs">Mode spécial</label>
-                          <select
-                            {...register(`etapes.${idx}.modeSpecial`)}
-                            className="input-field text-xs"
-                          >
-                            <option value="">—</option>
-                            {availModes.map((m) => (
-                              <option key={m} value={m}>
-                                {m}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                      )}
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs">Durée (min:sec)</label>
-                      <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-1">
-                          <TimePicker
-                            value={watch(`etapes.${idx}.dureeMin`)}
-                            onChange={(v) =>
-                              setValue(`etapes.${idx}.dureeMin`, v)
-                            }
-                            min={0}
-                            max={99}
-                            label="min"
-                          />
-                          <span className="text-lg font-bold text-muted-foreground">
-                            :
-                          </span>
-                          <TimePicker
-                            value={watch(`etapes.${idx}.dureeSec`)}
-                            onChange={(v) =>
-                              setValue(`etapes.${idx}.dureeSec`, v)
-                            }
-                            min={0}
-                            max={59}
-                            label="sec"
-                          />
-                        </div>
-                        <span className="text-xs text-muted-foreground">
-                          ={" "}
-                          {formatTimeMMSS(
-                            watch(`etapes.${idx}.dureeMin`) * 60 +
-                              watch(`etapes.${idx}.dureeSec`),
-                          )}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setValue(
-                            `etapes.${idx}.sensInverse`,
-                            !watch(`etapes.${idx}.sensInverse`),
-                          )
-                        }
-                        className={cn(
-                          "flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all border",
-                          watch(`etapes.${idx}.sensInverse`)
-                            ? "bg-accent/15 text-accent border-accent/30"
-                            : "bg-card border-border text-muted-foreground",
-                        )}
-                      >
-                        <RotateCcw className="w-3.5 h-3.5" /> Sens inverse
-                      </button>
-                    </div>
-                    <input
-                      {...register(`etapes.${idx}.conseil`)}
-                      placeholder="Conseil / astuce (optionnel)"
-                      className="input-field text-xs"
-                    />
-                  </div>
-                );
-              })}
-              <button
-                type="button"
-                onClick={() =>
-                  addEtape({
-                    instruction: "",
-                    vitesse: "",
-                    turboDuree: "1s",
-                    temperature: "",
-                    dureeMin: 0,
-                    dureeSec: 0,
-                    accessoire: "",
-                    sensInverse: false,
-                    modeSpecial: "",
-                    conseil: "",
-                  })
-                }
-                className="flex items-center gap-2 text-sm text-accent hover:underline"
-              >
-                <Plus className="w-4 h-4" /> Ajouter une étape
-              </button>
-              {errors.etapes && (
-                <p className="text-xs text-error">{errors.etapes.message}</p>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* ÉTAPE 4 : Médias & FAQ */}
-        {step === 4 && (
-          <div className="glass-card p-6 space-y-8 animate-fade-in">
-            <h2 className="font-display font-bold text-xl flex items-center gap-3">
-              <span className="w-8 h-8 rounded-full bg-accent/15 text-accent text-sm flex items-center justify-center">
-                4
-              </span>
-              Photo, vidéo & FAQ
-            </h2>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Photo du plat</label>
-              <ImageUploader
-                onImageUploaded={(url) => setValue("image_url", url)}
-                existingImageUrl={watch("image_url")}
-                aspect={16 / 9}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Vidéo YouTube (ID)</label>
-              <input
-                {...register("video_youtube_id")}
-                placeholder="dQw4w9WgXcQ"
-                className="input-field"
-              />
-            </div>
-            <div className="space-y-4">
-              <label className="text-sm font-medium">
-                Questions fréquentes
-              </label>
-              {faqFields.map((field, idx) => (
-                <div
-                  key={field.id}
-                  className="p-4 rounded-xl bg-card/50 border border-border space-y-2"
-                >
-                  <div className="flex justify-between">
-                    <span className="text-xs text-accent">
-                      Question {idx + 1}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => removeFaq(idx)}
-                      className="text-muted-foreground hover:text-error"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                  <input
-                    {...register(`faq.${idx}.question`)}
-                    placeholder="Question..."
-                    className="input-field text-sm"
-                  />
-                  <textarea
-                    {...register(`faq.${idx}.reponse`)}
-                    rows={2}
-                    placeholder="Réponse..."
-                    className="input-field text-sm resize-none"
-                  />
-                </div>
-              ))}
-              <button
-                type="button"
-                onClick={() => addFaq({ question: "", reponse: "" })}
-                className="flex items-center gap-2 text-sm text-accent hover:underline"
-              >
-                <Plus className="w-4 h-4" /> Ajouter une question
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ÉTAPE 5 : Résumé */}
-        {step === 5 && (
-          <div className="glass-card p-6 space-y-6 animate-fade-in">
-            <h2 className="font-display font-bold text-xl flex items-center gap-3">
-              <span className="w-8 h-8 rounded-full bg-accent/15 text-accent text-sm flex items-center justify-center">
-                5
-              </span>
-              Résumé et envoi
-            </h2>
-            <div className="space-y-3">
-              <Row l="Titre" v={watch("titre")} />
-              <Row l="Difficulté" v={watch("difficulte")} />
-              <Row
-                l="Temps total"
-                v={`${(watch("temps_preparation") || 0) + (watch("temps_cuisson") || 0)} min`}
-              />
-              <Row l="Portions" v={String(watch("nombre_portions"))} />
-              <Row l="Modèles" v={watch("modele_thermomix").join(", ")} />
-              <Row l="Catégories" v={watch("categories").join(", ")} />
-              {watch("regime").length > 0 && (
-                <Row l="Régimes" v={watch("regime").join(", ")} />
-              )}
-              <Row
-                l="Ingrédients"
-                v={String(watch("ingredients").filter((i) => i.nom).length)}
-              />
-              <Row
-                l="Étapes"
-                v={String(watch("etapes").filter((e) => e.instruction).length)}
-              />
-              <Row l="Photo" v={watch("image_url") ? "✅ Oui" : "Non"} />{" "}
-              {watch("faq") && watch("faq")!.length > 0 && (
-                <Row l="FAQ" v={`${watch("faq")!.length} question(s)`} />
-              )}
-            </div>
-            <div className="p-4 rounded-xl bg-accent/10 border border-accent/20">
-              <p className="text-sm font-medium text-accent flex items-center gap-2">
-                <AlertCircle className="w-4 h-4" /> Modération obligatoire
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Votre recette sera examinée avant publication.
-              </p>
-            </div>
-            {submitError && (
-              <div className="p-4 rounded-xl bg-error/10 border border-error/20 text-sm text-error">
-                {submitError}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Navigation */}
-        <div className="flex items-center justify-between pt-8 pb-8">
-          <button
-            type="button"
-            onClick={() => setStep(Math.max(1, step - 1))}
-            disabled={step === 1}
-            className="px-6 py-3 rounded-xl border border-border text-sm hover:bg-card-hover disabled:opacity-30"
-          >
-            Précédent
-          </button>
-          {step < STEPS ? (
-            <button
-              type="button"
-              onClick={nextStep}
-              className="px-6 py-3 rounded-xl bg-accent text-black font-medium text-sm hover:bg-accent-hover"
-            >
-              Suivant
-            </button>
-          ) : (
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="flex items-center gap-2 px-8 py-3 rounded-xl bg-accent text-black font-display font-bold text-sm hover:bg-accent-hover disabled:opacity-50"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" /> Envoi...
-                </>
-              ) : (
-                <>
-                  <Send className="w-4 h-4" /> Soumettre
-                </>
-              )}
-            </button>
-          )}
-        </div>
-      </form>
-    </div>
-  );
-}
-
-// Composants auxiliaires
-function Row({ l, v }: { l: string; v: string }) {
-  return (
-    <div className="flex items-center justify-between py-2 border-b border-border last:border-0">
-      <span className="text-sm text-muted-foreground">{l}</span>
-      <span className="text-sm font-medium">{v}</span>
-    </div>
-  );
-}
-
-function TimePicker({
-  value,
-  onChange,
-  min,
-  max,
-  label,
-}: {
-  value: number;
-  onChange: (v: number) => void;
-  min: number;
-  max: number;
-  label: string;
-}) {
-  const inc = () => onChange(Math.min(max, value + 1));
-  const dec = () => onChange(Math.max(min, value - 1));
-  return (
-    <div className="flex flex-col items-center gap-0.5">
-      <button
-        type="button"
-        onClick={inc}
-        className="p-1 rounded-md hover:bg-card-hover text-muted-foreground hover:text-accent"
-      >
-        <ChevronUp className="w-4 h-4" />
-      </button>
-      <div className="w-12 text-center">
-        <span className="text-lg font-display font-bold tabular-nums">
-          {value.toString().padStart(2, "0")}
-        </span>
-        <span className="text-[9px] text-muted-foreground block -mt-1">
-          {label}
-        </span>
-      </div>
-      <button
-        type="button"
-        onClick={dec}
-        className="p-1 rounded-md hover:bg-card-hover text-muted-foreground hover:text-accent"
-      >
-        <ChevronDown className="w-4 h-4" />
-      </button>
-    </div>
-  );
-}
-</file>
-
 <file path="app/error.tsx">
 "use client";
 
@@ -3624,6 +3023,19 @@ export default async function sitemap({
             changeFrequency: "daily" as const,
             priority: 0.9,
           },
+          // Ajouts
+          {
+            url: `${SITE_URL}/a-propos`,
+            lastModified: now,
+            changeFrequency: "monthly" as const,
+            priority: 0.7,
+          },
+          {
+            url: `${SITE_URL}/mentions-legales`,
+            lastModified: now,
+            changeFrequency: "yearly" as const,
+            priority: 0.5,
+          },
           ...CATEGORIES.map((cat) => ({
             url: `${SITE_URL}/recettes/${cat.value}`,
             lastModified: now,
@@ -3699,7 +3111,8 @@ export default function Footer() {
   return (
     <footer className="border-t border-border mt-16 pb-20 md:pb-0 no-print">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
+          {" "}
           {/* Brand */}
           <div className="md:col-span-1">
             <Link
@@ -3714,7 +3127,6 @@ export default function Footer() {
               Simulateur intégré, planificateur de repas.
             </p>
           </div>
-
           {/* Recettes */}
           <div>
             <h3 className="font-display font-semibold text-sm uppercase tracking-wider mb-4 text-muted-foreground">
@@ -3741,7 +3153,6 @@ export default function Footer() {
               ))}
             </ul>
           </div>
-
           {/* Navigation */}
           <div>
             <h3 className="font-display font-semibold text-sm uppercase tracking-wider mb-4 text-muted-foreground">
@@ -3765,7 +3176,30 @@ export default function Footer() {
               ))}
             </ul>
           </div>
-
+          {/* Informations légales */}
+          <div>
+            <h3 className="font-display font-semibold text-sm uppercase tracking-wider mb-4 text-muted-foreground">
+              Informations
+            </h3>
+            <ul className="space-y-2">
+              <li>
+                <Link
+                  href="/a-propos"
+                  className="text-sm text-muted-foreground hover:text-accent transition-colors"
+                >
+                  À propos
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/mentions-legales"
+                  className="text-sm text-muted-foreground hover:text-accent transition-colors"
+                >
+                  Mentions légales / CGU
+                </Link>
+              </li>
+            </ul>
+          </div>
           {/* Modèles */}
           <div>
             <h3 className="font-display font-semibold text-sm uppercase tracking-wider mb-4 text-muted-foreground">
@@ -3841,6 +3275,7 @@ import {
   PlusCircle,
   Heart,
   Calendar,
+  Info,
 } from "lucide-react";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 import Logo from "@/components/ui/Logo";
@@ -3854,6 +3289,7 @@ const NAV_LINKS = [
   { href: "/planificateur", label: "Planning", icon: Calendar }, // <--- AJOUTE CETTE LIGNE
   { href: "/soumettre", label: "Proposer", icon: PlusCircle },
   { href: "/favoris", label: "Favoris", icon: Heart },
+  { href: "/a-propos", label: "À propos", icon: Info },
 ];
 
 export default function Navbar() {
@@ -3917,7 +3353,7 @@ export default function Navbar() {
   return (
     <header
       className={cn(
-        "sticky top-0 z-50 glass border-b border-border transition-transform duration-300",
+        "sticky top-0 z-50 bg-background/99 backdrop-blur-[1px] border-b border-border transition-transform duration-300",
         visible ? "translate-y-0" : "-translate-y-full",
       )}
     >
@@ -3940,10 +3376,10 @@ export default function Navbar() {
                 key={link.href}
                 href={link.href}
                 className={cn(
-                  "px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                  "px-3 py-2 rounded-lg text-sm font-medium transition-all",
                   isActive(link.href)
-                    ? "bg-accent/10 text-accent"
-                    : "text-foreground/60 hover:text-foreground hover:bg-card-hover",
+                    ? "bg-accent/15 text-accent shadow-sm shadow-accent/10"
+                    : "bg-background/15 text-foreground/80 hover:text-foreground hover:bg-background/25 backdrop-blur-sm",
                 )}
               >
                 {link.label}
@@ -4075,10 +3511,10 @@ export default function Navbar() {
                 href={link.href}
                 onClick={() => setMobileOpen(false)}
                 className={cn(
-                  "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors",
+                  "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all",
                   isActive(link.href)
-                    ? "bg-accent/10 text-accent"
-                    : "text-foreground/60 hover:text-foreground hover:bg-card-hover",
+                    ? "bg-accent/15 text-accent shadow-sm shadow-accent/10"
+                    : "bg-background/15 text-foreground/80 hover:text-foreground hover:bg-background/25 backdrop-blur-sm",
                 )}
               >
                 <link.icon className="w-4 h-4" />
@@ -4089,7 +3525,12 @@ export default function Navbar() {
               <Link
                 href="/admin"
                 onClick={() => setMobileOpen(false)}
-                className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold text-accent hover:bg-accent/10 transition-colors"
+                className={cn(
+                  "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold transition-all",
+                  isActive("/admin")
+                    ? "bg-accent/15 text-accent shadow-sm shadow-accent/10"
+                    : "bg-background/15 text-accent/80 hover:text-accent hover:bg-background/25 backdrop-blur-sm",
+                )}
               >
                 <Shield className="w-4 h-4" /> Administration
               </Link>
@@ -5025,212 +4466,6 @@ export default function Badge({
 }
 </file>
 
-<file path="components/ui/ImageUploader.tsx">
-"use client";
-
-import { useState, useRef, useCallback } from "react";
-import Image from "next/image";
-import ReactCrop, { type Crop, type PixelCrop } from "react-image-crop";
-import "react-image-crop/dist/ReactCrop.css";
-import { Upload, X, Loader2, Crop as CropIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { uploadImage } from "@/app/actions/upload";
-import imageCompression from "browser-image-compression";
-
-interface ImageUploaderProps {
-  onImageUploaded: (url: string) => void;
-  existingImageUrl?: string | null;
-  className?: string;
-  aspect?: number;
-}
-
-export default function ImageUploader({
-  onImageUploaded,
-  existingImageUrl,
-  className,
-  aspect = 16 / 9,
-}: ImageUploaderProps) {
-  const [originalSrc, setOriginalSrc] = useState<string | null>(null);
-  const [crop, setCrop] = useState<Crop>();
-  const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
-  const [isUploading, setIsUploading] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [error, setError] = useState<string | null>(null);
-  const imgRef = useRef<HTMLImageElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const onSelectFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const file = e.target.files[0];
-      const reader = new FileReader();
-      reader.addEventListener("load", () => {
-        setOriginalSrc(reader.result as string);
-        setCrop(undefined);
-        setCompletedCrop(undefined);
-        setError(null);
-      });
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const getCroppedImg = useCallback(async (): Promise<Blob | null> => {
-    if (!imgRef.current || !completedCrop) return null;
-    const canvas = document.createElement("canvas");
-    const scaleX = imgRef.current.naturalWidth / imgRef.current.width;
-    const scaleY = imgRef.current.naturalHeight / imgRef.current.height;
-    canvas.width = completedCrop.width;
-    canvas.height = completedCrop.height;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return null;
-
-    ctx.drawImage(
-      imgRef.current,
-      completedCrop.x * scaleX,
-      completedCrop.y * scaleY,
-      completedCrop.width * scaleX,
-      completedCrop.height * scaleY,
-      0,
-      0,
-      completedCrop.width,
-      completedCrop.height,
-    );
-
-    return new Promise((resolve) => {
-      canvas.toBlob((blob) => resolve(blob), "image/webp", 0.9);
-    });
-  }, [completedCrop]);
-
-  const handleUpload = async () => {
-    if (!completedCrop || !imgRef.current) {
-      setError("Veuillez d'abord recadrer l'image");
-      return;
-    }
-    setIsUploading(true);
-    setProgress(10);
-    try {
-      const croppedBlob = await getCroppedImg();
-      if (!croppedBlob)
-        throw new Error("Impossible de générer l'image recadrée");
-      setProgress(30);
-
-      const options = {
-        maxSizeMB: 0.4,
-        maxWidthOrHeight: 1200,
-        useWebWorker: true,
-      };
-      const compressedFile = await imageCompression(
-        new File([croppedBlob], "image.webp", { type: "image/webp" }),
-        options,
-      );
-      setProgress(60);
-
-      const formData = new FormData();
-      formData.append("file", compressedFile);
-      const { url } = await uploadImage(formData);
-      setProgress(100);
-      onImageUploaded(url);
-      // Reset
-      setOriginalSrc(null);
-      setCompletedCrop(undefined);
-      setCrop(undefined);
-    } catch (err: any) {
-      setError(err.message || "Erreur lors de l'upload");
-    } finally {
-      setIsUploading(false);
-      setProgress(0);
-    }
-  };
-
-  const cancelCrop = () => {
-    setOriginalSrc(null);
-    setCompletedCrop(undefined);
-    setCrop(undefined);
-    if (fileInputRef.current) fileInputRef.current.value = "";
-  };
-
-  return (
-    <div className={cn("space-y-4", className)}>
-      {existingImageUrl && !originalSrc && (
-        <div className="relative w-full max-w-md rounded-xl overflow-hidden border border-border">
-          <Image
-            src={existingImageUrl}
-            alt="Image actuelle"
-            width={600}
-            height={400}
-            className="w-full object-cover"
-          />
-          <button
-            type="button"
-            onClick={() => onImageUploaded("")}
-            className="absolute top-2 right-2 p-1 bg-black/60 rounded-full hover:bg-error transition"
-          >
-            <X className="w-4 h-4 text-white" />
-          </button>
-        </div>
-      )}
-
-      {!originalSrc ? (
-        <div
-          onClick={() => fileInputRef.current?.click()}
-          className="flex flex-col items-center justify-center border-2 border-dashed border-border rounded-xl p-8 cursor-pointer hover:border-accent/50 transition-colors"
-        >
-          <Upload className="w-8 h-8 text-muted-foreground mb-2" />
-          <p className="text-sm text-muted-foreground">
-            Cliquez pour sélectionner une image
-          </p>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            onChange={onSelectFile}
-            className="hidden"
-          />
-        </div>
-      ) : (
-        <div className="space-y-4">
-          <ReactCrop
-            crop={crop}
-            onChange={(c) => setCrop(c)}
-            onComplete={(c) => setCompletedCrop(c)}
-            aspect={aspect}
-          >
-            <img
-              ref={imgRef}
-              src={originalSrc}
-              alt="Recadrage"
-              className="max-h-80 rounded-lg"
-            />
-          </ReactCrop>
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={cancelCrop}
-              className="px-4 py-2 rounded-lg border border-border text-sm hover:bg-card-hover"
-            >
-              Annuler
-            </button>
-            <button
-              type="button"
-              onClick={handleUpload}
-              disabled={isUploading}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-black text-sm font-medium hover:bg-accent-hover disabled:opacity-50"
-            >
-              {isUploading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <CropIcon className="w-4 h-4" />
-              )}
-              {isUploading ? `Upload ${progress}%` : "Recadrer & uploader"}
-            </button>
-          </div>
-          {error && <p className="text-xs text-error">{error}</p>}
-        </div>
-      )}
-    </div>
-  );
-}
-</file>
-
 <file path="components/ui/Logo.tsx">
 import Image from "next/image";
 
@@ -5353,126 +4588,6 @@ export default function Modal({
         </div>
       </div>
     </div>
-  );
-}
-</file>
-
-<file path="components/ui/NewsletterForm.tsx">
-"use client";
-
-import { useState } from "react";
-import { Mail, Check, Loader2 } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { subscribeToNewsletter } from "@/app/actions/newsletter";
-
-interface NewsletterFormProps {
-  source?: string;
-  compact?: boolean;
-  className?: string;
-}
-
-export default function NewsletterForm({
-  source = "website",
-  compact = false,
-  className,
-}: NewsletterFormProps) {
-  const [email, setEmail] = useState("");
-  const [status, setStatus] = useState<
-    "idle" | "loading" | "success" | "error"
-  >("idle");
-  const [message, setMessage] = useState("");
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const trimmed = email.trim();
-
-    if (!trimmed) return;
-
-    setStatus("loading");
-    setMessage("");
-
-    try {
-      await subscribeToNewsletter(trimmed, source);
-      setStatus("success");
-      setMessage("Merci ! Vous recevrez bientôt nos meilleures recettes.");
-      setEmail("");
-    } catch (err: any) {
-      setStatus("error");
-      setMessage(err.message || "Une erreur est survenue.");
-    }
-  };
-
-  if (status === "success") {
-    return (
-      <div
-        className={cn(
-          "flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-sage/10 text-sage",
-          className,
-        )}
-      >
-        <Check className="w-5 h-5" />
-        <span className="text-sm font-medium">{message}</span>
-      </div>
-    );
-  }
-
-  return (
-    <form
-      onSubmit={handleSubmit}
-      className={cn(
-        "flex gap-2",
-        compact ? "flex-row" : "flex-col sm:flex-row",
-        className,
-      )}
-    >
-      <div className="relative flex-1">
-        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => {
-            setEmail(e.target.value);
-            if (status === "error") setStatus("idle");
-          }}
-          placeholder="votre@email.com"
-          required
-          className={cn(
-            "w-full bg-card border rounded-xl pl-10 pr-4 py-3 text-sm",
-            "placeholder:text-muted-foreground text-foreground",
-            "focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent",
-            "transition-all",
-            status === "error"
-              ? "border-error focus:ring-error/50"
-              : "border-border",
-          )}
-        />
-      </div>
-
-      <button
-        type="submit"
-        disabled={status === "loading"}
-        className={cn(
-          "flex items-center justify-center gap-2 px-6 py-3 rounded-xl",
-          "bg-accent text-black font-display font-bold text-sm",
-          "hover:bg-accent-hover disabled:opacity-60",
-          "transition-colors whitespace-nowrap",
-          compact && "px-4",
-        )}
-      >
-        {status === "loading" ? (
-          <Loader2 className="w-4 h-4 animate-spin" />
-        ) : (
-          <>
-            <Mail className="w-4 h-4" />
-            {compact ? "OK" : "S'inscrire"}
-          </>
-        )}
-      </button>
-
-      {status === "error" && message && (
-        <p className="text-xs text-error mt-1 sm:mt-0 sm:absolute">{message}</p>
-      )}
-    </form>
   );
 }
 </file>
@@ -10064,6 +9179,10 @@ fix-optimized-search-function
 v1.43.3
 </file>
 
+<file path="types/css.d.ts">
+declare module "*.css";
+</file>
+
 <file path=".gitignore">
 # dependencies
 /node_modules
@@ -12481,11 +11600,2255 @@ function ToggleOption({
 }
 </file>
 
+<file path="app/profil/page.tsx">
+"use client";
+
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import {
+  User,
+  LogOut,
+  BookOpen,
+  Plus,
+  Clock,
+  Check,
+  X,
+  Camera,
+  Loader2,
+} from "lucide-react";
+import Logo from "@/components/ui/Logo";
+import { useAuth } from "@/hooks/useAuth";
+import { createClient } from "@/lib/supabase/client";
+import {
+  APPLIANCES,
+  getAppliancesByCategory,
+  CATEGORY_LABELS,
+  type ApplianceCategory,
+} from "@/lib/appliance-specs";
+import { cn } from "@/lib/utils";
+import Link from "next/link";
+import imageCompression from "browser-image-compression";
+import Image from "next/image";
+
+// Type enrichi pour afficher le statut
+interface MaRecette {
+  id: string;
+  slug: string;
+  titre: string;
+  difficulte: string;
+  approuve: boolean;
+  raison_rejet: string | null;
+  created_at: string;
+}
+
+export default function ProfilPage() {
+  const { user, profil, loading, signOut, refreshProfil } = useAuth();
+  const router = useRouter();
+  const [supabase] = useState(() => createClient());
+
+  const [mesRecettes, setMesRecettes] = useState<MaRecette[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [modele, setModele] = useState(profil?.modele_thermomix || "TM6");
+  const [uploading, setUploading] = useState(false);
+
+  // --- FONCTION D'UPLOAD DE L'AVATAR ---
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    setUploading(true);
+    try {
+      // 1. Compression
+      const options = {
+        maxSizeMB: 0.2,
+        maxWidthOrHeight: 500,
+        useWebWorker: true,
+        fileType: "image/webp",
+      };
+      const compressedFile = await imageCompression(file, options);
+
+      // 2. Upload vers le bucket "avatars"
+      const fileName = `${user.id}-${Math.random()}.webp`;
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(fileName, compressedFile);
+
+      if (uploadError) throw uploadError;
+
+      // 3. Récupération URL
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("avatars").getPublicUrl(fileName);
+
+      // 4. Update BDD (Table profils avec un S)
+      const { error: updateError } = await supabase
+        .from("profils")
+        .update({ avatar_url: publicUrl })
+        .eq("id", user.id);
+
+      if (updateError) throw updateError;
+
+      // 5. Refresh
+      if (refreshProfil) await refreshProfil();
+      alert("Photo de profil mise à jour !");
+    } catch (error: unknown) {
+      console.error("Erreur avatar:", error);
+      const message =
+        error instanceof Error ? error.message : "Erreur inconnue";
+      alert("Erreur : " + message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push("/connexion?next=/profil");
+    }
+  }, [user, loading, router]);
+
+  useEffect(() => {
+    if (profil) setModele(profil.modele_thermomix);
+  }, [profil]);
+
+  useEffect(() => {
+    if (!user) return;
+    const load = async () => {
+      const { data } = await supabase
+        .from("recettes")
+        .select(
+          "id, slug, titre, difficulte, approuve, raison_rejet, created_at",
+        )
+        .eq("auteur_id", user.id)
+        .order("created_at", { ascending: false });
+      setMesRecettes((data || []) as MaRecette[]);
+    };
+    load();
+  }, [user]);
+
+  const handleSaveModele = async () => {
+    if (!user) return;
+    setSaving(true);
+    await supabase
+      .from("profils")
+      .update({ modele_thermomix: modele })
+      .eq("id", user.id);
+    if (refreshProfil) await refreshProfil();
+    setSaving(false);
+  };
+
+  const handleLogout = async () => {
+    await signOut();
+    router.push("/");
+  };
+
+  if (loading || !user) {
+    return (
+      <div className="space-y-4 max-w-lg mx-auto py-10">
+        <div className="w-20 h-20 rounded-full bg-card animate-pulse mx-auto" />
+        <div className="h-6 w-48 bg-card animate-pulse rounded mx-auto" />
+        <div className="h-40 bg-card animate-pulse rounded-xl" />
+      </div>
+    );
+  }
+
+  const pending = mesRecettes.filter(
+    (r) => !r.approuve && !r.raison_rejet,
+  ).length;
+  const approved = mesRecettes.filter((r) => r.approuve).length;
+  const rejected = mesRecettes.filter(
+    (r) => !r.approuve && r.raison_rejet,
+  ).length;
+
+  return (
+    <div className="max-w-2xl mx-auto space-y-8 py-6 px-4">
+      {/* Header avec Avatar Interactif */}
+      <div className="text-center space-y-3">
+        <div className="relative group w-24 h-24 mx-auto mb-4">
+          <div className="w-full h-full rounded-full overflow-hidden bg-accent/15 border-2 border-accent/20 flex items-center justify-center">
+            {profil?.avatar_url ? (
+              <Image
+                src={profil.avatar_url}
+                alt="Avatar"
+                width={96}
+                height={96}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <User className="w-10 h-10 text-accent" />
+            )}
+          </div>
+
+          {/* Bouton Camera au survol */}
+          <label className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 rounded-full cursor-pointer transition-all border border-white/20">
+            {uploading ? (
+              <Loader2 className="w-6 h-6 text-white animate-spin" />
+            ) : (
+              <Camera className="w-6 h-6 text-white" />
+            )}
+            <input
+              type="file"
+              className="hidden"
+              accept="image/*"
+              onChange={handleAvatarUpload}
+              disabled={uploading}
+            />
+          </label>
+        </div>
+
+        <h1 className="font-display font-bold text-2xl">
+          {profil?.pseudo || user.email?.split("@")[0]}
+        </h1>
+        <p className="text-sm text-muted-foreground">{user.email}</p>
+      </div>
+
+      {/* CTA : Proposer une recette */}
+      <Link
+        href="/soumettre"
+        className="flex items-center justify-center gap-2 w-full px-6 py-4 rounded-xl bg-accent text-black font-display font-bold text-sm hover:bg-accent-hover transition-colors shadow-lg shadow-accent/10"
+      >
+        <Plus className="w-5 h-5" />
+        Proposer une recette
+      </Link>
+
+      {/* Model selector */}
+      <div className="glass-card p-6 space-y-4 rounded-2xl border border-border">
+        <h2 className="font-display font-semibold flex items-center gap-2">
+          <Logo className="w-5 h-auto" />
+          Mon appareil
+        </h2>
+        <div className="flex flex-wrap items-center gap-3">
+          <select
+            value={modele}
+            onChange={(e) => setModele(e.target.value)}
+            className="input-field flex-1"
+          >
+            {Object.entries(getAppliancesByCategory()).map(([cat, apps]) => (
+              <optgroup
+                key={cat}
+                label={CATEGORY_LABELS[cat as ApplianceCategory]}
+              >
+                {apps.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.label}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
+          <button
+            onClick={handleSaveModele}
+            disabled={saving || modele === profil?.modele_thermomix}
+            className="ml-auto px-4 py-2 rounded-lg text-sm bg-accent/10 text-accent font-bold disabled:opacity-40 hover:bg-accent/20 transition-colors"
+          >
+            {saving ? "..." : "Enregistrer"}
+          </button>
+        </div>
+      </div>
+
+      {/* Mes recettes */}
+      <div className="space-y-4">
+        <h2 className="font-display font-semibold flex items-center gap-2">
+          <BookOpen className="w-5 h-5 text-accent" />
+          Mes recettes ({mesRecettes.length})
+        </h2>
+
+        {mesRecettes.length > 0 && (
+          <div className="flex gap-3 text-[10px] uppercase tracking-wider font-bold">
+            {approved > 0 && (
+              <span className="px-2 py-1 rounded bg-sage/10 text-sage border border-sage/20">
+                {approved} EN LIGNE
+              </span>
+            )}
+            {pending > 0 && (
+              <span className="px-2 py-1 rounded bg-yellow-500/10 text-yellow-500 border border-yellow-500/20">
+                {pending} EN ATTENTE
+              </span>
+            )}
+            {rejected > 0 && (
+              <span className="px-2 py-1 rounded bg-error/10 text-error border border-error/20">
+                {rejected} REFUSÉE{rejected > 1 ? "S" : ""}
+              </span>
+            )}
+          </div>
+        )}
+
+        {mesRecettes.length === 0 ? (
+          <div className="text-center py-12 glass-card rounded-2xl border border-dashed border-border">
+            <Logo className="w-11 h-auto mx-auto mb-3 opacity-20" />{" "}
+            <p className="text-muted-foreground text-sm">
+              Vous n'avez pas encore soumis de recette.
+            </p>
+            <Link
+              href="/soumettre"
+              className="inline-flex items-center gap-1 mt-3 text-sm text-accent hover:underline font-bold"
+            >
+              <Plus className="w-4 h-4" /> Proposer ma première recette
+            </Link>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {mesRecettes.map((r) => (
+              <div
+                key={r.id}
+                className={cn(
+                  "flex items-center justify-between px-5 py-4 glass-card rounded-2xl border border-border hover:border-accent/30 transition-all",
+                  !r.approuve && r.raison_rejet && "border-l-4 border-l-error",
+                )}
+              >
+                <div className="flex items-center gap-4 min-w-0">
+                  <div className="min-w-0">
+                    <Link
+                      href={r.approuve ? `/recettes/${r.slug}` : "#"}
+                      className={cn(
+                        "text-sm font-bold truncate block",
+                        r.approuve ? "hover:text-accent" : "cursor-default",
+                      )}
+                    >
+                      {r.titre}
+                    </Link>
+                    {!r.approuve && r.raison_rejet && (
+                      <p className="text-[11px] text-error mt-1 font-medium italic">
+                        Refusé : {r.raison_rejet}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 shrink-0">
+                  <span
+                    className={cn(
+                      "text-[9px] font-black uppercase tracking-tighter px-2 py-1 rounded",
+                      r.approuve
+                        ? "bg-sage/10 text-sage"
+                        : r.raison_rejet
+                          ? "bg-error/10 text-error"
+                          : "bg-yellow-500/10 text-yellow-500",
+                    )}
+                  >
+                    {r.approuve
+                      ? "Public"
+                      : r.raison_rejet
+                        ? "Refusé"
+                        : "Vérification"}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Logout */}
+      <button
+        onClick={handleLogout}
+        className="w-full flex items-center justify-center gap-2 px-6 py-4 rounded-xl bg-card border border-error/20 text-error hover:bg-error/5 hover:border-error/40 transition-all font-bold text-sm"
+      >
+        <LogOut className="w-4 h-4" />
+        Déconnexion
+      </button>
+    </div>
+  );
+}
+</file>
+
+<file path="app/soumettre/page.tsx">
+"use client";
+
+import { useState, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { useForm, useFieldArray, SubmitHandler } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  Plus,
+  Trash2,
+  Upload,
+  Image as ImageIcon,
+  Loader2,
+  Check,
+  AlertCircle,
+  Send,
+  Clock,
+  Thermometer,
+  Gauge,
+  Wrench,
+  Lightbulb,
+  RotateCcw,
+  ChevronUp,
+  ChevronDown,
+  Zap,
+} from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import {
+  CATEGORIES,
+  REGIMES,
+  MODELES_THERMOMIX,
+  DIFFICULTES,
+  INGREDIENT_CATEGORIES,
+  MAX_IMAGE_SIZE_MB,
+} from "@/lib/constants";
+import {
+  VITESSES_BASE,
+  ACCESSOIRES_TM,
+  TURBO_DUREES,
+  getTemperaturesForModels,
+  getModesForModels,
+  formatVitesse,
+  formatTimeMMSS,
+} from "@/lib/thermomix-specs";
+import { cn } from "@/lib/utils";
+import Link from "next/link";
+import ApplianceSelector from "@/components/ui/ApplianceSelector";
+import { soumettreRecette } from "@/app/actions/recettes";
+import { recetteSchema, type RecetteFormData } from "@/lib/validation";
+import ImageUploader from "@/components/ui/ImageUploader";
+
+const UNITES = [
+  "g",
+  "kg",
+  "ml",
+  "l",
+  "c. à café",
+  "c. à soupe",
+  "pièce",
+  "pincée",
+  "tranche",
+  "feuille",
+  "gousse",
+  "brin",
+  "sachet",
+  "boîte",
+  "verre",
+];
+const NUTRI_OPTIONS = ["", "A", "B", "C", "D", "E"];
+
+export default function SoumettrePage() {
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
+
+  // Multi‑étapes
+  const [step, setStep] = useState(1);
+  const STEPS = 5;
+
+  // React Hook Form
+  const {
+    register,
+    control,
+    handleSubmit,
+    watch,
+    setValue,
+    trigger,
+    formState: { errors, isSubmitting },
+  } = useForm<RecetteFormData>({
+    resolver: zodResolver(recetteSchema),
+    defaultValues: {
+      titre: "",
+      description: "",
+      image_url: null,
+      video_youtube_id: null,
+      temps_preparation: 15,
+      temps_cuisson: 20,
+      difficulte: "facile",
+      nombre_portions: 4,
+      modele_thermomix: ["TM6", "TM7"],
+      categories: ["plat"],
+      regime: [],
+      tags: [], // ← obligatoire
+      calories_par_portion: null,
+      nutriscore: null,
+      nutriscore_note: null,
+      ingredients: [
+        { nom: "", quantite: 0, unite: "g", categorie: "Épicerie" },
+      ],
+      etapes: [
+        {
+          instruction: "",
+          vitesse: "",
+          turboDuree: "1s",
+          temperature: "",
+          dureeMin: 0,
+          dureeSec: 0,
+          accessoire: "",
+          sensInverse: false,
+          modeSpecial: "",
+          conseil: "",
+        },
+      ],
+      faq: null, // ← obligatoire
+    },
+  });
+
+  // Tableaux dynamiques
+  const {
+    fields: ingredientFields,
+    append: addIngredient,
+    remove: removeIngredient,
+  } = useFieldArray({ control, name: "ingredients" });
+  const {
+    fields: etapeFields,
+    append: addEtape,
+    remove: removeEtape,
+  } = useFieldArray({ control, name: "etapes" });
+  const {
+    fields: faqFields,
+    append: addFaq,
+    remove: removeFaq,
+  } = useFieldArray({ control, name: "faq" });
+
+  // Valeurs surveillées
+  const modeles = watch("modele_thermomix");
+  const cats = watch("categories");
+  const regimes = watch("regime");
+
+  // Helper toggle pour les boutons multi‑sélection
+  const toggleArray = (
+    arr: string[],
+    value: string,
+    onChange: (val: string[]) => void,
+  ) => {
+    if (arr.includes(value)) onChange(arr.filter((v) => v !== value));
+    else onChange([...arr, value]);
+  };
+
+  // Navigation avec validation partielle
+  const nextStep = async () => {
+    let fieldsToValidate: (keyof RecetteFormData)[] = [];
+    if (step === 1)
+      fieldsToValidate = [
+        "titre",
+        "description",
+        "modele_thermomix",
+        "categories",
+      ];
+    if (step === 2) fieldsToValidate = ["ingredients"];
+    if (step === 3) fieldsToValidate = ["etapes"];
+    const isValid = await trigger(fieldsToValidate);
+    if (isValid) setStep(step + 1);
+  };
+
+  // Soumission finale
+  const [submitError, setSubmitError] = useState("");
+  const [success, setSuccess] = useState(false);
+
+  const onSubmit: SubmitHandler<RecetteFormData> = async (data) => {
+    setSubmitError("");
+    try {
+      // Plus de gestion manuelle de l'image : elle est déjà dans data.image_url via ImageUploader
+      const payload = { ...data };
+      await soumettreRecette(payload);
+      setSuccess(true);
+    } catch (err: unknown) {
+      setSubmitError(err instanceof Error ? err.message : "Erreur inconnue");
+    }
+  };
+
+  // États de chargement / non connecté
+  if (authLoading) {
+    return (
+      <div className="max-w-3xl mx-auto px-4 py-12">
+        <div className="skeleton h-12 w-3/4 mb-8 rounded-xl" />
+        <div className="space-y-6">
+          <div className="skeleton h-32 w-full rounded-2xl" />
+          <div className="skeleton h-64 w-full rounded-2xl" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="text-center py-20 space-y-6 max-w-md mx-auto px-4">
+        <div className="w-20 h-20 bg-accent/10 rounded-full flex items-center justify-center mx-auto">
+          <Plus className="w-10 h-10 text-accent" />
+        </div>
+        <h1 className="font-display font-bold text-3xl">
+          Proposer une recette
+        </h1>
+        <p className="text-muted-foreground">
+          Connectez-vous pour partager vos créations.
+        </p>
+        <Link
+          href="/connexion?next=/soumettre"
+          className="inline-flex px-8 py-4 rounded-2xl bg-accent text-black font-bold hover:bg-accent-hover transition-all"
+        >
+          Se connecter
+        </Link>
+      </div>
+    );
+  }
+
+  if (success) {
+    return (
+      <div className="max-w-xl mx-auto text-center py-20 space-y-6">
+        <div className="w-20 h-20 rounded-full bg-sage/15 flex items-center justify-center mx-auto">
+          <Check className="w-10 h-10 text-sage" />
+        </div>
+        <h1 className="font-display font-bold text-2xl">Recette soumise !</h1>
+        <p className="text-muted-foreground">
+          Votre recette sera examinée avant publication. Suivez son statut dans
+          votre{" "}
+          <Link href="/profil" className="text-accent hover:underline">
+            profil
+          </Link>
+          .
+        </p>
+        <div className="flex gap-3 justify-center">
+          <Link
+            href="/profil"
+            className="px-6 py-3 rounded-xl bg-accent text-black font-medium"
+          >
+            Mon profil
+          </Link>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-6 py-3 rounded-xl border border-border hover:bg-card-hover"
+          >
+            Nouvelle recette
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Données dynamiques pour les étapes
+  const availTemps = getTemperaturesForModels(modeles);
+  const availModes = getModesForModels(modeles);
+
+  return (
+    <div className="max-w-3xl mx-auto space-y-8">
+      <div className="text-center space-y-2">
+        <h1 className="font-display font-bold text-3xl">Créer une recette</h1>
+        <p className="text-muted-foreground">
+          Partagez vos créations. Chaque recette est vérifiée.
+        </p>
+      </div>
+
+      {/* Progress bar */}
+      <div className="space-y-2">
+        <div className="flex justify-between text-xs text-muted-foreground">
+          <span>
+            Étape {step}/{STEPS}
+          </span>
+          <span>
+            {
+              [
+                "Informations",
+                "Ingrédients",
+                "Préparation",
+                "Médias & FAQ",
+                "Résumé",
+              ][step - 1]
+            }
+          </span>
+        </div>
+        <div className="h-2 bg-card rounded-full overflow-hidden">
+          <div
+            className="h-full bg-accent rounded-full transition-all duration-500"
+            style={{ width: `${(step / STEPS) * 100}%` }}
+          />
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit(onSubmit)}>
+        {/* ÉTAPE 1 */}
+        {step === 1 && (
+          <div className="glass-card p-6 space-y-6 animate-fade-in">
+            <h2 className="font-display font-bold text-xl flex items-center gap-3">
+              <span className="w-8 h-8 rounded-full bg-accent/15 text-accent text-sm flex items-center justify-center">
+                1
+              </span>
+              Informations générales
+            </h2>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Titre *</label>
+              <input
+                {...register("titre")}
+                placeholder="Velouté de butternut..."
+                className="input-field"
+              />
+              {errors.titre && (
+                <p className="text-xs text-error">{errors.titre.message}</p>
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Description *</label>
+              <textarea
+                {...register("description")}
+                rows={3}
+                className="input-field resize-none"
+              />
+              {errors.description && (
+                <p className="text-xs text-error">
+                  {errors.description.message}
+                </p>
+              )}
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Difficulté</label>
+                <select {...register("difficulte")} className="input-field">
+                  {DIFFICULTES.map((d) => (
+                    <option key={d.value} value={d.value}>
+                      {d.emoji} {d.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Prépa (min)</label>
+                <input
+                  type="number"
+                  {...register("temps_preparation", { valueAsNumber: true })}
+                  className="input-field"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Cuisson (min)</label>
+                <input
+                  type="number"
+                  {...register("temps_cuisson", { valueAsNumber: true })}
+                  className="input-field"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Portions</label>
+                <input
+                  type="number"
+                  {...register("nombre_portions", { valueAsNumber: true })}
+                  className="input-field"
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">
+                Appareils compatibles *
+              </label>
+              <ApplianceSelector
+                selected={modeles}
+                onChange={(val) => setValue("modele_thermomix", val)}
+                max={4}
+              />
+              {errors.modele_thermomix && (
+                <p className="text-xs text-error">
+                  {errors.modele_thermomix.message}
+                </p>
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Catégories *</label>
+              <div className="flex flex-wrap gap-2">
+                {CATEGORIES.map((c) => (
+                  <button
+                    type="button"
+                    key={c.value}
+                    onClick={() =>
+                      toggleArray(cats, c.value, (val) =>
+                        setValue("categories", val),
+                      )
+                    }
+                    className={cn(
+                      "px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
+                      cats.includes(c.value)
+                        ? "bg-accent text-black"
+                        : "bg-card border border-border",
+                    )}
+                  >
+                    {c.label}
+                  </button>
+                ))}
+              </div>
+              {errors.categories && (
+                <p className="text-xs text-error">
+                  {errors.categories.message}
+                </p>
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">
+                Régimes alimentaires
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {REGIMES.map((r) => (
+                  <button
+                    type="button"
+                    key={r.value}
+                    onClick={() =>
+                      toggleArray(regimes, r.value, (val) =>
+                        setValue("regime", val),
+                      )
+                    }
+                    className={cn(
+                      "px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
+                      regimes.includes(r.value)
+                        ? "bg-[#7A9E7E] text-white"
+                        : "bg-card border border-border",
+                    )}
+                  >
+                    {r.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">
+                Tags (séparés par des virgules)
+              </label>
+              <input
+                {...register("tags")}
+                placeholder="rapide, automne, familial"
+                className="input-field"
+              />
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Nutri-Score</label>
+                <select {...register("nutriscore")} className="input-field">
+                  {NUTRI_OPTIONS.map((n) => (
+                    <option key={n} value={n}>
+                      {n || "—"}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">
+                  Calories / portion
+                </label>
+                <input
+                  type="number"
+                  {...register("calories_par_portion", { valueAsNumber: true })}
+                  className="input-field"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Note Nutri-Score</label>
+                <input
+                  {...register("nutriscore_note")}
+                  placeholder="Estimation..."
+                  className="input-field"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ÉTAPE 2 : Ingrédients */}
+        {step === 2 && (
+          <div className="glass-card p-6 space-y-6 animate-fade-in">
+            <h2 className="font-display font-bold text-xl flex items-center gap-3">
+              <span className="w-8 h-8 rounded-full bg-accent/15 text-accent text-sm flex items-center justify-center">
+                2
+              </span>
+              Ingrédients
+            </h2>
+            <div className="space-y-3">
+              {ingredientFields.map((field, idx) => (
+                <div key={field.id} className="flex gap-2 items-start">
+                  <span className="text-xs text-muted-foreground pt-3 w-5 text-right">
+                    {idx + 1}.
+                  </span>
+                  <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <input
+                      {...register(`ingredients.${idx}.nom`)}
+                      placeholder="Ingrédient"
+                      className="input-field col-span-2 sm:col-span-1"
+                    />
+                    <input
+                      type="number"
+                      {...register(`ingredients.${idx}.quantite`, {
+                        valueAsNumber: true,
+                      })}
+                      placeholder="Qté"
+                      className="input-field"
+                    />
+                    <select
+                      {...register(`ingredients.${idx}.unite`)}
+                      className="input-field"
+                    >
+                      {UNITES.map((u) => (
+                        <option key={u} value={u}>
+                          {u}
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      {...register(`ingredients.${idx}.categorie`)}
+                      className="input-field"
+                    >
+                      {INGREDIENT_CATEGORIES.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeIngredient(idx)}
+                    disabled={ingredientFields.length === 1}
+                    className="p-2 text-muted-foreground hover:text-error disabled:opacity-30"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() =>
+                  addIngredient({
+                    nom: "",
+                    quantite: 0,
+                    unite: "g",
+                    categorie: "Épicerie",
+                  })
+                }
+                className="flex items-center gap-2 text-sm text-accent hover:underline"
+              >
+                <Plus className="w-4 h-4" /> Ajouter un ingrédient
+              </button>
+              {errors.ingredients && (
+                <p className="text-xs text-error">
+                  {errors.ingredients.message}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ÉTAPE 3 : Étapes */}
+        {step === 3 && (
+          <div className="glass-card p-6 space-y-6 animate-fade-in">
+            <h2 className="font-display font-bold text-xl flex items-center gap-3">
+              <span className="w-8 h-8 rounded-full bg-accent/15 text-accent text-sm flex items-center justify-center">
+                3
+              </span>
+              Étapes de préparation
+            </h2>
+            <div className="space-y-6">
+              {etapeFields.map((field, idx) => {
+                const vitesse = watch(`etapes.${idx}.vitesse`);
+                return (
+                  <div
+                    key={field.id}
+                    className="p-4 rounded-xl bg-card/50 border border-border space-y-4"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-display font-bold text-sm text-accent">
+                        Étape {idx + 1}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => removeEtape(idx)}
+                        disabled={etapeFields.length === 1}
+                        className="text-muted-foreground hover:text-error"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <textarea
+                      {...register(`etapes.${idx}.instruction`)}
+                      rows={2}
+                      placeholder="Décrivez cette étape..."
+                      className="input-field resize-none"
+                    />
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-xs">Vitesse</label>
+                        <select
+                          {...register(`etapes.${idx}.vitesse`)}
+                          className="input-field text-xs"
+                        >
+                          <option value="">—</option>
+                          {VITESSES_BASE.map((v) => (
+                            <option key={String(v)} value={String(v)}>
+                              {formatVitesse(v)}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      {vitesse === "Turbo" && (
+                        <div className="space-y-1">
+                          <label className="text-xs">Durée Turbo</label>
+                          <select
+                            {...register(`etapes.${idx}.turboDuree`)}
+                            className="input-field text-xs"
+                          >
+                            {TURBO_DUREES.map((d) => (
+                              <option key={d} value={d}>
+                                {d}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+                      <div className="space-y-1">
+                        <label className="text-xs">Température</label>
+                        <select
+                          {...register(`etapes.${idx}.temperature`)}
+                          className="input-field text-xs"
+                        >
+                          <option value="">—</option>
+                          {availTemps.map((t) => (
+                            <option key={String(t)} value={String(t)}>
+                              {typeof t === "number" ? `${t}°C` : t}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs">Accessoire</label>
+                        <select
+                          {...register(`etapes.${idx}.accessoire`)}
+                          className="input-field text-xs"
+                        >
+                          <option value="">—</option>
+                          {ACCESSOIRES_TM.map((a) => (
+                            <option key={a} value={a}>
+                              {a}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      {availModes.length > 0 && (
+                        <div className="space-y-1">
+                          <label className="text-xs">Mode spécial</label>
+                          <select
+                            {...register(`etapes.${idx}.modeSpecial`)}
+                            className="input-field text-xs"
+                          >
+                            <option value="">—</option>
+                            {availModes.map((m) => (
+                              <option key={m} value={m}>
+                                {m}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs">Durée (min:sec)</label>
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-1">
+                          <TimePicker
+                            value={watch(`etapes.${idx}.dureeMin`)}
+                            onChange={(v) =>
+                              setValue(`etapes.${idx}.dureeMin`, v)
+                            }
+                            min={0}
+                            max={99}
+                            label="min"
+                          />
+                          <span className="text-lg font-bold text-muted-foreground">
+                            :
+                          </span>
+                          <TimePicker
+                            value={watch(`etapes.${idx}.dureeSec`)}
+                            onChange={(v) =>
+                              setValue(`etapes.${idx}.dureeSec`, v)
+                            }
+                            min={0}
+                            max={59}
+                            label="sec"
+                          />
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          ={" "}
+                          {formatTimeMMSS(
+                            watch(`etapes.${idx}.dureeMin`) * 60 +
+                              watch(`etapes.${idx}.dureeSec`),
+                          )}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setValue(
+                            `etapes.${idx}.sensInverse`,
+                            !watch(`etapes.${idx}.sensInverse`),
+                          )
+                        }
+                        className={cn(
+                          "flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all border",
+                          watch(`etapes.${idx}.sensInverse`)
+                            ? "bg-accent/15 text-accent border-accent/30"
+                            : "bg-card border-border text-muted-foreground",
+                        )}
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" /> Sens inverse
+                      </button>
+                    </div>
+                    <input
+                      {...register(`etapes.${idx}.conseil`)}
+                      placeholder="Conseil / astuce (optionnel)"
+                      className="input-field text-xs"
+                    />
+                  </div>
+                );
+              })}
+              <button
+                type="button"
+                onClick={() =>
+                  addEtape({
+                    instruction: "",
+                    vitesse: "",
+                    turboDuree: "1s",
+                    temperature: "",
+                    dureeMin: 0,
+                    dureeSec: 0,
+                    accessoire: "",
+                    sensInverse: false,
+                    modeSpecial: "",
+                    conseil: "",
+                  })
+                }
+                className="flex items-center gap-2 text-sm text-accent hover:underline"
+              >
+                <Plus className="w-4 h-4" /> Ajouter une étape
+              </button>
+              {errors.etapes && (
+                <p className="text-xs text-error">{errors.etapes.message}</p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ÉTAPE 4 : Médias & FAQ */}
+        {step === 4 && (
+          <div className="glass-card p-6 space-y-8 animate-fade-in">
+            <h2 className="font-display font-bold text-xl flex items-center gap-3">
+              <span className="w-8 h-8 rounded-full bg-accent/15 text-accent text-sm flex items-center justify-center">
+                4
+              </span>
+              Photo, vidéo & FAQ
+            </h2>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Photo du plat</label>
+              <ImageUploader
+                onImageUploaded={(url) => setValue("image_url", url)}
+                existingImageUrl={watch("image_url")}
+                aspect={16 / 9}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Vidéo YouTube (ID)</label>
+              <input
+                {...register("video_youtube_id")}
+                placeholder="dQw4w9WgXcQ"
+                className="input-field"
+              />
+            </div>
+            <div className="space-y-4">
+              <label className="text-sm font-medium">
+                Questions fréquentes
+              </label>
+              {faqFields.map((field, idx) => (
+                <div
+                  key={field.id}
+                  className="p-4 rounded-xl bg-card/50 border border-border space-y-2"
+                >
+                  <div className="flex justify-between">
+                    <span className="text-xs text-accent">
+                      Question {idx + 1}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => removeFaq(idx)}
+                      className="text-muted-foreground hover:text-error"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                  <input
+                    {...register(`faq.${idx}.question`)}
+                    placeholder="Question..."
+                    className="input-field text-sm"
+                  />
+                  <textarea
+                    {...register(`faq.${idx}.reponse`)}
+                    rows={2}
+                    placeholder="Réponse..."
+                    className="input-field text-sm resize-none"
+                  />
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => addFaq({ question: "", reponse: "" })}
+                className="flex items-center gap-2 text-sm text-accent hover:underline"
+              >
+                <Plus className="w-4 h-4" /> Ajouter une question
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ÉTAPE 5 : Résumé */}
+        {step === 5 && (
+          <div className="glass-card p-6 space-y-6 animate-fade-in">
+            <h2 className="font-display font-bold text-xl flex items-center gap-3">
+              <span className="w-8 h-8 rounded-full bg-accent/15 text-accent text-sm flex items-center justify-center">
+                5
+              </span>
+              Résumé et envoi
+            </h2>
+            <div className="space-y-3">
+              <Row l="Titre" v={watch("titre")} />
+              <Row l="Difficulté" v={watch("difficulte")} />
+              <Row
+                l="Temps total"
+                v={`${(watch("temps_preparation") || 0) + (watch("temps_cuisson") || 0)} min`}
+              />
+              <Row l="Portions" v={String(watch("nombre_portions"))} />
+              <Row l="Modèles" v={watch("modele_thermomix").join(", ")} />
+              <Row l="Catégories" v={watch("categories").join(", ")} />
+              {watch("regime").length > 0 && (
+                <Row l="Régimes" v={watch("regime").join(", ")} />
+              )}
+              <Row
+                l="Ingrédients"
+                v={String(watch("ingredients").filter((i) => i.nom).length)}
+              />
+              <Row
+                l="Étapes"
+                v={String(watch("etapes").filter((e) => e.instruction).length)}
+              />
+              <Row l="Photo" v={watch("image_url") ? "✅ Oui" : "Non"} />{" "}
+              {watch("faq") && watch("faq")!.length > 0 && (
+                <Row l="FAQ" v={`${watch("faq")!.length} question(s)`} />
+              )}
+            </div>
+            <div className="p-4 rounded-xl bg-accent/10 border border-accent/20">
+              <p className="text-sm font-medium text-accent flex items-center gap-2">
+                <AlertCircle className="w-4 h-4" /> Modération obligatoire
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Votre recette sera examinée avant publication.
+              </p>
+            </div>
+            {submitError && (
+              <div className="p-4 rounded-xl bg-error/10 border border-error/20 text-sm text-error">
+                {submitError}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Navigation */}
+        <div className="flex items-center justify-between pt-8 pb-8">
+          <button
+            type="button"
+            onClick={() => setStep(Math.max(1, step - 1))}
+            disabled={step === 1}
+            className="px-6 py-3 rounded-xl border border-border text-sm hover:bg-card-hover disabled:opacity-30"
+          >
+            Précédent
+          </button>
+          {step < STEPS ? (
+            <button
+              type="button"
+              onClick={nextStep}
+              className="px-6 py-3 rounded-xl bg-accent text-black font-medium text-sm hover:bg-accent-hover"
+            >
+              Suivant
+            </button>
+          ) : (
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="flex items-center gap-2 px-8 py-3 rounded-xl bg-accent text-black font-display font-bold text-sm hover:bg-accent-hover disabled:opacity-50"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" /> Envoi...
+                </>
+              ) : (
+                <>
+                  <Send className="w-4 h-4" /> Soumettre
+                </>
+              )}
+            </button>
+          )}
+        </div>
+      </form>
+    </div>
+  );
+}
+
+// Composants auxiliaires
+function Row({ l, v }: { l: string; v: string }) {
+  return (
+    <div className="flex items-center justify-between py-2 border-b border-border last:border-0">
+      <span className="text-sm text-muted-foreground">{l}</span>
+      <span className="text-sm font-medium">{v}</span>
+    </div>
+  );
+}
+
+function TimePicker({
+  value,
+  onChange,
+  min,
+  max,
+  label,
+}: {
+  value: number;
+  onChange: (v: number) => void;
+  min: number;
+  max: number;
+  label: string;
+}) {
+  const inc = () => onChange(Math.min(max, value + 1));
+  const dec = () => onChange(Math.max(min, value - 1));
+  return (
+    <div className="flex flex-col items-center gap-0.5">
+      <button
+        type="button"
+        onClick={inc}
+        className="p-1 rounded-md hover:bg-card-hover text-muted-foreground hover:text-accent"
+      >
+        <ChevronUp className="w-4 h-4" />
+      </button>
+      <div className="w-12 text-center">
+        <span className="text-lg font-display font-bold tabular-nums">
+          {value.toString().padStart(2, "0")}
+        </span>
+        <span className="text-[9px] text-muted-foreground block -mt-1">
+          {label}
+        </span>
+      </div>
+      <button
+        type="button"
+        onClick={dec}
+        className="p-1 rounded-md hover:bg-card-hover text-muted-foreground hover:text-accent"
+      >
+        <ChevronDown className="w-4 h-4" />
+      </button>
+    </div>
+  );
+}
+</file>
+
+<file path="components/ui/ImageUploader.tsx">
+"use client";
+
+import { useState, useRef, useCallback } from "react";
+import Image from "next/image";
+import ReactCrop, { type Crop, type PixelCrop } from "react-image-crop";
+import "react-image-crop/dist/ReactCrop.css";
+import { Upload, X, Loader2, Crop as CropIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { uploadImage } from "@/app/actions/upload";
+import imageCompression from "browser-image-compression";
+
+interface ImageUploaderProps {
+  onImageUploaded: (url: string) => void;
+  existingImageUrl?: string | null;
+  className?: string;
+  aspect?: number;
+}
+
+export default function ImageUploader({
+  onImageUploaded,
+  existingImageUrl,
+  className,
+  aspect = 16 / 9,
+}: ImageUploaderProps) {
+  const [originalSrc, setOriginalSrc] = useState<string | null>(null);
+  const [crop, setCrop] = useState<Crop>();
+  const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
+  const [isUploading, setIsUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const imgRef = useRef<HTMLImageElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const onSelectFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.addEventListener("load", () => {
+        setOriginalSrc(reader.result as string);
+        setCrop(undefined);
+        setCompletedCrop(undefined);
+        setError(null);
+      });
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const getCroppedImg = useCallback(async (): Promise<Blob | null> => {
+    if (!imgRef.current || !completedCrop) return null;
+    const canvas = document.createElement("canvas");
+    const scaleX = imgRef.current.naturalWidth / imgRef.current.width;
+    const scaleY = imgRef.current.naturalHeight / imgRef.current.height;
+    canvas.width = completedCrop.width;
+    canvas.height = completedCrop.height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+
+    ctx.drawImage(
+      imgRef.current,
+      completedCrop.x * scaleX,
+      completedCrop.y * scaleY,
+      completedCrop.width * scaleX,
+      completedCrop.height * scaleY,
+      0,
+      0,
+      completedCrop.width,
+      completedCrop.height,
+    );
+
+    return new Promise((resolve) => {
+      canvas.toBlob((blob) => resolve(blob), "image/webp", 0.9);
+    });
+  }, [completedCrop]);
+
+  const handleUpload = async () => {
+    if (!completedCrop || !imgRef.current) {
+      setError("Veuillez d'abord recadrer l'image");
+      return;
+    }
+    setIsUploading(true);
+    setProgress(10);
+    try {
+      const croppedBlob = await getCroppedImg();
+      if (!croppedBlob)
+        throw new Error("Impossible de générer l'image recadrée");
+      setProgress(30);
+
+      const options = {
+        maxSizeMB: 0.4,
+        maxWidthOrHeight: 1200,
+        useWebWorker: true,
+      };
+      const compressedFile = await imageCompression(
+        new File([croppedBlob], "image.webp", { type: "image/webp" }),
+        options,
+      );
+      setProgress(60);
+
+      const formData = new FormData();
+      formData.append("file", compressedFile);
+      const { url } = await uploadImage(formData);
+      setProgress(100);
+      onImageUploaded(url);
+      // Reset
+      setOriginalSrc(null);
+      setCompletedCrop(undefined);
+      setCrop(undefined);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Erreur lors de l'upload");
+    } finally {
+      setIsUploading(false);
+      setProgress(0);
+    }
+  };
+
+  const cancelCrop = () => {
+    setOriginalSrc(null);
+    setCompletedCrop(undefined);
+    setCrop(undefined);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  return (
+    <div className={cn("space-y-4", className)}>
+      {existingImageUrl && !originalSrc && (
+        <div className="relative w-full max-w-md rounded-xl overflow-hidden border border-border">
+          <Image
+            src={existingImageUrl}
+            alt="Image actuelle"
+            width={600}
+            height={400}
+            className="w-full object-cover"
+          />
+          <button
+            type="button"
+            onClick={() => onImageUploaded("")}
+            className="absolute top-2 right-2 p-1 bg-black/60 rounded-full hover:bg-error transition"
+          >
+            <X className="w-4 h-4 text-white" />
+          </button>
+        </div>
+      )}
+
+      {!originalSrc ? (
+        <div
+          onClick={() => fileInputRef.current?.click()}
+          className="flex flex-col items-center justify-center border-2 border-dashed border-border rounded-xl p-8 cursor-pointer hover:border-accent/50 transition-colors"
+        >
+          <Upload className="w-8 h-8 text-muted-foreground mb-2" />
+          <p className="text-sm text-muted-foreground">
+            Cliquez pour sélectionner une image
+          </p>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={onSelectFile}
+            className="hidden"
+          />
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <ReactCrop
+            crop={crop}
+            onChange={(c) => setCrop(c)}
+            onComplete={(c) => setCompletedCrop(c)}
+            aspect={aspect}
+          >
+            <img
+              ref={imgRef}
+              src={originalSrc}
+              alt="Recadrage"
+              className="max-h-80 rounded-lg"
+            />
+          </ReactCrop>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={cancelCrop}
+              className="px-4 py-2 rounded-lg border border-border text-sm hover:bg-card-hover"
+            >
+              Annuler
+            </button>
+            <button
+              type="button"
+              onClick={handleUpload}
+              disabled={isUploading}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-black text-sm font-medium hover:bg-accent-hover disabled:opacity-50"
+            >
+              {isUploading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <CropIcon className="w-4 h-4" />
+              )}
+              {isUploading ? `Upload ${progress}%` : "Recadrer & uploader"}
+            </button>
+          </div>
+          {error && <p className="text-xs text-error">{error}</p>}
+        </div>
+      )}
+    </div>
+  );
+}
+</file>
+
+<file path="components/ui/NewsletterForm.tsx">
+"use client";
+
+import { useState } from "react";
+import { Mail, Check, Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { subscribeToNewsletter } from "@/app/actions/newsletter";
+
+interface NewsletterFormProps {
+  source?: string;
+  compact?: boolean;
+  className?: string;
+}
+
+export default function NewsletterForm({
+  source = "website",
+  compact = false,
+  className,
+}: NewsletterFormProps) {
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState<
+    "idle" | "loading" | "success" | "error"
+  >("idle");
+  const [message, setMessage] = useState("");
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = email.trim();
+
+    if (!trimmed) return;
+
+    setStatus("loading");
+    setMessage("");
+
+    try {
+      await subscribeToNewsletter(trimmed, source);
+      setStatus("success");
+      setMessage("Merci ! Vous recevrez bientôt nos meilleures recettes.");
+      setEmail("");
+    } catch (err: unknown) {
+      setStatus("error");
+      setMessage(
+        err instanceof Error ? err.message : "Une erreur est survenue.",
+      );
+    }
+  };
+
+  if (status === "success") {
+    return (
+      <div
+        className={cn(
+          "flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-sage/10 text-sage",
+          className,
+        )}
+      >
+        <Check className="w-5 h-5" />
+        <span className="text-sm font-medium">{message}</span>
+      </div>
+    );
+  }
+
+  return (
+    <form
+      onSubmit={handleSubmit}
+      className={cn(
+        "flex gap-2",
+        compact ? "flex-row" : "flex-col sm:flex-row",
+        className,
+      )}
+    >
+      <div className="relative flex-1">
+        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => {
+            setEmail(e.target.value);
+            if (status === "error") setStatus("idle");
+          }}
+          placeholder="votre@email.com"
+          required
+          className={cn(
+            "w-full bg-card border rounded-xl pl-10 pr-4 py-3 text-sm",
+            "placeholder:text-muted-foreground text-foreground",
+            "focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent",
+            "transition-all",
+            status === "error"
+              ? "border-error focus:ring-error/50"
+              : "border-border",
+          )}
+        />
+      </div>
+
+      <button
+        type="submit"
+        disabled={status === "loading"}
+        className={cn(
+          "flex items-center justify-center gap-2 px-6 py-3 rounded-xl",
+          "bg-accent text-black font-display font-bold text-sm",
+          "hover:bg-accent-hover disabled:opacity-60",
+          "transition-colors whitespace-nowrap",
+          compact && "px-4",
+        )}
+      >
+        {status === "loading" ? (
+          <Loader2 className="w-4 h-4 animate-spin" />
+        ) : (
+          <>
+            <Mail className="w-4 h-4" />
+            {compact ? "OK" : "S'inscrire"}
+          </>
+        )}
+      </button>
+
+      {status === "error" && message && (
+        <p className="text-xs text-error mt-1 sm:mt-0 sm:absolute">{message}</p>
+      )}
+    </form>
+  );
+}
+</file>
+
+<file path="hooks/useAuth.ts">
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import { createClient } from "@/lib/supabase/client";
+import type { User } from "@supabase/supabase-js";
+import type { Profil } from "@/types";
+
+export function useAuth() {
+  const [user, setUser] = useState<User | null>(null);
+  const [profil, setProfil] = useState<Profil | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [supabase] = useState(() => createClient());
+
+  const loadUserData = useCallback(
+    async (userId: string) => {
+      try {
+        // 1. Récupérer le profil
+        const { data: profilData } = await supabase
+          .from("profils")
+          .select("*")
+          .eq("id", userId)
+          .single();
+        setProfil(profilData as Profil | null);
+
+        // 2. Vérifier si admin
+        const { data: adminData } = await supabase
+          .from("admins")
+          .select("user_id")
+          .eq("user_id", userId)
+          .maybeSingle();
+        setIsAdmin(!!adminData);
+
+        // 3. Synchroniser le thème depuis le profil
+        if (profilData?.theme_preference) {
+          const theme = profilData.theme_preference;
+          if (["dark", "light", "grey"].includes(theme)) {
+            localStorage.setItem("kmx-theme", theme);
+            document.documentElement.setAttribute("data-theme", theme);
+          }
+        }
+      } catch (err) {
+        console.error("Erreur chargement données utilisateur:", err);
+      }
+    },
+    [supabase],
+  );
+
+  useEffect(() => {
+    const getSession = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+
+      if (currentUser) {
+        await loadUserData(currentUser.id);
+      }
+      setLoading(false);
+    };
+
+    getSession();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+      if (currentUser) {
+        await loadUserData(currentUser.id);
+      } else {
+        setProfil(null);
+        setIsAdmin(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [loadUserData, supabase.auth]);
+
+  const signIn = useCallback(
+    async (email: string, password: string) => {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      return { error };
+    },
+    [supabase],
+  );
+
+  const signUp = useCallback(
+    async (email: string, password: string, pseudo: string) => {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { pseudo } },
+      });
+      return { error };
+    },
+    [supabase],
+  );
+
+  const signOut = useCallback(async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    setProfil(null);
+    setIsAdmin(false);
+  }, [supabase]);
+
+  const signInWithMagicLink = useCallback(
+    async (email: string) => {
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/profil`,
+        },
+      });
+      return { error };
+    },
+    [supabase],
+  );
+
+  const signInWithGoogle = useCallback(async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/profil`,
+      },
+    });
+    return { error };
+  }, [supabase]);
+
+  const refreshProfil = () => user && loadUserData(user.id);
+
+  return {
+    user,
+    profil,
+    isAdmin,
+    loading,
+    signIn,
+    signUp,
+    signOut,
+    refreshProfil,
+    signInWithMagicLink,
+    signInWithGoogle,
+  };
+}
+</file>
+
+<file path="hooks/useFavoris.ts">
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { toggleFavori } from "@/app/actions/favoris";
+
+export function useFavoris(userId: string | null) {
+  const [favorisIds, setFavorisIds] = useState<Set<string>>(new Set());
+  const [loading, setLoading] = useState(false);
+  const [supabase] = useState(() => createClient());
+
+  // Charger les favoris de l'utilisateur (inchangé)
+  useEffect(() => {
+    if (!userId) {
+      setFavorisIds(new Set());
+      return;
+    }
+
+    const load = async () => {
+      const { data } = await supabase
+        .from("favoris")
+        .select("recette_id")
+        .eq("user_id", userId);
+
+      if (data) {
+        setFavorisIds(new Set(data.map((f) => f.recette_id)));
+      }
+    };
+
+    load();
+  }, [userId, supabase]);
+
+  const isFavori = useCallback(
+    (recetteId: string) => favorisIds.has(recetteId),
+    [favorisIds],
+  );
+
+  const toggleFavoriAction = useCallback(
+    async (recetteId: string) => {
+      if (!userId) return { error: "Non connecté" };
+      setLoading(true);
+      try {
+        const result = await toggleFavori(recetteId);
+        if (result.action === "added") {
+          setFavorisIds((prev) => new Set(prev).add(recetteId));
+        } else {
+          setFavorisIds((prev) => {
+            const next = new Set(prev);
+            next.delete(recetteId);
+            return next;
+          });
+        }
+        return { error: null };
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Erreur inconnue";
+        return { error: message };
+      } finally {
+        setLoading(false);
+      }
+    },
+    [userId],
+  );
+
+  return { favorisIds, isFavori, toggleFavori: toggleFavoriAction, loading };
+}
+</file>
+
+<file path="hooks/useRatings.ts">
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { rateRecipe } from "@/app/actions/ratings";
+
+export function useRatings(recetteId: string, userId: string | null) {
+  const [userRating, setUserRating] = useState<number | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [supabase] = useState(() => createClient());
+
+  useEffect(() => {
+    if (!userId) {
+      setUserRating(null);
+      return;
+    }
+
+    const load = async () => {
+      const { data } = await supabase
+        .from("recipe_ratings")
+        .select("rating")
+        .eq("user_id", userId)
+        .eq("recette_id", recetteId)
+        .single();
+
+      setUserRating(data?.rating ?? null);
+    };
+
+    load();
+  }, [userId, recetteId, supabase]);
+
+  const rate = useCallback(
+    async (rating: number) => {
+      if (!userId) return { error: "Non connecté" };
+      setLoading(true);
+      try {
+        await rateRecipe(recetteId, rating);
+        setUserRating(rating);
+        return { error: null };
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Erreur inconnue";
+        return { error: message };
+      } finally {
+        setLoading(false);
+      }
+    },
+    [userId, recetteId],
+  );
+
+  return { userRating, rate, loading };
+}
+</file>
+
+<file path="types/index.ts">
+/* =============================================================
+   Kitchen Mix — Types centralisés
+   Chaque table Supabase a son type miroir ici.
+   Pour ajouter une table : créer le type, puis l'exporter.
+   ============================================================= */
+
+// ─── Recettes ────────────────────────────────────────────────
+
+export interface Ingredient {
+  nom: string;
+  quantite: number;
+  unite: string;
+  categorie?: string; // pour groupement liste de courses
+}
+
+export interface EtapeThermomix {
+  numero: number;
+  instruction: string;
+  vitesse?: number; // 1-10 ou "turbo"
+  temperature?: number; // °C
+  duree?: number; // secondes
+  accessoire?: string; // fouet, panier, spatule...
+  conseil?: string;
+}
+
+export interface FAQItem {
+  question: string;
+  reponse: string;
+}
+
+export type Difficulte = "facile" | "moyen" | "difficile";
+export type NutriScore = "A" | "B" | "C" | "D" | "E";
+export type ModeleThermomix = "TM5" | "TM6" | "TM7";
+
+export interface Recette {
+  id: string;
+  slug: string;
+  auteur_id: string | null;
+  titre: string;
+  description: string;
+  image_url: string | null;
+  video_youtube_id: string | null;
+  temps_preparation: number;
+  temps_cuisson: number;
+  difficulte: Difficulte;
+  nombre_portions: number;
+  modele_thermomix: ModeleThermomix[];
+  categories: string[];
+  regime: string[];
+  tags: string[];
+  calories_par_portion: number | null;
+  nutriscore: NutriScore | null;
+  nutriscore_note: string | null;
+  ingredients: Ingredient[];
+  etapes: EtapeThermomix[];
+  faq: FAQItem[] | null;
+  note_moyenne: number;
+  nombre_notes: number;
+  vues: number;
+  approuve: boolean;
+  raison_rejet: string | null;
+  publie: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// Sous-ensemble pour les cards / listes
+export type RecetteCard = Pick<
+  Recette,
+  | "id"
+  | "slug"
+  | "titre"
+  | "description"
+  | "image_url"
+  | "temps_preparation"
+  | "temps_cuisson"
+  | "difficulte"
+  | "nombre_portions"
+  | "modele_thermomix"
+  | "categories"
+  | "regime"
+  | "note_moyenne"
+  | "nombre_notes"
+  | "nutriscore"
+  | "calories_par_portion"
+>;
+
+// ─── Profils ─────────────────────────────────────────────────
+
+export interface Profil {
+  id: string;
+  pseudo: string | null;
+  avatar_url: string | null;
+  modele_thermomix: string;
+  bio: string | null;
+  created_at: string;
+  updated_at: string;
+  theme_preference?: "light" | "dark" | "grey";
+  notify_replies?: boolean;
+  notify_moderation?: boolean;
+}
+
+// ─── Ratings ─────────────────────────────────────────────────
+
+export interface RecipeRating {
+  id: string;
+  user_id: string;
+  recette_id: string;
+  rating: number;
+  created_at: string;
+  updated_at: string;
+}
+
+// ─── Favoris ─────────────────────────────────────────────────
+
+export interface Favori {
+  id: string;
+  user_id: string;
+  recette_id: string;
+  created_at: string;
+}
+
+// ─── Comments ────────────────────────────────────────────────
+
+export interface RecipeComment {
+  id: string;
+  user_id: string;
+  recette_id: string;
+  content: string;
+  rating: number | null;
+  approved: boolean;
+  parent_id: string | null;
+  created_at: string;
+  updated_at: string;
+  // Joined
+  profil?: Pick<Profil, "pseudo" | "avatar_url">;
+  replies?: RecipeComment[];
+}
+
+// ─── Submission Log ──────────────────────────────────────────
+
+export interface SubmissionLogEntry {
+  id: string;
+  user_id: string;
+  submitted_at: string;
+}
+
+// ─── Admin ───────────────────────────────────────────────────
+
+export interface Admin {
+  user_id: string;
+  created_at: string;
+}
+
+// ─── Filtres & Search ────────────────────────────────────────
+
+export interface RecetteFilters {
+  categorie?: string;
+  modele?: string;
+  difficulte?: Difficulte;
+  regime?: string;
+  nutriscore?: NutriScore;
+  temps_max?: number;
+  tri?: "recent" | "populaire" | "mieux_note" | "rapide";
+  page?: number;
+  limit?: number;
+  q?: string; // search query
+}
+
+// ─── Liste de courses ────────────────────────────────────────
+
+export interface ListeCoursesItem {
+  nom: string;
+  quantite: number;
+  unite: string;
+  categorie: string;
+}
+
+// ─── Theme ───────────────────────────────────────────────────
+
+export type ThemeName = "dark" | "light" | "grey";
+
+// ─── API Responses ───────────────────────────────────────────
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  count: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface ApiError {
+  error: string;
+  details?: string;
+}
+
+// ─── Newsletter ──────────────────────────────────────────────
+
+export interface NewsletterSubscriber {
+  id: string;
+  email: string;
+  confirmed: boolean;
+  source: string;
+  subscribed_at: string;
+  unsubscribed_at: string | null;
+}
+</file>
+
+<file path="middleware.ts">
+import { type NextRequest, NextResponse } from "next/server";
+import { createServerClient, type CookieOptions } from "@supabase/ssr";
+
+export async function middleware(request: NextRequest) {
+  let response = NextResponse.next({ request });
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(
+          cookiesToSet: {
+            name: string;
+            value: string;
+            options?: CookieOptions;
+          }[],
+        ) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            request.cookies.set(name, value);
+            response = NextResponse.next({ request });
+            response.cookies.set(name, value, options);
+          });
+        },
+      },
+    },
+  );
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user && request.nextUrl.pathname.startsWith("/admin")) {
+    return NextResponse.redirect(new URL("/connexion", request.url));
+  }
+  if (!user && request.nextUrl.pathname.startsWith("/parametres")) {
+    return NextResponse.redirect(new URL("/connexion", request.url));
+  }
+  if (!user && request.nextUrl.pathname.startsWith("/favoris")) {
+    return NextResponse.redirect(new URL("/connexion", request.url));
+  }
+
+  return response;
+}
+
+export const config = {
+  matcher: ["/admin/:path*", "/parametres/:path*", "/favoris/:path*"],
+};
+</file>
+
+<file path="package.json">
+{
+  "name": "kitchen-mix",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Kitchen Mix — Recettes Thermomix premium",
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "seed": "npx tsx scripts/seed.ts",
+    "seed:lot2": "npx tsx scripts/seed-lot2.ts",
+    "seed:companion": "npx tsx scripts/seed-companion.ts",
+    "seed:cook-expert": "npx tsx scripts/seed-cook-expert.ts",
+    "reset:recettes": "npx tsx scripts/reset-recettes.ts",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "^3.10.0",
+    "@supabase/ssr": "^0.6.1",
+    "@supabase/supabase-js": "^2.49.4",
+    "@tanstack/react-query": "^5.97.0",
+    "browser-image-compression": "^2.0.2",
+    "dotenv": "^17.4.0",
+    "framer-motion": "^12.6.3",
+    "lucide-react": "^0.474.0",
+    "next": "^15.3.1",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-hook-form": "^7.54.2",
+    "react-image-crop": "^11.0.10",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.1",
+    "@types/react": "^19.1.2",
+    "@types/react-dom": "^19.1.2",
+    "autoprefixer": "^10.4.21",
+    "eslint": "^9.25.0",
+    "eslint-config-next": "^15.3.1",
+    "postcss": "^8.5.3",
+    "tailwindcss": "^3.4.17",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.3"
+  }
+}
+</file>
+
 <file path="app/planificateur/page.tsx">
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import {
   Calendar,
   ShoppingCart,
@@ -12541,7 +13904,6 @@ const MAX_SLOTS = 3;
 
 export default function PlanificateurPage() {
   const { user, loading: authLoading } = useAuth();
-  const router = useRouter();
   const [supabase] = useState(() => createClient());
 
   const [plan, setPlan] = useState<WeekPlan>({});
@@ -13458,358 +14820,6 @@ function ListeDisplay({ items }: { items: ListeItem[] }) {
 }
 </file>
 
-<file path="app/profil/page.tsx">
-"use client";
-
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import {
-  User,
-  LogOut,
-  BookOpen,
-  Plus,
-  Clock,
-  Check,
-  X,
-  Camera,
-  Loader2,
-} from "lucide-react";
-import Logo from "@/components/ui/Logo";
-import { useAuth } from "@/hooks/useAuth";
-import { createClient } from "@/lib/supabase/client";
-import {
-  APPLIANCES,
-  getAppliancesByCategory,
-  CATEGORY_LABELS,
-  type ApplianceCategory,
-} from "@/lib/appliance-specs";
-import { cn } from "@/lib/utils";
-import Link from "next/link";
-import imageCompression from "browser-image-compression";
-import Image from "next/image";
-
-// Type enrichi pour afficher le statut
-interface MaRecette {
-  id: string;
-  slug: string;
-  titre: string;
-  difficulte: string;
-  approuve: boolean;
-  raison_rejet: string | null;
-  created_at: string;
-}
-
-export default function ProfilPage() {
-  const { user, profil, loading, signOut, refreshProfil } = useAuth();
-  const router = useRouter();
-  const [supabase] = useState(() => createClient());
-
-  const [mesRecettes, setMesRecettes] = useState<MaRecette[]>([]);
-  const [saving, setSaving] = useState(false);
-  const [modele, setModele] = useState(profil?.modele_thermomix || "TM6");
-  const [uploading, setUploading] = useState(false);
-
-  // --- FONCTION D'UPLOAD DE L'AVATAR ---
-  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !user) return;
-
-    setUploading(true);
-    try {
-      // 1. Compression
-      const options = {
-        maxSizeMB: 0.2,
-        maxWidthOrHeight: 500,
-        useWebWorker: true,
-        fileType: "image/webp",
-      };
-      const compressedFile = await imageCompression(file, options);
-
-      // 2. Upload vers le bucket "avatars"
-      const fileName = `${user.id}-${Math.random()}.webp`;
-      const { error: uploadError } = await supabase.storage
-        .from("avatars")
-        .upload(fileName, compressedFile);
-
-      if (uploadError) throw uploadError;
-
-      // 3. Récupération URL
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("avatars").getPublicUrl(fileName);
-
-      // 4. Update BDD (Table profils avec un S)
-      const { error: updateError } = await supabase
-        .from("profils")
-        .update({ avatar_url: publicUrl })
-        .eq("id", user.id);
-
-      if (updateError) throw updateError;
-
-      // 5. Refresh
-      if (refreshProfil) await refreshProfil();
-      alert("Photo de profil mise à jour !");
-    } catch (error: unknown) {
-      console.error("Erreur avatar:", error);
-      const message =
-        error instanceof Error ? error.message : "Erreur inconnue";
-      alert("Erreur : " + message);
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (!loading && !user) {
-      router.push("/connexion?next=/profil");
-    }
-  }, [user, loading, router]);
-
-  useEffect(() => {
-    if (profil) setModele(profil.modele_thermomix);
-  }, [profil]);
-
-  useEffect(() => {
-    if (!user) return;
-    const load = async () => {
-      const { data } = await supabase
-        .from("recettes")
-        .select(
-          "id, slug, titre, difficulte, approuve, raison_rejet, created_at",
-        )
-        .eq("auteur_id", user.id)
-        .order("created_at", { ascending: false });
-      setMesRecettes((data || []) as MaRecette[]);
-    };
-    load();
-  }, [user]);
-
-  const handleSaveModele = async () => {
-    if (!user) return;
-    setSaving(true);
-    await supabase
-      .from("profils")
-      .update({ modele_thermomix: modele })
-      .eq("id", user.id);
-    if (refreshProfil) await refreshProfil();
-    setSaving(false);
-  };
-
-  const handleLogout = async () => {
-    await signOut();
-    router.push("/");
-  };
-
-  if (loading || !user) {
-    return (
-      <div className="space-y-4 max-w-lg mx-auto py-10">
-        <div className="w-20 h-20 rounded-full bg-card animate-pulse mx-auto" />
-        <div className="h-6 w-48 bg-card animate-pulse rounded mx-auto" />
-        <div className="h-40 bg-card animate-pulse rounded-xl" />
-      </div>
-    );
-  }
-
-  const pending = mesRecettes.filter(
-    (r) => !r.approuve && !r.raison_rejet,
-  ).length;
-  const approved = mesRecettes.filter((r) => r.approuve).length;
-  const rejected = mesRecettes.filter(
-    (r) => !r.approuve && r.raison_rejet,
-  ).length;
-
-  return (
-    <div className="max-w-2xl mx-auto space-y-8 py-6 px-4">
-      {/* Header avec Avatar Interactif */}
-      <div className="text-center space-y-3">
-        <div className="relative group w-24 h-24 mx-auto mb-4">
-          <div className="w-full h-full rounded-full overflow-hidden bg-accent/15 border-2 border-accent/20 flex items-center justify-center">
-            {profil?.avatar_url ? (
-              <Image
-                src={profil.avatar_url}
-                alt="Avatar"
-                width={96}
-                height={96}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <User className="w-10 h-10 text-accent" />
-            )}
-          </div>
-
-          {/* Bouton Camera au survol */}
-          <label className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 rounded-full cursor-pointer transition-all border border-white/20">
-            {uploading ? (
-              <Loader2 className="w-6 h-6 text-white animate-spin" />
-            ) : (
-              <Camera className="w-6 h-6 text-white" />
-            )}
-            <input
-              type="file"
-              className="hidden"
-              accept="image/*"
-              onChange={handleAvatarUpload}
-              disabled={uploading}
-            />
-          </label>
-        </div>
-
-        <h1 className="font-display font-bold text-2xl">
-          {profil?.pseudo || user.email?.split("@")[0]}
-        </h1>
-        <p className="text-sm text-muted-foreground">{user.email}</p>
-      </div>
-
-      {/* CTA : Proposer une recette */}
-      <Link
-        href="/soumettre"
-        className="flex items-center justify-center gap-2 w-full px-6 py-4 rounded-xl bg-accent text-black font-display font-bold text-sm hover:bg-accent-hover transition-colors shadow-lg shadow-accent/10"
-      >
-        <Plus className="w-5 h-5" />
-        Proposer une recette
-      </Link>
-
-      {/* Model selector */}
-      <div className="glass-card p-6 space-y-4 rounded-2xl border border-border">
-        <h2 className="font-display font-semibold flex items-center gap-2">
-          <Logo className="w-5 h-auto" />
-          Mon appareil
-        </h2>
-        <div className="flex flex-wrap items-center gap-3">
-          <select
-            value={modele}
-            onChange={(e) => setModele(e.target.value)}
-            className="input-field flex-1"
-          >
-            {Object.entries(getAppliancesByCategory()).map(([cat, apps]) => (
-              <optgroup
-                key={cat}
-                label={CATEGORY_LABELS[cat as ApplianceCategory]}
-              >
-                {apps.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.label}
-                  </option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
-          <button
-            onClick={handleSaveModele}
-            disabled={saving || modele === profil?.modele_thermomix}
-            className="ml-auto px-4 py-2 rounded-lg text-sm bg-accent/10 text-accent font-bold disabled:opacity-40 hover:bg-accent/20 transition-colors"
-          >
-            {saving ? "..." : "Enregistrer"}
-          </button>
-        </div>
-      </div>
-
-      {/* Mes recettes */}
-      <div className="space-y-4">
-        <h2 className="font-display font-semibold flex items-center gap-2">
-          <BookOpen className="w-5 h-5 text-accent" />
-          Mes recettes ({mesRecettes.length})
-        </h2>
-
-        {mesRecettes.length > 0 && (
-          <div className="flex gap-3 text-[10px] uppercase tracking-wider font-bold">
-            {approved > 0 && (
-              <span className="px-2 py-1 rounded bg-sage/10 text-sage border border-sage/20">
-                {approved} EN LIGNE
-              </span>
-            )}
-            {pending > 0 && (
-              <span className="px-2 py-1 rounded bg-yellow-500/10 text-yellow-500 border border-yellow-500/20">
-                {pending} EN ATTENTE
-              </span>
-            )}
-            {rejected > 0 && (
-              <span className="px-2 py-1 rounded bg-error/10 text-error border border-error/20">
-                {rejected} REFUSÉE{rejected > 1 ? "S" : ""}
-              </span>
-            )}
-          </div>
-        )}
-
-        {mesRecettes.length === 0 ? (
-          <div className="text-center py-12 glass-card rounded-2xl border border-dashed border-border">
-            <Logo className="w-11 h-auto mx-auto mb-3 opacity-20" />{" "}
-            <p className="text-muted-foreground text-sm">
-              Vous n'avez pas encore soumis de recette.
-            </p>
-            <Link
-              href="/soumettre"
-              className="inline-flex items-center gap-1 mt-3 text-sm text-accent hover:underline font-bold"
-            >
-              <Plus className="w-4 h-4" /> Proposer ma première recette
-            </Link>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {mesRecettes.map((r) => (
-              <div
-                key={r.id}
-                className={cn(
-                  "flex items-center justify-between px-5 py-4 glass-card rounded-2xl border border-border hover:border-accent/30 transition-all",
-                  !r.approuve && r.raison_rejet && "border-l-4 border-l-error",
-                )}
-              >
-                <div className="flex items-center gap-4 min-w-0">
-                  <div className="min-w-0">
-                    <Link
-                      href={r.approuve ? `/recettes/${r.slug}` : "#"}
-                      className={cn(
-                        "text-sm font-bold truncate block",
-                        r.approuve ? "hover:text-accent" : "cursor-default",
-                      )}
-                    >
-                      {r.titre}
-                    </Link>
-                    {!r.approuve && r.raison_rejet && (
-                      <p className="text-[11px] text-error mt-1 font-medium italic">
-                        Refusé : {r.raison_rejet}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 shrink-0">
-                  <span
-                    className={cn(
-                      "text-[9px] font-black uppercase tracking-tighter px-2 py-1 rounded",
-                      r.approuve
-                        ? "bg-sage/10 text-sage"
-                        : r.raison_rejet
-                          ? "bg-error/10 text-error"
-                          : "bg-yellow-500/10 text-yellow-500",
-                    )}
-                  >
-                    {r.approuve
-                      ? "Public"
-                      : r.raison_rejet
-                        ? "Refusé"
-                        : "Vérification"}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Logout */}
-      <button
-        onClick={handleLogout}
-        className="w-full flex items-center justify-center gap-2 px-6 py-4 rounded-xl bg-card border border-error/20 text-error hover:bg-error/5 hover:border-error/40 transition-all font-bold text-sm"
-      >
-        <LogOut className="w-4 h-4" />
-        Déconnexion
-      </button>
-    </div>
-  );
-}
-</file>
-
 <file path="components/recettes/RecetteComments.tsx">
 "use client";
 
@@ -14013,7 +15023,7 @@ export default function RecetteComments({ recetteId }: { recetteId: string }) {
     try {
       await voteComment(commentId, type, recetteId);
       await loadComments(); // Recharge tout pour mettre à jour les compteurs
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Erreur vote:", err);
     }
   };
@@ -14058,8 +15068,10 @@ export default function RecetteComments({ recetteId }: { recetteId: string }) {
       setEditingId(null);
       setEditContent("");
       await loadComments();
-    } catch (err: any) {
-      alert("Erreur : " + err.message);
+    } catch (err: unknown) {
+      alert(
+        "Erreur : " + (err instanceof Error ? err.message : "Erreur inconnue"),
+      );
     }
   };
 
@@ -14068,8 +15080,10 @@ export default function RecetteComments({ recetteId }: { recetteId: string }) {
     try {
       await deleteComment(id, recetteId);
       await loadComments();
-    } catch (err: any) {
-      alert("Erreur : " + err.message);
+    } catch (err: unknown) {
+      alert(
+        "Erreur : " + (err instanceof Error ? err.message : "Erreur inconnue"),
+      );
     }
   };
 
@@ -14534,636 +15548,6 @@ function CommentNode({
 }
 </file>
 
-<file path="hooks/useAuth.ts">
-"use client";
-
-import { useState, useEffect, useCallback } from "react";
-import { createClient } from "@/lib/supabase/client";
-import type { User } from "@supabase/supabase-js";
-import type { Profil } from "@/types";
-
-export function useAuth() {
-  const [user, setUser] = useState<User | null>(null);
-  const [profil, setProfil] = useState<Profil | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [supabase] = useState(() => createClient());
-
-  const loadUserData = useCallback(
-    async (userId: string) => {
-      try {
-        // 1. Récupérer le profil
-        const { data: profilData } = await supabase
-          .from("profils")
-          .select("*")
-          .eq("id", userId)
-          .single();
-        setProfil(profilData as Profil | null);
-
-        // 2. Vérifier si admin
-        const { data: adminData } = await supabase
-          .from("admins")
-          .select("user_id")
-          .eq("user_id", userId)
-          .maybeSingle();
-        setIsAdmin(!!adminData);
-
-        // 3. Synchroniser le thème depuis le profil
-        if (profilData?.theme_preference) {
-          const theme = profilData.theme_preference;
-          if (["dark", "light", "grey"].includes(theme)) {
-            localStorage.setItem("kmx-theme", theme);
-            document.documentElement.setAttribute("data-theme", theme);
-          }
-        }
-      } catch (err) {
-        console.error("Erreur chargement données utilisateur:", err);
-      }
-    },
-    [supabase],
-  );
-
-  useEffect(() => {
-    const getSession = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
-
-      if (currentUser) {
-        await loadUserData(currentUser.id);
-      }
-      setLoading(false);
-    };
-
-    getSession();
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
-      if (currentUser) {
-        await loadUserData(currentUser.id);
-      } else {
-        setProfil(null);
-        setIsAdmin(false);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [loadUserData, supabase.auth]);
-
-  const signIn = useCallback(
-    async (email: string, password: string) => {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      return { error };
-    },
-    [supabase],
-  );
-
-  const signUp = useCallback(
-    async (email: string, password: string, pseudo: string) => {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: { data: { pseudo } },
-      });
-      return { error };
-    },
-    [supabase],
-  );
-
-  const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    setProfil(null);
-    setIsAdmin(false);
-  }, [supabase]);
-
-  const signInWithMagicLink = useCallback(
-    async (email: string) => {
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          emailRedirectTo: `${window.location.origin}/profil`,
-        },
-      });
-      return { error };
-    },
-    [supabase],
-  );
-
-  const signInWithGoogle = useCallback(async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/profil`,
-      },
-    });
-    return { error };
-  }, [supabase]);
-
-  const refreshProfil = () => user && loadUserData(user.id);
-
-  return {
-    user,
-    profil,
-    isAdmin,
-    loading,
-    signIn,
-    signUp,
-    signOut,
-    refreshProfil,
-    signInWithMagicLink,
-    signInWithGoogle,
-  };
-}
-</file>
-
-<file path="hooks/useFavoris.ts">
-"use client";
-
-import { useState, useEffect, useCallback } from "react";
-import { createClient } from "@/lib/supabase/client";
-import { toggleFavori } from "@/app/actions/favoris";
-
-export function useFavoris(userId: string | null) {
-  const [favorisIds, setFavorisIds] = useState<Set<string>>(new Set());
-  const [loading, setLoading] = useState(false);
-  const [supabase] = useState(() => createClient());
-
-  // Charger les favoris de l'utilisateur (inchangé)
-  useEffect(() => {
-    if (!userId) {
-      setFavorisIds(new Set());
-      return;
-    }
-
-    const load = async () => {
-      const { data } = await supabase
-        .from("favoris")
-        .select("recette_id")
-        .eq("user_id", userId);
-
-      if (data) {
-        setFavorisIds(new Set(data.map((f) => f.recette_id)));
-      }
-    };
-
-    load();
-  }, [userId, supabase]);
-
-  const isFavori = useCallback(
-    (recetteId: string) => favorisIds.has(recetteId),
-    [favorisIds],
-  );
-
-  const toggleFavoriAction = useCallback(
-    async (recetteId: string) => {
-      if (!userId) return { error: "Non connecté" };
-      setLoading(true);
-      try {
-        const result = await toggleFavori(recetteId);
-        if (result.action === "added") {
-          setFavorisIds((prev) => new Set(prev).add(recetteId));
-        } else {
-          setFavorisIds((prev) => {
-            const next = new Set(prev);
-            next.delete(recetteId);
-            return next;
-          });
-        }
-        return { error: null };
-      } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : "Erreur inconnue";
-        return { error: message };
-      } finally {
-        setLoading(false);
-      }
-    },
-    [userId],
-  );
-
-  return { favorisIds, isFavori, toggleFavori: toggleFavoriAction, loading };
-}
-</file>
-
-<file path="hooks/useRatings.ts">
-"use client";
-
-import { useState, useEffect, useCallback } from "react";
-import { createClient } from "@/lib/supabase/client";
-import { rateRecipe } from "@/app/actions/ratings";
-
-export function useRatings(recetteId: string, userId: string | null) {
-  const [userRating, setUserRating] = useState<number | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [supabase] = useState(() => createClient());
-
-  useEffect(() => {
-    if (!userId) {
-      setUserRating(null);
-      return;
-    }
-
-    const load = async () => {
-      const { data } = await supabase
-        .from("recipe_ratings")
-        .select("rating")
-        .eq("user_id", userId)
-        .eq("recette_id", recetteId)
-        .single();
-
-      setUserRating(data?.rating ?? null);
-    };
-
-    load();
-  }, [userId, recetteId, supabase]);
-
-  const rate = useCallback(
-    async (rating: number) => {
-      if (!userId) return { error: "Non connecté" };
-      setLoading(true);
-      try {
-        await rateRecipe(recetteId, rating);
-        setUserRating(rating);
-        return { error: null };
-      } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : "Erreur inconnue";
-        return { error: message };
-      } finally {
-        setLoading(false);
-      }
-    },
-    [userId, recetteId],
-  );
-
-  return { userRating, rate, loading };
-}
-</file>
-
-<file path="types/index.ts">
-/* =============================================================
-   Kitchen Mix — Types centralisés
-   Chaque table Supabase a son type miroir ici.
-   Pour ajouter une table : créer le type, puis l'exporter.
-   ============================================================= */
-
-// ─── Recettes ────────────────────────────────────────────────
-
-export interface Ingredient {
-  nom: string;
-  quantite: number;
-  unite: string;
-  categorie?: string; // pour groupement liste de courses
-}
-
-export interface EtapeThermomix {
-  numero: number;
-  instruction: string;
-  vitesse?: number; // 1-10 ou "turbo"
-  temperature?: number; // °C
-  duree?: number; // secondes
-  accessoire?: string; // fouet, panier, spatule...
-  conseil?: string;
-}
-
-export interface FAQItem {
-  question: string;
-  reponse: string;
-}
-
-export type Difficulte = "facile" | "moyen" | "difficile";
-export type NutriScore = "A" | "B" | "C" | "D" | "E";
-export type ModeleThermomix = "TM5" | "TM6" | "TM7";
-
-export interface Recette {
-  id: string;
-  slug: string;
-  auteur_id: string | null;
-  titre: string;
-  description: string;
-  image_url: string | null;
-  video_youtube_id: string | null;
-  temps_preparation: number;
-  temps_cuisson: number;
-  difficulte: Difficulte;
-  nombre_portions: number;
-  modele_thermomix: ModeleThermomix[];
-  categories: string[];
-  regime: string[];
-  tags: string[];
-  calories_par_portion: number | null;
-  nutriscore: NutriScore | null;
-  nutriscore_note: string | null;
-  ingredients: Ingredient[];
-  etapes: EtapeThermomix[];
-  faq: FAQItem[] | null;
-  note_moyenne: number;
-  nombre_notes: number;
-  vues: number;
-  approuve: boolean;
-  raison_rejet: string | null;
-  publie: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
-// Sous-ensemble pour les cards / listes
-export type RecetteCard = Pick<
-  Recette,
-  | "id"
-  | "slug"
-  | "titre"
-  | "description"
-  | "image_url"
-  | "temps_preparation"
-  | "temps_cuisson"
-  | "difficulte"
-  | "nombre_portions"
-  | "modele_thermomix"
-  | "categories"
-  | "regime"
-  | "note_moyenne"
-  | "nombre_notes"
-  | "nutriscore"
-  | "calories_par_portion"
->;
-
-// ─── Profils ─────────────────────────────────────────────────
-
-export interface Profil {
-  id: string;
-  pseudo: string | null;
-  avatar_url: string | null;
-  modele_thermomix: string;
-  bio: string | null;
-  created_at: string;
-  updated_at: string;
-  theme_preference?: "light" | "dark" | "grey";
-  notify_replies?: boolean;
-  notify_moderation?: boolean;
-}
-
-// ─── Ratings ─────────────────────────────────────────────────
-
-export interface RecipeRating {
-  id: string;
-  user_id: string;
-  recette_id: string;
-  rating: number;
-  created_at: string;
-  updated_at: string;
-}
-
-// ─── Favoris ─────────────────────────────────────────────────
-
-export interface Favori {
-  id: string;
-  user_id: string;
-  recette_id: string;
-  created_at: string;
-}
-
-// ─── Comments ────────────────────────────────────────────────
-
-export interface RecipeComment {
-  id: string;
-  user_id: string;
-  recette_id: string;
-  content: string;
-  rating: number | null;
-  approved: boolean;
-  parent_id: string | null;
-  created_at: string;
-  updated_at: string;
-  // Joined
-  profil?: Pick<Profil, "pseudo" | "avatar_url">;
-  replies?: RecipeComment[];
-}
-
-// ─── Submission Log ──────────────────────────────────────────
-
-export interface SubmissionLogEntry {
-  id: string;
-  user_id: string;
-  submitted_at: string;
-}
-
-// ─── Admin ───────────────────────────────────────────────────
-
-export interface Admin {
-  user_id: string;
-  created_at: string;
-}
-
-// ─── Filtres & Search ────────────────────────────────────────
-
-export interface RecetteFilters {
-  categorie?: string;
-  modele?: string;
-  difficulte?: Difficulte;
-  regime?: string;
-  nutriscore?: NutriScore;
-  temps_max?: number;
-  tri?: "recent" | "populaire" | "mieux_note" | "rapide";
-  page?: number;
-  limit?: number;
-  q?: string; // search query
-}
-
-// ─── Liste de courses ────────────────────────────────────────
-
-export interface ListeCoursesItem {
-  nom: string;
-  quantite: number;
-  unite: string;
-  categorie: string;
-}
-
-// ─── Theme ───────────────────────────────────────────────────
-
-export type ThemeName = "dark" | "light" | "grey";
-
-// ─── API Responses ───────────────────────────────────────────
-
-export interface PaginatedResponse<T> {
-  data: T[];
-  count: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
-
-export interface ApiError {
-  error: string;
-  details?: string;
-}
-
-// ─── Newsletter ──────────────────────────────────────────────
-
-export interface NewsletterSubscriber {
-  id: string;
-  email: string;
-  confirmed: boolean;
-  source: string;
-  subscribed_at: string;
-  unsubscribed_at: string | null;
-}
-</file>
-
-<file path="middleware.ts">
-import { type NextRequest, NextResponse } from "next/server";
-import { createServerClient, type CookieOptions } from "@supabase/ssr";
-
-export async function middleware(request: NextRequest) {
-  let response = NextResponse.next({ request });
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(
-          cookiesToSet: {
-            name: string;
-            value: string;
-            options?: CookieOptions;
-          }[],
-        ) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            request.cookies.set(name, value);
-            response = NextResponse.next({ request });
-            response.cookies.set(name, value, options);
-          });
-        },
-      },
-    },
-  );
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user && request.nextUrl.pathname.startsWith("/admin")) {
-    return NextResponse.redirect(new URL("/connexion", request.url));
-  }
-  if (!user && request.nextUrl.pathname.startsWith("/parametres")) {
-    return NextResponse.redirect(new URL("/connexion", request.url));
-  }
-  if (!user && request.nextUrl.pathname.startsWith("/favoris")) {
-    return NextResponse.redirect(new URL("/connexion", request.url));
-  }
-
-  return response;
-}
-
-export const config = {
-  matcher: ["/admin/:path*", "/parametres/:path*", "/favoris/:path*"],
-};
-</file>
-
-<file path="package.json">
-{
-  "name": "kitchen-mix",
-  "version": "1.0.0",
-  "private": true,
-  "description": "Kitchen Mix — Recettes Thermomix premium",
-  "scripts": {
-    "dev": "next dev --turbopack",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint",
-    "seed": "npx tsx scripts/seed.ts",
-    "seed:lot2": "npx tsx scripts/seed-lot2.ts",
-    "seed:companion": "npx tsx scripts/seed-companion.ts",
-    "seed:cook-expert": "npx tsx scripts/seed-cook-expert.ts",
-    "reset:recettes": "npx tsx scripts/reset-recettes.ts",
-    "type-check": "tsc --noEmit"
-  },
-  "dependencies": {
-    "@hookform/resolvers": "^3.10.0",
-    "@supabase/ssr": "^0.6.1",
-    "@supabase/supabase-js": "^2.49.4",
-    "@tanstack/react-query": "^5.97.0",
-    "browser-image-compression": "^2.0.2",
-    "dotenv": "^17.4.0",
-    "framer-motion": "^12.6.3",
-    "lucide-react": "^0.474.0",
-    "next": "^15.3.1",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
-    "react-hook-form": "^7.54.2",
-    "react-image-crop": "^11.0.10",
-    "zod": "^3.24.2"
-  },
-  "devDependencies": {
-    "@types/node": "^22.14.1",
-    "@types/react": "^19.1.2",
-    "@types/react-dom": "^19.1.2",
-    "autoprefixer": "^10.4.21",
-    "eslint": "^9.25.0",
-    "eslint-config-next": "^15.3.1",
-    "postcss": "^8.5.3",
-    "tailwindcss": "^3.4.17",
-    "tsx": "^4.19.3",
-    "typescript": "^5.8.3"
-  }
-}
-</file>
-
-<file path="tsconfig.json">
-{
-  "compilerOptions": {
-    "target": "ES2017",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
-    ],
-    "allowJs": true,
-    "skipLibCheck": true,
-    "strict": true,
-    "noEmit": true,
-    "esModuleInterop": true,
-    "module": "esnext",
-    "moduleResolution": "bundler",
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "jsx": "preserve",
-    "incremental": true,
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ],
-    "paths": {
-      "@/*": [
-        "./*"
-      ]
-    }
-  },
-  "include": [
-    "next-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx",
-    ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts"
-  ],
-  "exclude": [
-    "node_modules"
-  ]
-}
-</file>
-
 <file path="lib/supabase/queries.ts">
 /* =============================================================
    Kitchen Mix — Queries Supabase centralisées
@@ -15405,6 +15789,42 @@ export async function getRecettesEnAttente(): Promise<Recette[]> {
 
   if (error) throw new Error(error.message);
   return (data || []) as Recette[];
+}
+</file>
+
+<file path="tsconfig.json">
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": ["./*"]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
+  ],
+  "exclude": ["node_modules"]
 }
 </file>
 

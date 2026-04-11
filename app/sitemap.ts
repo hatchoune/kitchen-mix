@@ -63,6 +63,19 @@ export default async function sitemap({
             changeFrequency: "daily" as const,
             priority: 0.9,
           },
+          // Ajouts
+          {
+            url: `${SITE_URL}/a-propos`,
+            lastModified: now,
+            changeFrequency: "monthly" as const,
+            priority: 0.7,
+          },
+          {
+            url: `${SITE_URL}/mentions-legales`,
+            lastModified: now,
+            changeFrequency: "yearly" as const,
+            priority: 0.5,
+          },
           ...CATEGORIES.map((cat) => ({
             url: `${SITE_URL}/recettes/${cat.value}`,
             lastModified: now,
