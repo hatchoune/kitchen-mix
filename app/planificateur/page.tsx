@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import {
   Calendar,
   ShoppingCart,
@@ -57,7 +56,6 @@ const MAX_SLOTS = 3;
 
 export default function PlanificateurPage() {
   const { user, loading: authLoading } = useAuth();
-  const router = useRouter();
   const [supabase] = useState(() => createClient());
 
   const [plan, setPlan] = useState<WeekPlan>({});

@@ -18,6 +18,7 @@ import {
   PlusCircle,
   Heart,
   Calendar,
+  Info,
 } from "lucide-react";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 import Logo from "@/components/ui/Logo";
@@ -31,6 +32,7 @@ const NAV_LINKS = [
   { href: "/planificateur", label: "Planning", icon: Calendar }, // <--- AJOUTE CETTE LIGNE
   { href: "/soumettre", label: "Proposer", icon: PlusCircle },
   { href: "/favoris", label: "Favoris", icon: Heart },
+  { href: "/a-propos", label: "À propos", icon: Info },
 ];
 
 export default function Navbar() {
@@ -94,7 +96,7 @@ export default function Navbar() {
   return (
     <header
       className={cn(
-        "sticky top-0 z-50 glass border-b border-border transition-transform duration-300",
+        "sticky top-0 z-50 bg-background/99 backdrop-blur-[1px] border-b border-border transition-transform duration-300",
         visible ? "translate-y-0" : "-translate-y-full",
       )}
     >
@@ -117,10 +119,10 @@ export default function Navbar() {
                 key={link.href}
                 href={link.href}
                 className={cn(
-                  "px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                  "px-3 py-2 rounded-lg text-sm font-medium transition-all",
                   isActive(link.href)
-                    ? "bg-accent/10 text-accent"
-                    : "text-foreground/60 hover:text-foreground hover:bg-card-hover",
+                    ? "bg-accent/15 text-accent shadow-sm shadow-accent/10"
+                    : "bg-background/15 text-foreground/80 hover:text-foreground hover:bg-background/25 backdrop-blur-sm",
                 )}
               >
                 {link.label}
@@ -252,10 +254,10 @@ export default function Navbar() {
                 href={link.href}
                 onClick={() => setMobileOpen(false)}
                 className={cn(
-                  "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors",
+                  "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all",
                   isActive(link.href)
-                    ? "bg-accent/10 text-accent"
-                    : "text-foreground/60 hover:text-foreground hover:bg-card-hover",
+                    ? "bg-accent/15 text-accent shadow-sm shadow-accent/10"
+                    : "bg-background/15 text-foreground/80 hover:text-foreground hover:bg-background/25 backdrop-blur-sm",
                 )}
               >
                 <link.icon className="w-4 h-4" />
@@ -266,7 +268,12 @@ export default function Navbar() {
               <Link
                 href="/admin"
                 onClick={() => setMobileOpen(false)}
-                className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold text-accent hover:bg-accent/10 transition-colors"
+                className={cn(
+                  "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold transition-all",
+                  isActive("/admin")
+                    ? "bg-accent/15 text-accent shadow-sm shadow-accent/10"
+                    : "bg-background/15 text-accent/80 hover:text-accent hover:bg-background/25 backdrop-blur-sm",
+                )}
               >
                 <Shield className="w-4 h-4" /> Administration
               </Link>

@@ -36,9 +36,11 @@ export default function NewsletterForm({
       setStatus("success");
       setMessage("Merci ! Vous recevrez bientôt nos meilleures recettes.");
       setEmail("");
-    } catch (err: any) {
+    } catch (err: unknown) {
       setStatus("error");
-      setMessage(err.message || "Une erreur est survenue.");
+      setMessage(
+        err instanceof Error ? err.message : "Une erreur est survenue.",
+      );
     }
   };
 

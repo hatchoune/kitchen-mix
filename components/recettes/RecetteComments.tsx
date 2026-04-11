@@ -200,7 +200,7 @@ export default function RecetteComments({ recetteId }: { recetteId: string }) {
     try {
       await voteComment(commentId, type, recetteId);
       await loadComments(); // Recharge tout pour mettre à jour les compteurs
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Erreur vote:", err);
     }
   };
@@ -245,8 +245,10 @@ export default function RecetteComments({ recetteId }: { recetteId: string }) {
       setEditingId(null);
       setEditContent("");
       await loadComments();
-    } catch (err: any) {
-      alert("Erreur : " + err.message);
+    } catch (err: unknown) {
+      alert(
+        "Erreur : " + (err instanceof Error ? err.message : "Erreur inconnue"),
+      );
     }
   };
 
@@ -255,8 +257,10 @@ export default function RecetteComments({ recetteId }: { recetteId: string }) {
     try {
       await deleteComment(id, recetteId);
       await loadComments();
-    } catch (err: any) {
-      alert("Erreur : " + err.message);
+    } catch (err: unknown) {
+      alert(
+        "Erreur : " + (err instanceof Error ? err.message : "Erreur inconnue"),
+      );
     }
   };
 

@@ -105,8 +105,8 @@ export default function ImageUploader({
       setOriginalSrc(null);
       setCompletedCrop(undefined);
       setCrop(undefined);
-    } catch (err: any) {
-      setError(err.message || "Erreur lors de l'upload");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Erreur lors de l'upload");
     } finally {
       setIsUploading(false);
       setProgress(0);
