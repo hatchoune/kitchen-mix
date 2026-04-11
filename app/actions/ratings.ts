@@ -30,6 +30,11 @@ export async function rateRecipe(recetteId: string, rating: number) {
     throw new Error(error.message);
   }
 
+  // Achievements
+  const { checkAndUnlockAchievements } =
+    await import("@/app/actions/achievements");
+  await checkAndUnlockAchievements(user.id, "rating_given");
+
   // Revalider la page de la recette pour mettre à jour l'affichage
   revalidatePath("/recettes", "layout");
   return { data };

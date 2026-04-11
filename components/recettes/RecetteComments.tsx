@@ -494,9 +494,12 @@ function CommentNode({
                 </span>
               </div>
             )}
-            <span className="font-bold text-accent text-sm">
+            <Link
+              href={`/profil/${comment.user_id}`}
+              className="font-bold text-accent text-sm hover:underline"
+            >
               {comment.author_name}
-            </span>
+            </Link>
             {isPending && (
               <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-500">
                 <Clock className="w-3 h-3" /> En attente

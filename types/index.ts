@@ -205,3 +205,28 @@ export interface NewsletterSubscriber {
   subscribed_at: string;
   unsubscribed_at: string | null;
 }
+
+// ─── Achievements ────────────────────────────────────────────
+
+export interface UserAchievement {
+  id: string;
+  user_id: string;
+  achievement_code: string;
+  unlocked_at: string;
+  notified: boolean;
+}
+
+// ─── Plannings ───────────────────────────────────────────────
+
+export interface UserPlanning {
+  id: string;
+  user_id: string;
+  name: string;
+  description: string | null;
+  is_public: boolean;
+  week_start: string;
+  data: Record<number, (string | null)[]>;
+  likes_count: number;
+  created_at: string;
+  updated_at: string;
+}

@@ -32,6 +32,7 @@ export function useAuth() {
         setIsAdmin(!!adminData);
 
         // 3. Synchroniser le thème depuis le profil
+        // 3. Synchroniser le thème depuis le profil
         if (profilData?.theme_preference) {
           const theme = profilData.theme_preference;
           if (["dark", "light", "grey"].includes(theme)) {
@@ -39,6 +40,13 @@ export function useAuth() {
             document.documentElement.setAttribute("data-theme", theme);
           }
         }
+
+        // 4. Achievement : connexion (fire-and-forget)
+        import("@/app/actions/achievements").then(
+          ({ checkAndUnlockAchievements }) => {
+            checkAndUnlockAchievements(userId, "login").catch(() => {});
+          },
+        );
       } catch (err) {
         console.error("Erreur chargement données utilisateur:", err);
       }

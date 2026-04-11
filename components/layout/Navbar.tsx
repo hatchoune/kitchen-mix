@@ -200,6 +200,13 @@ export default function Navbar() {
                       <User className="w-4 h-4" /> Mon Profil
                     </Link>
                     <Link
+                      href={`/profil/${user.id}`}
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-accent/10 hover:text-accent transition-colors"
+                    >
+                      <User className="w-4 h-4 opacity-50" /> Profil public
+                    </Link>
+                    <Link
                       href="/parametres"
                       onClick={() => setUserMenuOpen(false)}
                       className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-accent/10 hover:text-accent transition-colors"

@@ -21,11 +21,29 @@ async function requireAdmin() {
 export async function approveRecette(id: string) {
   await requireAdmin();
   const adminClient = createAdminSupabase();
+
+  // Récupérer l'auteur AVANT la mise à jour
+  const { data: recette } = await adminClient
+    .from("recettes")
+    .select("auteur_id")
+    .eq("id", id)
+    .single();
+
   const { error } = await adminClient
     .from("recettes")
     .update({ approuve: true, raison_rejet: null })
     .eq("id", id);
   if (error) throw new Error(error.message);
+
+  // Achievements pour l'auteur
+  if (recette?.auteur_id) {
+    const { checkAndUnlockAchievements } =
+      await import("@/app/actions/achievements");
+    await checkAndUnlockAchievements(recette.auteur_id, "recipe_approved", {
+      authorId: recette.auteur_id,
+    });
+  }
+
   revalidatePath("/admin");
   revalidatePath("/recettes");
   return { success: true };
@@ -46,11 +64,29 @@ export async function rejectRecette(id: string, raison: string) {
 export async function approveComment(id: string) {
   await requireAdmin();
   const adminClient = createAdminSupabase();
+
+  // Récupérer l'auteur du commentaire
+  const { data: comment } = await adminClient
+    .from("recipe_comments")
+    .select("user_id")
+    .eq("id", id)
+    .single();
+
   const { error } = await adminClient
     .from("recipe_comments")
     .update({ approved: true })
     .eq("id", id);
   if (error) throw new Error(error.message);
+
+  // Achievements pour l'auteur du commentaire
+  if (comment?.user_id) {
+    const { checkAndUnlockAchievements } =
+      await import("@/app/actions/achievements");
+    await checkAndUnlockAchievements(comment.user_id, "comment_approved", {
+      commentUserId: comment.user_id,
+    });
+  }
+
   revalidatePath("/admin");
   return { success: true };
 }

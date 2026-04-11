@@ -344,232 +344,6 @@ function ValueCard({
 }
 </file>
 
-<file path="app/mentions-legales/layout.tsx">
-// app/mentions-legales/layout.tsx
-import type { Metadata } from "next";
-import { SITE_NAME } from "@/lib/constants";
-
-export const metadata: Metadata = {
-  title: `Mentions légales | ${SITE_NAME}`,
-  robots: { index: true, follow: true },
-};
-
-export default function MentionsLegalesLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  return <>{children}</>;
-}
-</file>
-
-<file path="app/mentions-legales/page.tsx">
-// app/mentions-legales/page.tsx
-import type { Metadata } from "next";
-import { SITE_NAME, SITE_URL } from "@/lib/constants";
-import { getPageMetadata } from "@/lib/seo";
-
-export const metadata: Metadata = getPageMetadata({
-  title: "Mentions légales & CGU",
-  description: `Mentions légales, conditions générales d'utilisation et politique de confidentialité de ${SITE_NAME}.`,
-  path: "/mentions-legales",
-  noIndex: false, // On indexe cette page (utile pour la transparence)
-});
-
-export default function MentionsLegalesPage() {
-  const lastUpdate = "10 avril 2026";
-
-  return (
-    <div className="max-w-3xl mx-auto py-8 space-y-10 animate-fade-in">
-      <header className="space-y-2">
-        <h1 className="font-display font-bold text-4xl">
-          Mentions légales & CGU
-        </h1>
-        <p className="text-muted-foreground">
-          Dernière mise à jour : {lastUpdate}
-        </p>
-      </header>
-
-      {/* Section 1 : Éditeur du site */}
-      <Section title="1. Éditeur du site">
-        <p>
-          <strong>{SITE_NAME}</strong> est édité par :
-        </p>
-        <ul className="list-disc list-inside space-y-1">
-          <li>
-            <strong>Nom du responsable :</strong> Khaled LARIBI
-          </li>
-          <li>
-            <strong>Adresse :</strong> [Votre adresse complète]
-          </li>
-          <li>
-            <strong>Email :</strong>{" "}
-            <a
-              href="mailto:laribi.khaled69150@gmail.com"
-              className="text-accent hover:underline"
-            >
-              laribi.khaled69150@gmail.com
-            </a>
-          </li>
-          <li>
-            <strong>Numéro de téléphone :</strong> [Votre numéro]
-          </li>
-          <li>
-            <strong>Numéro SIRET :</strong> [Votre SIRET si applicable]
-          </li>
-        </ul>
-      </Section>
-
-      {/* Section 2 : Hébergeur */}
-      <Section title="2. Hébergement">
-        <p>
-          Le site <strong>{SITE_NAME}</strong> est hébergé par :
-        </p>
-        <ul className="list-disc list-inside space-y-1">
-          <li>
-            <strong>Vercel Inc.</strong>
-          </li>
-          <li>340 S Lemon Ave #4133, Walnut, CA 91789, USA</li>
-          <li>
-            <a
-              href="https://vercel.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-accent hover:underline"
-            >
-              vercel.com
-            </a>
-          </li>
-        </ul>
-      </Section>
-
-      {/* Section 3 : Propriété intellectuelle */}
-      <Section title="3. Propriété intellectuelle">
-        <p>
-          L&apos;ensemble du code source, du design, des logos et des contenus
-          éditoriaux (hors recettes soumises par les utilisateurs) est la
-          propriété exclusive de l&apos;éditeur et est protégé par les lois
-          françaises et internationales relatives à la propriété intellectuelle.
-        </p>
-        <p className="mt-2">
-          Toute reproduction, distribution ou modification, même partielle, est
-          strictement interdite sans autorisation écrite préalable.
-        </p>
-        <p className="mt-2">
-          Les recettes soumises par les utilisateurs restent leur propriété,
-          mais leur publication sur {SITE_NAME} confère au site une licence non
-          exclusive de diffusion.
-        </p>
-      </Section>
-
-      {/* Section 4 : Conditions Générales d'Utilisation */}
-      <Section title="4. Conditions Générales d'Utilisation (CGU)">
-        <p>
-          L&apos;utilisation du site {SITE_NAME} implique l&apos;acceptation
-          pleine et entière des conditions générales d&apos;utilisation décrites
-          ci-dessous.
-        </p>
-
-        <SubSection title="4.1 Accès au site">
-          Le site est accessible gratuitement à tout utilisateur disposant
-          d&apos;un accès à Internet. Tous les coûts afférents à l&apos;accès au
-          site (matériel, logiciel, connexion) sont à la charge exclusive de
-          l&apos;utilisateur.
-        </SubSection>
-
-        <SubSection title="4.2 Compte utilisateur">
-          La création d&apos;un compte est nécessaire pour accéder à certaines
-          fonctionnalités (favoris, commentaires, soumission de recettes).
-          L&apos;utilisateur est responsable de la confidentialité de ses
-          identifiants et s&apos;engage à fournir des informations exactes.
-        </SubSection>
-
-        <SubSection title="4.3 Contenu utilisateur">
-          En soumettant une recette ou un commentaire, l&apos;utilisateur
-          garantit qu&apos;il détient les droits nécessaires et autorise{" "}
-          {SITE_NAME} à publier, modifier et diffuser ce contenu sur le site et
-          ses réseaux sociaux. {SITE_NAME} se réserve le droit de modérer ou de
-          refuser tout contenu sans préavis.
-        </SubSection>
-
-        <SubSection title="4.4 Limitation de responsabilité">
-          Les recettes et conseils présents sur {SITE_NAME} sont fournis à titre
-          informatif. L&apos;utilisateur est seul responsable de
-          l&apos;utilisation qu&apos;il en fait, notamment en ce qui concerne
-          les allergies, les régimes spécifiques ou l&apos;utilisation des
-          robots de cuisine. {SITE_NAME} ne pourra être tenu responsable des
-          dommages directs ou indirects résultant de l&apos;utilisation du site.
-        </SubSection>
-
-        <SubSection title="4.5 Liens hypertextes">
-          Le site peut contenir des liens vers d&apos;autres sites web.{" "}
-          {SITE_NAME} n&apos;exerce aucun contrôle sur ces sites et décline
-          toute responsabilité quant à leur contenu.
-        </SubSection>
-      </Section>
-
-      {/* Section 5 : Données personnelles */}
-      <Section title="5. Données personnelles et cookies">
-        <p>
-          Conformément au Règlement Général sur la Protection des Données (RGPD)
-          et à la loi Informatique et Libertés, vous disposez d&apos;un droit
-          d&apos;accès, de rectification et de suppression de vos données
-          personnelles. Pour l&apos;exercer, contactez-nous à l&apos;adresse
-          email indiquée ci-dessus.
-        </p>
-        <p className="mt-2">
-          Le site utilise des cookies strictement nécessaires à son
-          fonctionnement (authentification, préférences de thème). Aucun cookie
-          publicitaire n&apos;est déposé sans votre consentement.
-        </p>
-      </Section>
-
-      {/* Section 6 : Droit applicable */}
-      <Section title="6. Droit applicable">
-        <p>
-          Les présentes mentions légales et CGU sont régies par le droit
-          français. En cas de litige, les tribunaux français seront seuls
-          compétents.
-        </p>
-      </Section>
-    </div>
-  );
-}
-
-// Composants auxiliaires pour une mise en page cohérente
-function Section({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="glass-card p-6 space-y-3">
-      <h2 className="font-display font-bold text-xl text-accent">{title}</h2>
-      <div className="text-muted-foreground leading-relaxed space-y-2">
-        {children}
-      </div>
-    </section>
-  );
-}
-
-function SubSection({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="mt-4">
-      <h3 className="font-semibold text-foreground mb-1">{title}</h3>
-      <div className="text-muted-foreground leading-relaxed">{children}</div>
-    </div>
-  );
-}
-</file>
-
 <file path="app/actions/favoris.ts">
 "use server";
 
@@ -1066,6 +840,232 @@ export const metadata: Metadata = {
 
 export default function FavorisLayout({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
+}
+</file>
+
+<file path="app/mentions-legales/layout.tsx">
+// app/mentions-legales/layout.tsx
+import type { Metadata } from "next";
+import { SITE_NAME } from "@/lib/constants";
+
+export const metadata: Metadata = {
+  title: `Mentions légales | ${SITE_NAME}`,
+  robots: { index: true, follow: true },
+};
+
+export default function MentionsLegalesLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return <>{children}</>;
+}
+</file>
+
+<file path="app/mentions-legales/page.tsx">
+// app/mentions-legales/page.tsx
+import type { Metadata } from "next";
+import { SITE_NAME, SITE_URL } from "@/lib/constants";
+import { getPageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = getPageMetadata({
+  title: "Mentions légales & CGU",
+  description: `Mentions légales, conditions générales d'utilisation et politique de confidentialité de ${SITE_NAME}.`,
+  path: "/mentions-legales",
+  noIndex: false, // On indexe cette page (utile pour la transparence)
+});
+
+export default function MentionsLegalesPage() {
+  const lastUpdate = "10 avril 2026";
+
+  return (
+    <div className="max-w-3xl mx-auto py-8 space-y-10 animate-fade-in">
+      <header className="space-y-2">
+        <h1 className="font-display font-bold text-4xl">
+          Mentions légales & CGU
+        </h1>
+        <p className="text-muted-foreground">
+          Dernière mise à jour : {lastUpdate}
+        </p>
+      </header>
+
+      {/* Section 1 : Éditeur du site */}
+      <Section title="1. Éditeur du site">
+        <p>
+          <strong>{SITE_NAME}</strong> est édité par :
+        </p>
+        <ul className="list-disc list-inside space-y-1">
+          <li>
+            <strong>Nom du responsable :</strong> Khaled LARIBI
+          </li>
+          <li>
+            <strong>Adresse :</strong> [Votre adresse complète]
+          </li>
+          <li>
+            <strong>Email :</strong>{" "}
+            <a
+              href="mailto:laribi.khaled69150@gmail.com"
+              className="text-accent hover:underline"
+            >
+              laribi.khaled69150@gmail.com
+            </a>
+          </li>
+          <li>
+            <strong>Numéro de téléphone :</strong> [Votre numéro]
+          </li>
+          <li>
+            <strong>Numéro SIRET :</strong> [Votre SIRET si applicable]
+          </li>
+        </ul>
+      </Section>
+
+      {/* Section 2 : Hébergeur */}
+      <Section title="2. Hébergement">
+        <p>
+          Le site <strong>{SITE_NAME}</strong> est hébergé par :
+        </p>
+        <ul className="list-disc list-inside space-y-1">
+          <li>
+            <strong>Vercel Inc.</strong>
+          </li>
+          <li>340 S Lemon Ave #4133, Walnut, CA 91789, USA</li>
+          <li>
+            <a
+              href="https://vercel.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-accent hover:underline"
+            >
+              vercel.com
+            </a>
+          </li>
+        </ul>
+      </Section>
+
+      {/* Section 3 : Propriété intellectuelle */}
+      <Section title="3. Propriété intellectuelle">
+        <p>
+          L&apos;ensemble du code source, du design, des logos et des contenus
+          éditoriaux (hors recettes soumises par les utilisateurs) est la
+          propriété exclusive de l&apos;éditeur et est protégé par les lois
+          françaises et internationales relatives à la propriété intellectuelle.
+        </p>
+        <p className="mt-2">
+          Toute reproduction, distribution ou modification, même partielle, est
+          strictement interdite sans autorisation écrite préalable.
+        </p>
+        <p className="mt-2">
+          Les recettes soumises par les utilisateurs restent leur propriété,
+          mais leur publication sur {SITE_NAME} confère au site une licence non
+          exclusive de diffusion.
+        </p>
+      </Section>
+
+      {/* Section 4 : Conditions Générales d'Utilisation */}
+      <Section title="4. Conditions Générales d'Utilisation (CGU)">
+        <p>
+          L&apos;utilisation du site {SITE_NAME} implique l&apos;acceptation
+          pleine et entière des conditions générales d&apos;utilisation décrites
+          ci-dessous.
+        </p>
+
+        <SubSection title="4.1 Accès au site">
+          Le site est accessible gratuitement à tout utilisateur disposant
+          d&apos;un accès à Internet. Tous les coûts afférents à l&apos;accès au
+          site (matériel, logiciel, connexion) sont à la charge exclusive de
+          l&apos;utilisateur.
+        </SubSection>
+
+        <SubSection title="4.2 Compte utilisateur">
+          La création d&apos;un compte est nécessaire pour accéder à certaines
+          fonctionnalités (favoris, commentaires, soumission de recettes).
+          L&apos;utilisateur est responsable de la confidentialité de ses
+          identifiants et s&apos;engage à fournir des informations exactes.
+        </SubSection>
+
+        <SubSection title="4.3 Contenu utilisateur">
+          En soumettant une recette ou un commentaire, l&apos;utilisateur
+          garantit qu&apos;il détient les droits nécessaires et autorise{" "}
+          {SITE_NAME} à publier, modifier et diffuser ce contenu sur le site et
+          ses réseaux sociaux. {SITE_NAME} se réserve le droit de modérer ou de
+          refuser tout contenu sans préavis.
+        </SubSection>
+
+        <SubSection title="4.4 Limitation de responsabilité">
+          Les recettes et conseils présents sur {SITE_NAME} sont fournis à titre
+          informatif. L&apos;utilisateur est seul responsable de
+          l&apos;utilisation qu&apos;il en fait, notamment en ce qui concerne
+          les allergies, les régimes spécifiques ou l&apos;utilisation des
+          robots de cuisine. {SITE_NAME} ne pourra être tenu responsable des
+          dommages directs ou indirects résultant de l&apos;utilisation du site.
+        </SubSection>
+
+        <SubSection title="4.5 Liens hypertextes">
+          Le site peut contenir des liens vers d&apos;autres sites web.{" "}
+          {SITE_NAME} n&apos;exerce aucun contrôle sur ces sites et décline
+          toute responsabilité quant à leur contenu.
+        </SubSection>
+      </Section>
+
+      {/* Section 5 : Données personnelles */}
+      <Section title="5. Données personnelles et cookies">
+        <p>
+          Conformément au Règlement Général sur la Protection des Données (RGPD)
+          et à la loi Informatique et Libertés, vous disposez d&apos;un droit
+          d&apos;accès, de rectification et de suppression de vos données
+          personnelles. Pour l&apos;exercer, contactez-nous à l&apos;adresse
+          email indiquée ci-dessus.
+        </p>
+        <p className="mt-2">
+          Le site utilise des cookies strictement nécessaires à son
+          fonctionnement (authentification, préférences de thème). Aucun cookie
+          publicitaire n&apos;est déposé sans votre consentement.
+        </p>
+      </Section>
+
+      {/* Section 6 : Droit applicable */}
+      <Section title="6. Droit applicable">
+        <p>
+          Les présentes mentions légales et CGU sont régies par le droit
+          français. En cas de litige, les tribunaux français seront seuls
+          compétents.
+        </p>
+      </Section>
+    </div>
+  );
+}
+
+// Composants auxiliaires pour une mise en page cohérente
+function Section({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="glass-card p-6 space-y-3">
+      <h2 className="font-display font-bold text-xl text-accent">{title}</h2>
+      <div className="text-muted-foreground leading-relaxed space-y-2">
+        {children}
+      </div>
+    </section>
+  );
+}
+
+function SubSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="mt-4">
+      <h3 className="font-semibold text-foreground mb-1">{title}</h3>
+      <div className="text-muted-foreground leading-relaxed">{children}</div>
+    </div>
+  );
 }
 </file>
 
@@ -2957,98 +2957,6 @@ export default function robots(): MetadataRoute.Robots {
 }
 </file>
 
-<file path="app/sitemap.ts">
-import type { MetadataRoute } from "next";
-import { SITE_URL, CATEGORIES } from "@/lib/constants";
-import { createAdminSupabase } from "@/lib/supabase/server";
-
-const RECIPES_PER_SITEMAP = 500;
-
-export async function generateSitemaps() {
-  const supabase = createAdminSupabase();
-  const { count } = await supabase
-    .from("recettes")
-    .select("*", { count: "exact", head: true })
-    .eq("approuve", true)
-    .eq("publie", true);
-
-  const totalRecipes = count || 0;
-  const totalSitemaps = Math.ceil(totalRecipes / RECIPES_PER_SITEMAP);
-  return Array.from({ length: totalSitemaps }, (_, i) => ({ id: i }));
-}
-
-export default async function sitemap({
-  id,
-}: {
-  id: number;
-}): Promise<MetadataRoute.Sitemap> {
-  const supabase = createAdminSupabase();
-  const now = new Date();
-  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-
-  const { data: recettes } = await supabase
-    .from("recettes")
-    .select("slug, updated_at")
-    .eq("approuve", true)
-    .eq("publie", true)
-    .order("updated_at", { ascending: false })
-    .range(id * RECIPES_PER_SITEMAP, (id + 1) * RECIPES_PER_SITEMAP - 1);
-
-  const recetteUrls: MetadataRoute.Sitemap = (recettes || []).map(
-    ({ slug, updated_at }) => {
-      const lastMod = updated_at ? new Date(updated_at) : now;
-      const changeFrequency =
-        lastMod > thirtyDaysAgo ? ("weekly" as const) : ("yearly" as const);
-      return {
-        url: `${SITE_URL}/recettes/${slug}`,
-        lastModified: lastMod,
-        changeFrequency,
-        priority: 0.8,
-      };
-    },
-  );
-
-  const staticUrls: MetadataRoute.Sitemap =
-    id === 0
-      ? [
-          {
-            url: SITE_URL,
-            lastModified: now,
-            changeFrequency: "daily" as const,
-            priority: 1,
-          },
-          {
-            url: `${SITE_URL}/recettes`,
-            lastModified: now,
-            changeFrequency: "daily" as const,
-            priority: 0.9,
-          },
-          // Ajouts
-          {
-            url: `${SITE_URL}/a-propos`,
-            lastModified: now,
-            changeFrequency: "monthly" as const,
-            priority: 0.7,
-          },
-          {
-            url: `${SITE_URL}/mentions-legales`,
-            lastModified: now,
-            changeFrequency: "yearly" as const,
-            priority: 0.5,
-          },
-          ...CATEGORIES.map((cat) => ({
-            url: `${SITE_URL}/recettes/${cat.value}`,
-            lastModified: now,
-            changeFrequency: "daily" as const,
-            priority: 0.85,
-          })),
-        ]
-      : [];
-
-  return [...staticUrls, ...recetteUrls];
-}
-</file>
-
 <file path="components/layout/BottomNav.tsx">
 "use client";
 
@@ -3095,450 +3003,6 @@ export default function BottomNav() {
         })}
       </div>
     </nav>
-  );
-}
-</file>
-
-<file path="components/layout/Footer.tsx">
-import Link from "next/link";
-import Logo from "@/components/ui/Logo";
-import { SITE_NAME } from "@/lib/constants";
-import NewsletterForm from "@/components/ui/NewsletterForm";
-
-export default function Footer() {
-  const year = new Date().getFullYear();
-
-  return (
-    <footer className="border-t border-border mt-16 pb-20 md:pb-0 no-print">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
-          {" "}
-          {/* Brand */}
-          <div className="md:col-span-1">
-            <Link
-              href="/"
-              className="flex items-center gap-2 text-accent font-display font-bold text-lg"
-            >
-              <Logo className="w-10 h-auto" />
-              {SITE_NAME}
-            </Link>
-            <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
-              Recettes au robot cuiseur multifonction, originales et gourmandes.
-              Simulateur intégré, planificateur de repas.
-            </p>
-          </div>
-          {/* Recettes */}
-          <div>
-            <h3 className="font-display font-semibold text-sm uppercase tracking-wider mb-4 text-muted-foreground">
-              Recettes
-            </h3>
-            <ul className="space-y-2">
-              {[
-                { href: "/recettes?categorie=plat", label: "Plats" },
-                { href: "/recettes?categorie=dessert", label: "Desserts" },
-                { href: "/recettes?categorie=soupe", label: "Soupes" },
-                {
-                  href: "/recettes?categorie=boulangerie",
-                  label: "Boulangerie",
-                },
-              ].map((link) => (
-                <li key={link.href}>
-                  <Link
-                    href={link.href}
-                    className="text-sm text-muted-foreground hover:text-accent transition-colors"
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-          {/* Navigation */}
-          <div>
-            <h3 className="font-display font-semibold text-sm uppercase tracking-wider mb-4 text-muted-foreground">
-              Navigation
-            </h3>
-            <ul className="space-y-2">
-              {[
-                { href: "/recherche", label: "Recherche" },
-                { href: "/planificateur", label: "Planificateur" },
-                { href: "/favoris", label: "Mes Favoris" },
-                { href: "/profil", label: "Mon Profil" },
-              ].map((link) => (
-                <li key={link.href}>
-                  <Link
-                    href={link.href}
-                    className="text-sm text-muted-foreground hover:text-accent transition-colors"
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-          {/* Informations légales */}
-          <div>
-            <h3 className="font-display font-semibold text-sm uppercase tracking-wider mb-4 text-muted-foreground">
-              Informations
-            </h3>
-            <ul className="space-y-2">
-              <li>
-                <Link
-                  href="/a-propos"
-                  className="text-sm text-muted-foreground hover:text-accent transition-colors"
-                >
-                  À propos
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/mentions-legales"
-                  className="text-sm text-muted-foreground hover:text-accent transition-colors"
-                >
-                  Mentions légales / CGU
-                </Link>
-              </li>
-            </ul>
-          </div>
-          {/* Modèles */}
-          <div>
-            <h3 className="font-display font-semibold text-sm uppercase tracking-wider mb-4 text-muted-foreground">
-              Par appareil
-            </h3>
-            <ul className="space-y-2">
-              {[
-                { modele: "TM6", label: "Thermomix TM6" },
-                { modele: "COMPANION", label: "Moulinex Companion" },
-                { modele: "COOK_EXPERT", label: "Magimix Cook Expert" },
-              ].map((item) => (
-                <li key={item.modele}>
-                  <Link
-                    href={`/recettes?modele=${item.modele}`}
-                    className="text-sm text-muted-foreground hover:text-accent transition-colors"
-                  >
-                    {item.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-
-        {/* Newsletter */}
-        <div className="mt-10 pt-8 border-t border-border">
-          <div className="max-w-md">
-            <h3 className="font-display font-semibold text-sm uppercase tracking-wider mb-3 text-muted-foreground">
-              Newsletter
-            </h3>
-            <p className="text-sm text-muted-foreground mb-3">
-              Recevez nos nouvelles recettes chaque semaine.
-            </p>
-            <NewsletterForm source="footer" compact />
-          </div>
-        </div>
-
-        {/* Bottom */}
-        <div className="mt-12 pt-8 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-muted-foreground">
-            © {year} {SITE_NAME}. Tous droits réservés.
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Kitchen Mix est un site indépendant, non affilié à Vorwerk,
-            Thermomix®, Magimix, Moulinex ou toute autre marque. Les noms de
-            marques sont utilisés uniquement à titre informatif.
-          </p>
-        </div>
-      </div>
-    </footer>
-  );
-}
-</file>
-
-<file path="components/layout/Navbar.tsx">
-"use client";
-
-import { useState, useEffect, useRef } from "react";
-import Link from "next/link";
-import Image from "next/image";
-import { usePathname, useRouter } from "next/navigation";
-import {
-  User,
-  LogOut,
-  Settings,
-  ChevronDown,
-  Shield,
-  Menu,
-  X,
-  Home,
-  BookOpen,
-  Search,
-  PlusCircle,
-  Heart,
-  Calendar,
-  Info,
-} from "lucide-react";
-import ThemeToggle from "@/components/ui/ThemeToggle";
-import Logo from "@/components/ui/Logo";
-import { useAuth } from "@/hooks/useAuth";
-import { cn } from "@/lib/utils";
-
-const NAV_LINKS = [
-  { href: "/", label: "Accueil", icon: Home },
-  { href: "/recettes", label: "Recettes", icon: BookOpen },
-  { href: "/recherche", label: "Recherche", icon: Search },
-  { href: "/planificateur", label: "Planning", icon: Calendar }, // <--- AJOUTE CETTE LIGNE
-  { href: "/soumettre", label: "Proposer", icon: PlusCircle },
-  { href: "/favoris", label: "Favoris", icon: Heart },
-  { href: "/a-propos", label: "À propos", icon: Info },
-];
-
-export default function Navbar() {
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [visible, setVisible] = useState(true);
-  const { isAdmin, user, signOut, profil } = useAuth();
-  const pathname = usePathname();
-  const router = useRouter();
-  const userMenuRef = useRef<HTMLDivElement>(null);
-  const lastScrollY = useRef(0);
-  const ticking = useRef(false);
-
-  // Fermer dropdown clic extérieur
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        userMenuRef.current &&
-        !userMenuRef.current.contains(event.target as Node)
-      ) {
-        setUserMenuOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  // Hide on scroll down, show on scroll up
-  useEffect(() => {
-    const handleScroll = () => {
-      if (ticking.current) return;
-      ticking.current = true;
-      requestAnimationFrame(() => {
-        const currentY = window.scrollY;
-        if (currentY < 60) setVisible(true);
-        else if (currentY - lastScrollY.current > 10) {
-          setVisible(false);
-          setUserMenuOpen(false);
-          setMobileOpen(false);
-        } else if (lastScrollY.current - currentY > 10) setVisible(true);
-        lastScrollY.current = currentY;
-        ticking.current = false;
-      });
-    };
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  const handleLogout = async () => {
-    await signOut();
-    setUserMenuOpen(false);
-    router.push("/");
-  };
-
-  const isActive = (href: string) =>
-    href === "/" ? pathname === "/" : pathname.startsWith(href);
-
-  // Avatar URL
-  const avatarUrl = profil?.avatar_url;
-
-  return (
-    <header
-      className={cn(
-        "sticky top-0 z-50 bg-background/99 backdrop-blur-[1px] border-b border-border transition-transform duration-300",
-        visible ? "translate-y-0" : "-translate-y-full",
-      )}
-    >
-      <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          {/* Logo */}
-          <Link
-            href="/"
-            className="flex items-center gap-2 font-display text-xl font-bold text-accent shrink-0 group"
-          >
-            <Logo className="h-10 w-auto md:h-12" />
-            <span className="hidden sm:inline">Kitchen Mix</span>
-          </Link>
-
-          {/* Desktop Nav Links */}
-          <div className="hidden lg:flex items-center gap-1">
-            {NAV_LINKS.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={cn(
-                  "px-3 py-2 rounded-lg text-sm font-medium transition-all",
-                  isActive(link.href)
-                    ? "bg-accent/15 text-accent shadow-sm shadow-accent/10"
-                    : "bg-background/15 text-foreground/80 hover:text-foreground hover:bg-background/25 backdrop-blur-sm",
-                )}
-              >
-                {link.label}
-              </Link>
-            ))}
-          </div>
-
-          {/* Right side */}
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-
-            {/* Admin button */}
-            {isAdmin && (
-              <Link
-                href="/admin"
-                className={cn(
-                  "p-2 rounded-lg transition-colors hidden sm:flex",
-                  isActive("/admin")
-                    ? "bg-accent/15 text-accent"
-                    : "text-accent/60 hover:text-accent hover:bg-accent/10",
-                )}
-                title="Administration"
-              >
-                <Shield className="w-5 h-5" />
-              </Link>
-            )}
-
-            {/* Profile / Login */}
-            {user ? (
-              <div className="relative" ref={userMenuRef}>
-                <button
-                  onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="flex items-center gap-2 p-1 rounded-full hover:bg-card-hover transition-colors border border-transparent hover:border-border"
-                >
-                  {/* Avatar ou icône par défaut */}
-                  {avatarUrl ? (
-                    <Image
-                      src={avatarUrl}
-                      alt={profil?.pseudo || "Avatar"}
-                      width={32}
-                      height={32}
-                      className="w-8 h-8 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-accent">
-                      <User className="w-5 h-5" />
-                    </div>
-                  )}
-                  <ChevronDown
-                    className={cn(
-                      "w-4 h-4 text-muted-foreground transition-transform",
-                      userMenuOpen && "rotate-180",
-                    )}
-                  />
-                </button>
-
-                {userMenuOpen && (
-                  <div
-                    className="absolute right-0 mt-2 w-52 rounded-xl shadow-2xl py-1 animate-in fade-in zoom-in duration-200 border border-border"
-                    style={{ backgroundColor: "var(--color-bg)" }}
-                  >
-                    <div className="px-4 py-2.5 border-b border-border mb-1">
-                      <p className="text-xs text-muted-foreground">
-                        Connecté en tant que
-                      </p>
-                      <p className="text-sm font-bold truncate">
-                        {profil?.pseudo || user.email}
-                      </p>
-                    </div>
-                    <Link
-                      href="/profil"
-                      onClick={() => setUserMenuOpen(false)}
-                      className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-accent/10 hover:text-accent transition-colors"
-                    >
-                      <User className="w-4 h-4" /> Mon Profil
-                    </Link>
-                    <Link
-                      href="/parametres"
-                      onClick={() => setUserMenuOpen(false)}
-                      className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-accent/10 hover:text-accent transition-colors"
-                    >
-                      <Settings className="w-4 h-4" /> Paramètres
-                    </Link>
-                    {isAdmin && (
-                      <Link
-                        href="/admin"
-                        onClick={() => setUserMenuOpen(false)}
-                        className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-accent hover:bg-accent/10 transition-colors"
-                      >
-                        <Shield className="w-4 h-4" /> Administration
-                      </Link>
-                    )}
-                    <button
-                      onClick={handleLogout}
-                      className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-error hover:bg-error/10 transition-colors border-t border-border mt-1"
-                    >
-                      <LogOut className="w-4 h-4" /> Se déconnecter
-                    </button>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <Link href="/connexion" className="btn-primary py-2 px-4 text-sm">
-                Connexion
-              </Link>
-            )}
-
-            {/* Mobile burger */}
-            <button
-              onClick={() => setMobileOpen(!mobileOpen)}
-              className="lg:hidden p-2 rounded-lg hover:bg-card-hover transition-colors"
-              aria-label={mobileOpen ? "Fermer" : "Menu"}
-            >
-              {mobileOpen ? (
-                <X className="w-5 h-5" />
-              ) : (
-                <Menu className="w-5 h-5" />
-              )}
-            </button>
-          </div>
-        </div>
-
-        {/* Mobile menu */}
-        {mobileOpen && (
-          <div className="lg:hidden pb-4 border-t border-border mt-2 pt-3 animate-fade-in">
-            {NAV_LINKS.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                onClick={() => setMobileOpen(false)}
-                className={cn(
-                  "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all",
-                  isActive(link.href)
-                    ? "bg-accent/15 text-accent shadow-sm shadow-accent/10"
-                    : "bg-background/15 text-foreground/80 hover:text-foreground hover:bg-background/25 backdrop-blur-sm",
-                )}
-              >
-                <link.icon className="w-4 h-4" />
-                {link.label}
-              </Link>
-            ))}
-            {isAdmin && (
-              <Link
-                href="/admin"
-                onClick={() => setMobileOpen(false)}
-                className={cn(
-                  "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold transition-all",
-                  isActive("/admin")
-                    ? "bg-accent/15 text-accent shadow-sm shadow-accent/10"
-                    : "bg-background/15 text-accent/80 hover:text-accent hover:bg-background/25 backdrop-blur-sm",
-                )}
-              >
-                <Shield className="w-4 h-4" /> Administration
-              </Link>
-            )}
-          </div>
-        )}
-      </nav>
-    </header>
   );
 }
 </file>
@@ -12927,6 +12391,542 @@ function TimePicker({
         <ChevronDown className="w-4 h-4" />
       </button>
     </div>
+  );
+}
+</file>
+
+<file path="app/sitemap.ts">
+import type { MetadataRoute } from "next";
+import { SITE_URL, CATEGORIES } from "@/lib/constants";
+import { createAdminSupabase } from "@/lib/supabase/server";
+
+const RECIPES_PER_SITEMAP = 500;
+
+export async function generateSitemaps() {
+  const supabase = createAdminSupabase();
+  const { count } = await supabase
+    .from("recettes")
+    .select("*", { count: "exact", head: true })
+    .eq("approuve", true)
+    .eq("publie", true);
+
+  const totalRecipes = count || 0;
+  const totalSitemaps = Math.ceil(totalRecipes / RECIPES_PER_SITEMAP);
+  return Array.from({ length: totalSitemaps }, (_, i) => ({ id: i }));
+}
+
+export default async function sitemap({
+  id,
+}: {
+  id: number;
+}): Promise<MetadataRoute.Sitemap> {
+  const supabase = createAdminSupabase();
+  const now = new Date();
+  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+  const { data: recettes } = await supabase
+    .from("recettes")
+    .select("slug, updated_at")
+    .eq("approuve", true)
+    .eq("publie", true)
+    .order("updated_at", { ascending: false })
+    .range(id * RECIPES_PER_SITEMAP, (id + 1) * RECIPES_PER_SITEMAP - 1);
+
+  const recetteUrls: MetadataRoute.Sitemap = (recettes || []).map(
+    ({ slug, updated_at }) => {
+      const lastMod = updated_at ? new Date(updated_at) : now;
+      const changeFrequency =
+        lastMod > thirtyDaysAgo ? ("weekly" as const) : ("yearly" as const);
+      return {
+        url: `${SITE_URL}/recettes/${slug}`,
+        lastModified: lastMod,
+        changeFrequency,
+        priority: 0.8,
+      };
+    },
+  );
+
+  const staticUrls: MetadataRoute.Sitemap =
+    id === 0
+      ? [
+          {
+            url: SITE_URL,
+            lastModified: now,
+            changeFrequency: "daily" as const,
+            priority: 1,
+          },
+          {
+            url: `${SITE_URL}/recettes`,
+            lastModified: now,
+            changeFrequency: "daily" as const,
+            priority: 0.9,
+          },
+          // Ajouts
+          {
+            url: `${SITE_URL}/a-propos`,
+            lastModified: now,
+            changeFrequency: "monthly" as const,
+            priority: 0.7,
+          },
+          {
+            url: `${SITE_URL}/mentions-legales`,
+            lastModified: now,
+            changeFrequency: "yearly" as const,
+            priority: 0.5,
+          },
+          ...CATEGORIES.map((cat) => ({
+            url: `${SITE_URL}/recettes/${cat.value}`,
+            lastModified: now,
+            changeFrequency: "daily" as const,
+            priority: 0.85,
+          })),
+        ]
+      : [];
+
+  return [...staticUrls, ...recetteUrls];
+}
+</file>
+
+<file path="components/layout/Footer.tsx">
+import Link from "next/link";
+import Logo from "@/components/ui/Logo";
+import { SITE_NAME } from "@/lib/constants";
+import NewsletterForm from "@/components/ui/NewsletterForm";
+
+export default function Footer() {
+  const year = new Date().getFullYear();
+
+  return (
+    <footer className="border-t border-border mt-16 pb-20 md:pb-0 no-print">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
+          {" "}
+          {/* Brand */}
+          <div className="md:col-span-1">
+            <Link
+              href="/"
+              className="flex items-center gap-2 text-accent font-display font-bold text-lg"
+            >
+              <Logo className="w-10 h-auto" />
+              {SITE_NAME}
+            </Link>
+            <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
+              Recettes au robot cuiseur multifonction, originales et gourmandes.
+              Simulateur intégré, planificateur de repas.
+            </p>
+          </div>
+          {/* Recettes */}
+          <div>
+            <h3 className="font-display font-semibold text-sm uppercase tracking-wider mb-4 text-muted-foreground">
+              Recettes
+            </h3>
+            <ul className="space-y-2">
+              {[
+                { href: "/recettes?categorie=plat", label: "Plats" },
+                { href: "/recettes?categorie=dessert", label: "Desserts" },
+                { href: "/recettes?categorie=soupe", label: "Soupes" },
+                {
+                  href: "/recettes?categorie=boulangerie",
+                  label: "Boulangerie",
+                },
+              ].map((link) => (
+                <li key={link.href}>
+                  <Link
+                    href={link.href}
+                    className="text-sm text-muted-foreground hover:text-accent transition-colors"
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+          {/* Navigation */}
+          <div>
+            <h3 className="font-display font-semibold text-sm uppercase tracking-wider mb-4 text-muted-foreground">
+              Navigation
+            </h3>
+            <ul className="space-y-2">
+              {[
+                { href: "/recherche", label: "Recherche" },
+                { href: "/planificateur", label: "Planificateur" },
+                { href: "/favoris", label: "Mes Favoris" },
+                { href: "/profil", label: "Mon Profil" },
+              ].map((link) => (
+                <li key={link.href}>
+                  <Link
+                    href={link.href}
+                    className="text-sm text-muted-foreground hover:text-accent transition-colors"
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+          {/* Informations légales */}
+          <div>
+            <h3 className="font-display font-semibold text-sm uppercase tracking-wider mb-4 text-muted-foreground">
+              Informations
+            </h3>
+            <ul className="space-y-2">
+              <li>
+                <Link
+                  href="/a-propos"
+                  className="text-sm text-muted-foreground hover:text-accent transition-colors"
+                >
+                  À propos
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/mentions-legales"
+                  className="text-sm text-muted-foreground hover:text-accent transition-colors"
+                >
+                  Mentions légales / CGU
+                </Link>
+              </li>
+            </ul>
+          </div>
+          {/* Modèles */}
+          <div>
+            <h3 className="font-display font-semibold text-sm uppercase tracking-wider mb-4 text-muted-foreground">
+              Par appareil
+            </h3>
+            <ul className="space-y-2">
+              {[
+                { modele: "TM6", label: "Thermomix TM6" },
+                { modele: "COMPANION", label: "Moulinex Companion" },
+                { modele: "COOK_EXPERT", label: "Magimix Cook Expert" },
+              ].map((item) => (
+                <li key={item.modele}>
+                  <Link
+                    href={`/recettes?modele=${item.modele}`}
+                    className="text-sm text-muted-foreground hover:text-accent transition-colors"
+                  >
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+
+        {/* Newsletter */}
+        <div className="mt-10 pt-8 border-t border-border">
+          <div className="max-w-md">
+            <h3 className="font-display font-semibold text-sm uppercase tracking-wider mb-3 text-muted-foreground">
+              Newsletter
+            </h3>
+            <p className="text-sm text-muted-foreground mb-3">
+              Recevez nos nouvelles recettes chaque semaine.
+            </p>
+            <NewsletterForm source="footer" compact />
+          </div>
+        </div>
+
+        {/* Bottom */}
+        <div className="mt-12 pt-8 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-xs text-muted-foreground">
+            © {year} {SITE_NAME}. Tous droits réservés.
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Kitchen Mix est un site indépendant, non affilié à Vorwerk,
+            Thermomix®, Magimix, Moulinex ou toute autre marque. Les noms de
+            marques sont utilisés uniquement à titre informatif.
+          </p>
+        </div>
+      </div>
+    </footer>
+  );
+}
+</file>
+
+<file path="components/layout/Navbar.tsx">
+"use client";
+
+import { useState, useEffect, useRef } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { usePathname, useRouter } from "next/navigation";
+import {
+  User,
+  LogOut,
+  Settings,
+  ChevronDown,
+  Shield,
+  Menu,
+  X,
+  Home,
+  BookOpen,
+  Search,
+  PlusCircle,
+  Heart,
+  Calendar,
+  Info,
+} from "lucide-react";
+import ThemeToggle from "@/components/ui/ThemeToggle";
+import Logo from "@/components/ui/Logo";
+import { useAuth } from "@/hooks/useAuth";
+import { cn } from "@/lib/utils";
+
+const NAV_LINKS = [
+  { href: "/", label: "Accueil", icon: Home },
+  { href: "/recettes", label: "Recettes", icon: BookOpen },
+  { href: "/recherche", label: "Recherche", icon: Search },
+  { href: "/planificateur", label: "Planning", icon: Calendar }, // <--- AJOUTE CETTE LIGNE
+  { href: "/soumettre", label: "Proposer", icon: PlusCircle },
+  { href: "/favoris", label: "Favoris", icon: Heart },
+  { href: "/a-propos", label: "À propos", icon: Info },
+];
+
+export default function Navbar() {
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [visible, setVisible] = useState(true);
+  const { isAdmin, user, signOut, profil } = useAuth();
+  const pathname = usePathname();
+  const router = useRouter();
+  const userMenuRef = useRef<HTMLDivElement>(null);
+  const lastScrollY = useRef(0);
+  const ticking = useRef(false);
+
+  // Fermer dropdown clic extérieur
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        userMenuRef.current &&
+        !userMenuRef.current.contains(event.target as Node)
+      ) {
+        setUserMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Hide on scroll down, show on scroll up
+  useEffect(() => {
+    const handleScroll = () => {
+      if (ticking.current) return;
+      ticking.current = true;
+      requestAnimationFrame(() => {
+        const currentY = window.scrollY;
+        if (currentY < 60) setVisible(true);
+        else if (currentY - lastScrollY.current > 10) {
+          setVisible(false);
+          setUserMenuOpen(false);
+          setMobileOpen(false);
+        } else if (lastScrollY.current - currentY > 10) setVisible(true);
+        lastScrollY.current = currentY;
+        ticking.current = false;
+      });
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const handleLogout = async () => {
+    await signOut();
+    setUserMenuOpen(false);
+    router.push("/");
+  };
+
+  const isActive = (href: string) =>
+    href === "/" ? pathname === "/" : pathname.startsWith(href);
+
+  // Avatar URL
+  const avatarUrl = profil?.avatar_url;
+
+  return (
+    <header
+      className={cn(
+        "sticky top-0 z-50 bg-background/99 backdrop-blur-[1px] border-b border-border transition-transform duration-300",
+        visible ? "translate-y-0" : "-translate-y-full",
+      )}
+    >
+      <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16">
+          {/* Logo */}
+          {/* Logo */}
+          <Link
+            href="/"
+            className="flex items-center gap-2 font-display text-xl font-bold text-accent shrink-0 group"
+          >
+            <Logo className="h-10 w-auto md:h-12" />
+            <span className="hidden sm:inline">Kitchen Mix</span>
+          </Link>
+
+          {/* Desktop Nav Links */}
+          <div className="hidden lg:flex items-center gap-1">
+            {NAV_LINKS.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={cn(
+                  "px-3 py-2 rounded-lg text-sm font-medium transition-all",
+                  isActive(link.href)
+                    ? "bg-accent/15 text-accent shadow-sm shadow-accent/10"
+                    : "bg-background/15 text-foreground/80 hover:text-foreground hover:bg-background/25 backdrop-blur-sm",
+                )}
+              >
+                {link.label}
+              </Link>
+            ))}
+          </div>
+
+          {/* Right side */}
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+
+            {/* Admin button */}
+            {isAdmin && (
+              <Link
+                href="/admin"
+                className={cn(
+                  "p-2 rounded-lg transition-colors hidden sm:flex",
+                  isActive("/admin")
+                    ? "bg-accent/15 text-accent"
+                    : "text-accent/60 hover:text-accent hover:bg-accent/10",
+                )}
+                title="Administration"
+              >
+                <Shield className="w-5 h-5" />
+              </Link>
+            )}
+
+            {/* Profile / Login */}
+            {user ? (
+              <div className="relative" ref={userMenuRef}>
+                <button
+                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  className="flex items-center gap-2 p-1 rounded-full hover:bg-card-hover transition-colors border border-transparent hover:border-border"
+                >
+                  {/* Avatar ou icône par défaut */}
+                  {avatarUrl ? (
+                    <Image
+                      src={avatarUrl}
+                      alt={profil?.pseudo || "Avatar"}
+                      width={32}
+                      height={32}
+                      className="w-8 h-8 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-accent">
+                      <User className="w-5 h-5" />
+                    </div>
+                  )}
+                  <ChevronDown
+                    className={cn(
+                      "w-4 h-4 text-muted-foreground transition-transform",
+                      userMenuOpen && "rotate-180",
+                    )}
+                  />
+                </button>
+
+                {userMenuOpen && (
+                  <div
+                    className="absolute right-0 mt-2 w-52 rounded-xl shadow-2xl py-1 animate-in fade-in zoom-in duration-200 border border-border"
+                    style={{ backgroundColor: "var(--color-bg)" }}
+                  >
+                    <div className="px-4 py-2.5 border-b border-border mb-1">
+                      <p className="text-xs text-muted-foreground">
+                        Connecté en tant que
+                      </p>
+                      <p className="text-sm font-bold truncate">
+                        {profil?.pseudo || user.email}
+                      </p>
+                    </div>
+                    <Link
+                      href="/profil"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-accent/10 hover:text-accent transition-colors"
+                    >
+                      <User className="w-4 h-4" /> Mon Profil
+                    </Link>
+                    <Link
+                      href="/parametres"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-accent/10 hover:text-accent transition-colors"
+                    >
+                      <Settings className="w-4 h-4" /> Paramètres
+                    </Link>
+                    {isAdmin && (
+                      <Link
+                        href="/admin"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-accent hover:bg-accent/10 transition-colors"
+                      >
+                        <Shield className="w-4 h-4" /> Administration
+                      </Link>
+                    )}
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-error hover:bg-error/10 transition-colors border-t border-border mt-1"
+                    >
+                      <LogOut className="w-4 h-4" /> Se déconnecter
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Link href="/connexion" className="btn-primary py-2 px-4 text-sm">
+                Connexion
+              </Link>
+            )}
+
+            {/* Mobile burger */}
+            <button
+              onClick={() => setMobileOpen(!mobileOpen)}
+              className="lg:hidden p-2 rounded-lg hover:bg-card-hover transition-colors"
+              aria-label={mobileOpen ? "Fermer" : "Menu"}
+            >
+              {mobileOpen ? (
+                <X className="w-5 h-5" />
+              ) : (
+                <Menu className="w-5 h-5" />
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile menu */}
+        {mobileOpen && (
+          <div className="lg:hidden pb-4 border-t border-border mt-2 pt-3 animate-fade-in">
+            {NAV_LINKS.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={() => setMobileOpen(false)}
+                className={cn(
+                  "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all",
+                  isActive(link.href)
+                    ? "bg-accent/15 text-accent shadow-sm shadow-accent/10"
+                    : "bg-background/15 text-foreground/80 hover:text-foreground hover:bg-background/25 backdrop-blur-sm",
+                )}
+              >
+                <link.icon className="w-4 h-4" />
+                {link.label}
+              </Link>
+            ))}
+            {isAdmin && (
+              <Link
+                href="/admin"
+                onClick={() => setMobileOpen(false)}
+                className={cn(
+                  "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold transition-all",
+                  isActive("/admin")
+                    ? "bg-accent/15 text-accent shadow-sm shadow-accent/10"
+                    : "bg-background/15 text-accent/80 hover:text-accent hover:bg-background/25 backdrop-blur-sm",
+                )}
+              >
+                <Shield className="w-4 h-4" /> Administration
+              </Link>
+            )}
+          </div>
+        )}
+      </nav>
+    </header>
   );
 }
 </file>

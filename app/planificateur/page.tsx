@@ -12,6 +12,7 @@ import {
   Check,
   Printer,
   Share2,
+  Save,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { createClient } from "@/lib/supabase/client";
@@ -20,6 +21,7 @@ import type { Ingredient } from "@/types";
 import Link from "next/link";
 import { getShoppingListForDays } from "@/app/actions/shoppingList";
 import Image from "next/image";
+import SavePlanningModal from "@/components/planificateur/SavePlanningModal";
 
 /* ─── Types ───────────────────────────────────────────────── */
 
@@ -79,6 +81,7 @@ export default function PlanificateurPage() {
 
   const semaine = toDateString(getMondayOfWeek());
 
+  const [showSaveModal, setShowSaveModal] = useState(false);
   const [activeTab, setActiveTab] = useState<"search" | "favoris">("search");
   const [favoris, setFavoris] = useState<RecetteMin[]>([]);
   const [favorisLoaded, setFavorisLoaded] = useState(false);
@@ -386,9 +389,20 @@ export default function PlanificateurPage() {
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
       {/* Header */}
       <div className="space-y-1">
-        <h1 className="font-display font-bold text-3xl flex items-center gap-3">
-          <Calendar className="w-8 h-8 text-accent" /> Planificateur
-        </h1>
+        <div className="flex items-center justify-between">
+          <h1 className="font-display font-bold text-3xl flex items-center gap-3">
+            <Calendar className="w-8 h-8 text-accent" /> Planificateur
+          </h1>
+          {totalRecipes >= 3 && (
+            <button
+              onClick={() => setShowSaveModal(true)}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border border-accent/30 text-accent hover:bg-accent/10 transition-colors"
+            >
+              <Save className="w-4 h-4" />
+              Sauvegarder
+            </button>
+          )}
+        </div>
         <div className="flex flex-col gap-2">
           <p className="text-muted-foreground mt-1">
             Semaine du{" "}
@@ -922,6 +936,25 @@ export default function PlanificateurPage() {
             </div>
           </div>
         </div>
+      )}
+      {/* ═══ MODAL SAUVEGARDER PLANNING ═══ */}
+      {showSaveModal && (
+        <SavePlanningModal
+          weekStart={semaine}
+          planData={Object.fromEntries(
+            Object.entries(plan).map(([day, slots]) => [
+              day,
+              slots.map((r) => r?.id ?? null),
+            ]),
+          )}
+          onClose={() => setShowSaveModal(false)}
+          onSaved={(id) => {
+            setShowSaveModal(false);
+            alert(
+              "Planning sauvegardé ! Vous pouvez le retrouver dans votre profil.",
+            );
+          }}
+        />
       )}
     </div>
   );

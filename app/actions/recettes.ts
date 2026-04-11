@@ -51,6 +51,16 @@ export async function soumettreRecette(rawData: unknown) {
 
   await supabase.from("submission_log").insert({ user_id: user.id });
 
+  // Achievements
+  const { checkAndUnlockAchievements } =
+    await import("@/app/actions/achievements");
+  await checkAndUnlockAchievements(user.id, "recipe_submitted", {
+    has_image: !!data.image_url,
+    has_video: !!data.video_youtube_id,
+    has_faq: data.faq && data.faq.length > 0,
+    has_nutriscore: !!data.nutriscore,
+  });
+
   revalidatePath("/recettes");
   return { recette };
 }

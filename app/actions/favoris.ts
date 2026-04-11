@@ -35,6 +35,12 @@ export async function toggleFavori(recetteId: string) {
       .from("favoris")
       .insert({ user_id: user.id, recette_id: recetteId });
     if (error) throw new Error(error.message);
+
+    // Achievements
+    const { checkAndUnlockAchievements } =
+      await import("@/app/actions/achievements");
+    await checkAndUnlockAchievements(user.id, "favori_added");
+
     return { action: "added" };
   }
 }

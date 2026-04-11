@@ -50,8 +50,7 @@ export async function createComment(
 
   if (error) throw new Error(error.message);
 
-  // Revalider toutes les pages recettes (slug inconnu ici)
-  revalidatePath("/recettes", "layout");
+  revalidatePath(`/recettes/${recetteId}`);
   return data;
 }
 
@@ -75,8 +74,7 @@ export async function updateComment(
 
   if (error) throw new Error(error.message);
 
-  // Revalider toutes les pages recettes (slug inconnu ici)
-  revalidatePath("/recettes", "layout");
+  revalidatePath(`/recettes/${recetteId}`);
   return { success: true };
 }
 
@@ -96,8 +94,7 @@ export async function deleteComment(commentId: string, recetteId: string) {
 
   if (error) throw new Error(error.message);
 
-  // Revalider toutes les pages recettes (slug inconnu ici)
-  revalidatePath("/recettes", "layout");
+  revalidatePath(`/recettes/${recetteId}`);
   return { success: true };
 }
 
@@ -142,6 +139,20 @@ export async function voteComment(
     await supabase
       .from("comment_votes")
       .insert({ user_id: user.id, comment_id: commentId, vote_type: voteType });
+  }
+
+  // Achievements — vérifier si l'auteur du commentaire a reçu des likes
+  if (voteType === "like") {
+    const { data: commentData } = await supabase
+      .from("recipe_comments")
+      .select("user_id")
+      .eq("id", commentId)
+      .single();
+    if (commentData) {
+      const { checkAndUnlockAchievements } =
+        await import("@/app/actions/achievements");
+      await checkAndUnlockAchievements(commentData.user_id, "like_received");
+    }
   }
 
   // Revalider toutes les pages recettes (slug inconnu ici)

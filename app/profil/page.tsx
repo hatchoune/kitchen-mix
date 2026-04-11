@@ -12,6 +12,7 @@ import {
   X,
   Camera,
   Loader2,
+  Trophy,
 } from "lucide-react";
 import Logo from "@/components/ui/Logo";
 import { useAuth } from "@/hooks/useAuth";
@@ -26,6 +27,7 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import imageCompression from "browser-image-compression";
 import Image from "next/image";
+import AchievementBadge from "@/components/ui/AchievementBadge";
 
 // Type enrichi pour afficher le statut
 interface MaRecette {
@@ -47,6 +49,9 @@ export default function ProfilPage() {
   const [saving, setSaving] = useState(false);
   const [modele, setModele] = useState(profil?.modele_thermomix || "TM6");
   const [uploading, setUploading] = useState(false);
+  const [achievements, setAchievements] = useState<
+    { achievement_code: string; unlocked_at: string }[]
+  >([]);
 
   // --- FONCTION D'UPLOAD DE L'AVATAR ---
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -87,6 +92,14 @@ export default function ProfilPage() {
 
       // 5. Refresh
       if (refreshProfil) await refreshProfil();
+
+      // Achievement avatar
+      import("@/app/actions/achievements").then(
+        ({ checkAndUnlockAchievements }) => {
+          checkAndUnlockAchievements(user.id, "avatar_set").catch(() => {});
+        },
+      );
+
       alert("Photo de profil mise à jour !");
     } catch (error: unknown) {
       console.error("Erreur avatar:", error);
@@ -121,7 +134,21 @@ export default function ProfilPage() {
       setMesRecettes((data || []) as MaRecette[]);
     };
     load();
-  }, [user]);
+  }, [user, supabase]);
+
+  // Charger les achievements
+  useEffect(() => {
+    if (!user) return;
+    const load = async () => {
+      const { data } = await supabase
+        .from("user_achievements")
+        .select("achievement_code, unlocked_at")
+        .eq("user_id", user.id)
+        .order("unlocked_at", { ascending: false });
+      setAchievements(data || []);
+    };
+    load();
+  }, [user, supabase]);
 
   const handleSaveModele = async () => {
     if (!user) return;
@@ -243,6 +270,28 @@ export default function ProfilPage() {
         </div>
       </div>
 
+      {/* Trophées */}
+      {achievements.length > 0 && (
+        <div className="space-y-4">
+          <h2 className="font-display font-semibold flex items-center gap-2">
+            <Trophy className="w-5 h-5 text-accent" />
+            Mes trophées ({achievements.length})
+          </h2>
+          <div className="glass-card p-4 rounded-2xl border border-border">
+            <div className="flex flex-wrap gap-3">
+              {achievements.map((a) => (
+                <AchievementBadge
+                  key={a.achievement_code}
+                  code={a.achievement_code}
+                  unlocked_at={a.unlocked_at}
+                  size="md"
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Mes recettes */}
       <div className="space-y-4">
         <h2 className="font-display font-semibold flex items-center gap-2">
@@ -274,7 +323,7 @@ export default function ProfilPage() {
           <div className="text-center py-12 glass-card rounded-2xl border border-dashed border-border">
             <Logo className="w-11 h-auto mx-auto mb-3 opacity-20" />{" "}
             <p className="text-muted-foreground text-sm">
-              Vous n'avez pas encore soumis de recette.
+              Vous n&apos;avez pas encore soumis de recette.
             </p>
             <Link
               href="/soumettre"
