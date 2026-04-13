@@ -30,6 +30,23 @@ export function useAuth() {
           .eq("user_id", userId)
           .maybeSingle();
         setIsAdmin(!!adminData);
+        // 2b. Vérifier si banni
+        const { checkBannedEmail } = await import("@/app/actions/users");
+        const userEmail =
+          (await supabase.auth.getUser()).data.user?.email || "";
+        if (userEmail) {
+          const isBanned = await checkBannedEmail(userEmail);
+          if (isBanned) {
+            await supabase.auth.signOut();
+            setUser(null);
+            setProfil(null);
+            setIsAdmin(false);
+            alert(
+              "Votre compte a été suspendu. Contactez l'administration pour plus d'informations.",
+            );
+            return;
+          }
+        }
 
         // 3. Synchroniser le thème depuis le profil
         if (profilData?.theme_preference) {
@@ -39,6 +56,13 @@ export function useAuth() {
             document.documentElement.setAttribute("data-theme", theme);
           }
         }
+
+        // 4. Achievement : connexion (fire-and-forget)
+        import("@/app/actions/achievements").then(
+          ({ checkAndUnlockAchievements }) => {
+            checkAndUnlockAchievements(userId, "login").catch(() => {});
+          },
+        );
       } catch (err) {
         console.error("Erreur chargement données utilisateur:", err);
       }

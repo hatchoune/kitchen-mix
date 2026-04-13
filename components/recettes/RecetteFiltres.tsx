@@ -3,9 +3,16 @@
 import { useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Filter, X } from "lucide-react";
-import { CATEGORIES, REGIMES, DIFFICULTES, TRI_OPTIONS } from "@/lib/constants";
+import {
+  CATEGORIES,
+  REGIMES,
+  DIFFICULTES,
+  TRI_OPTIONS,
+  TEMPS_OPTIONS,
+} from "@/lib/constants";
 import { APPLIANCES } from "@/lib/appliance-specs";
 import { cn } from "@/lib/utils";
+import MonAppareilFilter from "@/components/ui/MonAppareilFilter";
 
 export default function RecetteFiltres() {
   const router = useRouter();
@@ -16,9 +23,14 @@ export default function RecetteFiltres() {
   const currentDifficulte = searchParams.get("difficulte") || "";
   const currentRegime = searchParams.get("regime") || "";
   const currentTri = searchParams.get("tri") || "recent";
+  const currentTemps = searchParams.get("temps") || "";
 
   const hasFilters =
-    currentCategorie || currentModele || currentDifficulte || currentRegime;
+    currentCategorie ||
+    currentModele ||
+    currentDifficulte ||
+    currentRegime ||
+    currentTemps;
 
   const updateFilter = useCallback(
     (key: string, value: string) => {
@@ -56,17 +68,14 @@ export default function RecetteFiltres() {
         )}
       </div>
 
+      {/* Mon appareil (raccourci) */}
+      <div className="flex flex-wrap gap-2">
+        <MonAppareilFilter currentModele={currentModele} />
+      </div>
+
       {/* Filter sections */}
       <div className="flex flex-wrap gap-6">
         {/* Catégorie */}
-        <FilterSelect
-          label="Catégorie"
-          value={currentCategorie}
-          onChange={(v) => updateFilter("categorie", v)}
-          options={CATEGORIES.map((c) => ({ value: c.value, label: c.label }))}
-        />
-
-        {/* Modèle */}
         <FilterSelect
           label="Modèle"
           value={currentModele}
@@ -91,6 +100,17 @@ export default function RecetteFiltres() {
           value={currentRegime}
           onChange={(v) => updateFilter("regime", v)}
           options={REGIMES.map((r) => ({ value: r.value, label: r.label }))}
+        />
+
+        {/* Temps */}
+        <FilterSelect
+          label="Durée"
+          value={currentTemps}
+          onChange={(v) => updateFilter("temps", v)}
+          options={TEMPS_OPTIONS.map((t) => ({
+            value: t.value,
+            label: t.label,
+          }))}
         />
 
         {/* Tri */}

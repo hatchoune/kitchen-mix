@@ -12,6 +12,7 @@ import {
   Check,
   Printer,
   Share2,
+  Save,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { createClient } from "@/lib/supabase/client";
@@ -20,6 +21,9 @@ import type { Ingredient } from "@/types";
 import Link from "next/link";
 import { getShoppingListForDays } from "@/app/actions/shoppingList";
 import Image from "next/image";
+import SavePlanningModal from "@/components/planificateur/SavePlanningModal";
+import { useRouter, useSearchParams } from "next/navigation";
+import RecipePreviewModal from "@/components/planificateur/RecipePreviewModal";
 
 /* ─── Types ───────────────────────────────────────────────── */
 
@@ -77,8 +81,16 @@ export default function PlanificateurPage() {
   // Mobile accordion
   const [openDay, setOpenDay] = useState<number | null>(null);
 
-  const semaine = toDateString(getMondayOfWeek());
+  const searchParams = useSearchParams();
+  const loadPlanningId = searchParams.get("load");
 
+  const semaine = toDateString(getMondayOfWeek());
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [loadedPlanning, setLoadedPlanning] = useState<{
+    name: string;
+    description: string | null;
+  } | null>(null);
+  const [previewRecipe, setPreviewRecipe] = useState<RecetteMin | null>(null);
   const [activeTab, setActiveTab] = useState<"search" | "favoris">("search");
   const [favoris, setFavoris] = useState<RecetteMin[]>([]);
   const [favorisLoaded, setFavorisLoaded] = useState(false);
@@ -156,8 +168,82 @@ export default function PlanificateurPage() {
     loadPlan();
   }, [user, authLoading, semaine, supabase]);
 
-  /* ─── Gestion des affichages prioritaires (Auth) ────────── */
+  /* ─── Charger un planning sauvegardé (depuis ?load=ID) ──── */
 
+  useEffect(() => {
+    if (!loadPlanningId || !user || authLoading) return;
+
+    const loadSavedPlanning = async () => {
+      setLoading(true);
+
+      // 1. Récupérer le planning
+      const { data: planning } = await supabase
+        .from("user_plannings")
+        .select("name, description, data")
+        .eq("id", loadPlanningId)
+        .single();
+
+      if (!planning?.data) {
+        setLoading(false);
+        return;
+      }
+
+      const planData = planning.data as Record<string, (string | null)[]>;
+
+      // 2. Récupérer toutes les recettes référencées
+      const recetteIds = new Set<string>();
+      for (const slots of Object.values(planData)) {
+        for (const rid of slots) {
+          if (rid) recetteIds.add(rid);
+        }
+      }
+
+      if (recetteIds.size === 0) {
+        setLoading(false);
+        return;
+      }
+
+      const { data: recettes } = await supabase
+        .from("recettes")
+        .select("id, slug, titre, ingredients, image_url")
+        .in("id", Array.from(recetteIds));
+
+      const recettesMap: Record<string, RecetteMin> = {};
+      for (const r of (recettes || []) as RecetteMin[]) {
+        recettesMap[r.id] = r;
+      }
+
+      // 3. Construire le WeekPlan
+      const loaded: WeekPlan = {};
+      for (let d = 0; d < 7; d++) {
+        const slots = planData[d.toString()] || [];
+        loaded[d] = slots.map((rid) => (rid && recettesMap[rid]) || null);
+        // Remplir à 3 slots
+        while (loaded[d].length < 3) loaded[d].push(null);
+      }
+
+      // 4. Sauvegarder dans meal_plans (comme si c'était le plan de l'utilisateur)
+      await savePlan(loaded);
+      setLoading(false);
+      setLoadedPlanning({
+        name: planning.name,
+        description: planning.description,
+      });
+
+      // 5. Afficher le nom du planning
+      setLoadedPlanning({
+        name: planning.name,
+        description: planning.description,
+      });
+
+      // 6. Retirer le param de l'URL pour éviter de recharger en boucle
+      window.history.replaceState({}, "", "/planificateur");
+    };
+
+    loadSavedPlanning();
+  }, [loadPlanningId, user, authLoading, supabase, savePlan]);
+
+  /* ─── Gestion des affichages prioritaires (Auth) ────────── */
   // 1. Pendant le chargement initial de la session
   if (authLoading) {
     return (
@@ -386,9 +472,20 @@ export default function PlanificateurPage() {
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
       {/* Header */}
       <div className="space-y-1">
-        <h1 className="font-display font-bold text-3xl flex items-center gap-3">
-          <Calendar className="w-8 h-8 text-accent" /> Planificateur
-        </h1>
+        <div className="flex items-center justify-between">
+          <h1 className="font-display font-bold text-3xl flex items-center gap-3">
+            <Calendar className="w-8 h-8 text-accent" /> Planificateur
+          </h1>
+          {totalRecipes >= 3 && (
+            <button
+              onClick={() => setShowSaveModal(true)}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border border-accent/30 text-accent hover:bg-accent/10 transition-colors"
+            >
+              <Save className="w-4 h-4" />
+              Sauvegarder
+            </button>
+          )}
+        </div>
         <div className="flex flex-col gap-2">
           <p className="text-muted-foreground mt-1">
             Semaine du{" "}
@@ -405,8 +502,31 @@ export default function PlanificateurPage() {
           </div>
         </div>
       </div>
-
-      {/* ═══ GRILLE DESKTOP ═══ */}
+      {/* Planning chargé */}
+      {loadedPlanning && (
+        <div className="glass-card px-5 py-4 rounded-xl border border-accent/20 bg-accent/5 flex items-start justify-between gap-4">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-accent mb-1">
+              Planning chargé
+            </p>
+            <h3 className="font-display font-bold text-lg">
+              {loadedPlanning.name}
+            </h3>
+            {loadedPlanning.description && (
+              <p className="text-sm text-muted-foreground mt-0.5">
+                {loadedPlanning.description}
+              </p>
+            )}
+          </div>
+          <button
+            onClick={() => setLoadedPlanning(null)}
+            className="text-muted-foreground hover:text-foreground shrink-0 mt-1"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+      {/* ═══ GRILLE DESKTOP ═══ */}{" "}
       <div className="hidden lg:grid grid-cols-7 gap-3">
         {JOURS.map((jour, dayIdx) => {
           const slots = plan[dayIdx] || [null, null, null];
@@ -485,7 +605,6 @@ export default function PlanificateurPage() {
           );
         })}
       </div>
-
       {/* ═══ MOBILE ACCORDION ═══ */}
       <div className="lg:hidden space-y-2">
         {JOURS.map((jour, dayIdx) => {
@@ -567,7 +686,6 @@ export default function PlanificateurPage() {
           );
         })}
       </div>
-
       {/* ═══ SECTION LISTE DE COURSES ═══ */}
       {totalRecipes > 0 && (
         <div className="glass-card p-6 space-y-4">
@@ -790,9 +908,7 @@ export default function PlanificateurPage() {
                   {searchResults.map((r) => (
                     <button
                       key={r.id}
-                      onClick={() =>
-                        assignRecipe(selectingDay!, selectingSlot, r)
-                      }
+                      onClick={() => setPreviewRecipe(r)}
                       className="w-full text-left px-3 py-2.5 rounded-lg text-sm hover:bg-accent/10 hover:text-accent transition-colors"
                     >
                       {r.titre}
@@ -830,9 +946,7 @@ export default function PlanificateurPage() {
                     {favoris.map((r) => (
                       <button
                         key={r.id}
-                        onClick={() =>
-                          assignRecipe(selectingDay!, selectingSlot, r)
-                        }
+                        onClick={() => setPreviewRecipe(r)}
                         className="flex-shrink-0 snap-start w-36 rounded-xl overflow-hidden border border-border hover:border-accent hover:scale-[1.03] transition-all duration-200 group bg-card text-left"
                       >
                         {/* Image ou placeholder */}
@@ -867,7 +981,6 @@ export default function PlanificateurPage() {
           </div>
         </div>
       )}
-
       {/* ═══ MODAL LISTE DE COURSES ═══ */}
       {showListe && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center">
@@ -922,6 +1035,36 @@ export default function PlanificateurPage() {
             </div>
           </div>
         </div>
+      )}
+      {/* ═══ MODAL PREVIEW RECETTE ═══ */}
+      {previewRecipe && selectingDay !== null && (
+        <RecipePreviewModal
+          recetteId={previewRecipe.id}
+          onAdd={() => {
+            assignRecipe(selectingDay!, selectingSlot, previewRecipe);
+            setPreviewRecipe(null);
+          }}
+          onClose={() => setPreviewRecipe(null)}
+        />
+      )}
+      {/* ═══ MODAL SAUVEGARDER PLANNING ═══ */}
+      {showSaveModal && (
+        <SavePlanningModal
+          weekStart={semaine}
+          planData={Object.fromEntries(
+            Object.entries(plan).map(([day, slots]) => [
+              day,
+              slots.map((r) => r?.id ?? null),
+            ]),
+          )}
+          onClose={() => setShowSaveModal(false)}
+          onSaved={(id) => {
+            setShowSaveModal(false);
+            alert(
+              "Planning sauvegardé ! Vous pouvez le retrouver dans votre profil.",
+            );
+          }}
+        />
       )}
     </div>
   );

@@ -45,26 +45,71 @@ export default function ImageUploader({
     }
   };
 
+  // Quand l'image se charge dans le ReactCrop, auto-initialiser le crop
+  const onImageLoad = useCallback(
+    (e: React.SyntheticEvent<HTMLImageElement>) => {
+      const { width, height } = e.currentTarget;
+      // Calculer le plus grand rectangle avec le bon ratio qui rentre dans l'image
+      const imageAspect = width / height;
+      let cropWidth: number;
+      let cropHeight: number;
+
+      if (imageAspect > aspect) {
+        // Image plus large que le ratio → limiter par la hauteur
+        cropHeight = height;
+        cropWidth = height * aspect;
+      } else {
+        // Image plus haute que le ratio → limiter par la largeur
+        cropWidth = width;
+        cropHeight = width / aspect;
+      }
+
+      const newCrop: PixelCrop = {
+        unit: "px",
+        x: (width - cropWidth) / 2,
+        y: (height - cropHeight) / 2,
+        width: cropWidth,
+        height: cropHeight,
+      };
+
+      setCrop(newCrop);
+      setCompletedCrop(newCrop);
+    },
+    [aspect],
+  );
+
   const getCroppedImg = useCallback(async (): Promise<Blob | null> => {
-    if (!imgRef.current || !completedCrop) return null;
+    if (!imgRef.current) return null;
+
     const canvas = document.createElement("canvas");
-    const scaleX = imgRef.current.naturalWidth / imgRef.current.width;
-    const scaleY = imgRef.current.naturalHeight / imgRef.current.height;
-    canvas.width = completedCrop.width;
-    canvas.height = completedCrop.height;
+    const image = imgRef.current;
+    const scaleX = image.naturalWidth / image.width;
+    const scaleY = image.naturalHeight / image.height;
+
+    // Si pas de crop défini, utiliser l'image entière
+    const cropArea = completedCrop || {
+      x: 0,
+      y: 0,
+      width: image.width,
+      height: image.height,
+      unit: "px" as const,
+    };
+
+    canvas.width = cropArea.width * scaleX;
+    canvas.height = cropArea.height * scaleY;
     const ctx = canvas.getContext("2d");
     if (!ctx) return null;
 
     ctx.drawImage(
-      imgRef.current,
-      completedCrop.x * scaleX,
-      completedCrop.y * scaleY,
-      completedCrop.width * scaleX,
-      completedCrop.height * scaleY,
+      image,
+      cropArea.x * scaleX,
+      cropArea.y * scaleY,
+      cropArea.width * scaleX,
+      cropArea.height * scaleY,
       0,
       0,
-      completedCrop.width,
-      completedCrop.height,
+      canvas.width,
+      canvas.height,
     );
 
     return new Promise((resolve) => {
@@ -73,12 +118,15 @@ export default function ImageUploader({
   }, [completedCrop]);
 
   const handleUpload = async () => {
-    if (!completedCrop || !imgRef.current) {
-      setError("Veuillez d'abord recadrer l'image");
+    if (!imgRef.current) {
+      setError("Aucune image sélectionnée");
       return;
     }
+
     setIsUploading(true);
     setProgress(10);
+    setError(null);
+
     try {
       const croppedBlob = await getCroppedImg();
       if (!croppedBlob)
@@ -160,6 +208,10 @@ export default function ImageUploader({
         </div>
       ) : (
         <div className="space-y-4">
+          <p className="text-xs text-muted-foreground">
+            Ajustez le cadre si nécessaire, puis cliquez sur &quot;Recadrer &
+            uploader&quot;.
+          </p>
           <ReactCrop
             crop={crop}
             onChange={(c) => setCrop(c)}
@@ -171,6 +223,7 @@ export default function ImageUploader({
               src={originalSrc}
               alt="Recadrage"
               className="max-h-80 rounded-lg"
+              onLoad={onImageLoad}
             />
           </ReactCrop>
           <div className="flex gap-3">

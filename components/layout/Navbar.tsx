@@ -29,12 +29,12 @@ const NAV_LINKS = [
   { href: "/", label: "Accueil", icon: Home },
   { href: "/recettes", label: "Recettes", icon: BookOpen },
   { href: "/recherche", label: "Recherche", icon: Search },
-  { href: "/planificateur", label: "Planning", icon: Calendar }, // <--- AJOUTE CETTE LIGNE
+  { href: "/planificateur", label: "Planning", icon: Calendar },
+  { href: "/mes-plannings", label: "Mes plannings", icon: Calendar },
   { href: "/soumettre", label: "Proposer", icon: PlusCircle },
   { href: "/favoris", label: "Favoris", icon: Heart },
   { href: "/a-propos", label: "À propos", icon: Info },
 ];
-
 export default function Navbar() {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -198,6 +198,13 @@ export default function Navbar() {
                       className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-accent/10 hover:text-accent transition-colors"
                     >
                       <User className="w-4 h-4" /> Mon Profil
+                    </Link>
+                    <Link
+                      href={`/profil/${user.id}`}
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-accent/10 hover:text-accent transition-colors"
+                    >
+                      <User className="w-4 h-4 opacity-50" /> Profil public
                     </Link>
                     <Link
                       href="/parametres"

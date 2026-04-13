@@ -57,6 +57,21 @@ export const TRI_OPTIONS = [
   { value: "rapide", label: "Plus rapides" },
 ] as const;
 
+// ─── Plages de temps ─────────────────────────────────────────
+
+export const TEMPS_OPTIONS = [
+  { value: "express", label: "⚡ Express", emoji: "⚡", max: 20, min: 0 },
+  { value: "rapide", label: "🕒 Rapide", emoji: "🕒", max: 40, min: 21 },
+  {
+    value: "equilibree",
+    label: "🍲 Équilibrée",
+    emoji: "🍲",
+    max: 75,
+    min: 41,
+  },
+  { value: "mijotee", label: "🔥 Mijotée", emoji: "🔥", max: 9999, min: 76 },
+] as const;
+
 // ─── Pagination ──────────────────────────────────────────────
 
 export const DEFAULT_PAGE_SIZE = 12;

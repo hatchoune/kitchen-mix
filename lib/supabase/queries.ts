@@ -56,13 +56,17 @@ export async function getRecettes(
     query = query.eq("nutriscore", filters.nutriscore);
   }
   if (filters.temps_max) {
-    // filtre sur temps total (prep + cuisson) via colonne calculée ou filtre combiné
-    // On filtre sur temps_preparation + temps_cuisson <= temps_max
-    // Supabase ne supporte pas l'addition dans .lte, donc on utilise un filtre SQL brut
     query = query.filter(
       "temps_preparation + temps_cuisson",
       "lte",
       filters.temps_max,
+    );
+  }
+  if (filters.temps_min) {
+    query = query.filter(
+      "temps_preparation + temps_cuisson",
+      "gte",
+      filters.temps_min,
     );
   }
 

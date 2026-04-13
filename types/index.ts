@@ -91,7 +91,7 @@ export interface Profil {
   id: string;
   pseudo: string | null;
   avatar_url: string | null;
-  modele_thermomix: string;
+  modele_thermomix: string[];
   bio: string | null;
   created_at: string;
   updated_at: string;
@@ -161,6 +161,7 @@ export interface RecetteFilters {
   regime?: string;
   nutriscore?: NutriScore;
   temps_max?: number;
+  temps_min?: number;
   tri?: "recent" | "populaire" | "mieux_note" | "rapide";
   page?: number;
   limit?: number;
@@ -204,4 +205,29 @@ export interface NewsletterSubscriber {
   source: string;
   subscribed_at: string;
   unsubscribed_at: string | null;
+}
+
+// ─── Achievements ────────────────────────────────────────────
+
+export interface UserAchievement {
+  id: string;
+  user_id: string;
+  achievement_code: string;
+  unlocked_at: string;
+  notified: boolean;
+}
+
+// ─── Plannings ───────────────────────────────────────────────
+
+export interface UserPlanning {
+  id: string;
+  user_id: string;
+  name: string;
+  description: string | null;
+  is_public: boolean;
+  week_start: string;
+  data: Record<number, (string | null)[]>;
+  likes_count: number;
+  created_at: string;
+  updated_at: string;
 }
