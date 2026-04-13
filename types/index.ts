@@ -91,7 +91,7 @@ export interface Profil {
   id: string;
   pseudo: string | null;
   avatar_url: string | null;
-  modele_thermomix: string;
+  modele_thermomix: string[];
   bio: string | null;
   created_at: string;
   updated_at: string;
@@ -161,6 +161,7 @@ export interface RecetteFilters {
   regime?: string;
   nutriscore?: NutriScore;
   temps_max?: number;
+  temps_min?: number;
   tri?: "recent" | "populaire" | "mieux_note" | "rapide";
   page?: number;
   limit?: number;

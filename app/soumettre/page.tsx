@@ -901,7 +901,8 @@ export default function SoumettrePage() {
             </button>
           ) : (
             <button
-              type="submit"
+              type="button"
+              onClick={handleSubmit(onSubmit)}
               disabled={isSubmitting}
               className="flex items-center gap-2 px-8 py-3 rounded-xl bg-accent text-black font-display font-bold text-sm hover:bg-accent-hover disabled:opacity-50"
             >

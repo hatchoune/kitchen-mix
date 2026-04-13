@@ -5,6 +5,7 @@ import { SkeletonGrid } from "@/components/ui/SkeletonCard";
 import RecettesListeClient from "@/components/recettes/RecettesListeClient";
 import { DEFAULT_PAGE_SIZE, SITE_URL } from "@/lib/constants";
 import type { RecetteFilters } from "@/types";
+import { TEMPS_OPTIONS } from "@/lib/constants";
 
 export const revalidate = 1800;
 
@@ -30,6 +31,10 @@ export default async function RecettesPage({ searchParams }: PageProps) {
   const params = await searchParams;
 
   // Construction des filtres (identique à ce qui était dans RecettesResults)
+  const tempsOption = params.temps
+    ? TEMPS_OPTIONS.find((t) => t.value === params.temps)
+    : undefined;
+
   const filters: RecetteFilters = {
     categorie: params.categorie,
     modele: params.modele as RecetteFilters["modele"],
@@ -39,6 +44,10 @@ export default async function RecettesPage({ searchParams }: PageProps) {
     tri: (params.tri as RecetteFilters["tri"]) || "recent",
     page: params.page ? parseInt(params.page) : 1,
     limit: DEFAULT_PAGE_SIZE,
+    ...(tempsOption && {
+      temps_min: tempsOption.min,
+      temps_max: tempsOption.max,
+    }),
   };
 
   return (

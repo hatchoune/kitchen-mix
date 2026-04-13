@@ -1,12 +1,6 @@
 import { notFound } from "next/navigation";
 import { createServerSupabase } from "@/lib/supabase/server";
-import {
-  Calendar,
-  Heart,
-  ThumbsUp,
-  Copy,
-  User,
-} from "lucide-react";
+import { Calendar, ThumbsUp, User } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import type { Metadata } from "next";
@@ -41,7 +35,8 @@ export async function generateMetadata({
 
   return {
     title: `${data.name} — Kitchen Mix`,
-    description: data.description || `Planning de repas "${data.name}" sur Kitchen Mix`,
+    description:
+      data.description || `Planning de repas "${data.name}" sur Kitchen Mix`,
   };
 }
 
@@ -67,16 +62,22 @@ export default async function PlanningPublicPage({
   const { id } = await params;
   const supabase = await createServerSupabase();
 
-  // 1. Planning + auteur
+  // 1. Récupérer le planning
   const { data: planning } = await supabase
     .from("user_plannings")
     .select("*, profils:user_id(pseudo, avatar_url)")
     .eq("id", id)
     .single();
 
-  if (!planning || (!planning.is_public && planning.user_id !== (await supabase.auth.getUser()).data.user?.id)) {
-    notFound();
-  }
+  if (!planning) notFound();
+
+  // Vérifier la visibilité
+  const {
+    data: { user: currentUser },
+  } = await supabase.auth.getUser();
+
+  const isOwner = currentUser?.id === planning.user_id;
+  if (!planning.is_public && !isOwner) notFound();
 
   // 2. Récupérer les recettes référencées
   const planData = planning.data as Record<string, (string | null)[]>;
@@ -87,7 +88,7 @@ export default async function PlanningPublicPage({
     }
   }
 
-  let recettesMap: Record<string, PlanningRecette> = {};
+  const recettesMap: Record<string, PlanningRecette> = {};
   if (recetteIds.size > 0) {
     const { data: recettes } = await supabase
       .from("recettes")
@@ -100,13 +101,14 @@ export default async function PlanningPublicPage({
   }
 
   // 3. Auteur
-  const profil = planning.profils as unknown as { pseudo: string | null; avatar_url: string | null } | null;
+  const profil = planning.profils as unknown as {
+    pseudo: string | null;
+    avatar_url: string | null;
+  } | null;
   const authorName = profil?.pseudo || "Utilisateur";
 
   // 4. Total recettes
-  const totalRecipes = Object.values(planData)
-    .flat()
-    .filter(Boolean).length;
+  const totalRecipes = Object.values(planData).flat().filter(Boolean).length;
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-8">
@@ -147,14 +149,14 @@ export default async function PlanningPublicPage({
         </div>
       </div>
 
-      {/* Actions (client component) */}
+      {/* Actions */}
       <PlanningActions
         planningId={id}
         weekStart={planning.week_start}
-        isOwner={planning.user_id === (await supabase.auth.getUser()).data.user?.id}
+        isOwner={isOwner}
       />
 
-      {/* Grille du planning */}
+      {/* Grille */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-3">
         {JOURS.map((jour, dayIdx) => {
           const slots = planData[dayIdx.toString()] || [];
@@ -173,7 +175,7 @@ export default async function PlanningPublicPage({
               </h3>
 
               <div className="flex-1 space-y-1.5">
-                {slots.map((recetteId, slotIdx) => {
+                {slots.map((recetteId: string | null, slotIdx: number) => {
                   if (!recetteId) return null;
                   const recipe = recettesMap[recetteId];
                   if (!recipe) return null;

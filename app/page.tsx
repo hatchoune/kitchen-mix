@@ -14,6 +14,7 @@ import { CATEGORIES } from "@/lib/constants";
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import { SITE_URL } from "@/lib/constants";
+import MonAppareilFilter from "@/components/ui/MonAppareilFilter";
 
 export const metadata: Metadata = {
   title: "Kitchen Mix | Recettes pour Thermomix, Companion & Cook Expert",
@@ -57,6 +58,19 @@ export default function HomePage() {
       {/* Category pills */}
       <section>
         <div className="flex flex-wrap items-center justify-center gap-2">
+          <MonAppareilFilter basePath="/recettes" />
+          <Link
+            href="/recettes?temps=express"
+            className="px-4 py-2 rounded-full text-sm font-medium bg-accent/10 text-accent border border-accent/20 hover:bg-accent/20 transition-all"
+          >
+            ⚡ Express
+          </Link>
+          <Link
+            href="/recettes?temps=rapide"
+            className="px-4 py-2 rounded-full text-sm font-medium bg-accent/10 text-accent border border-accent/20 hover:bg-accent/20 transition-all"
+          >
+            🕒 Rapide
+          </Link>
           {CATEGORIES.map((cat) => (
             <Link
               key={cat.value}

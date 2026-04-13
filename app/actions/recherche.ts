@@ -16,6 +16,8 @@ export async function rechercherRecettes(
   filters?: {
     categorie?: string;
     modele?: string;
+    temps_min?: number;
+    temps_max?: number;
     page?: number;
     limit?: number;
   },
@@ -43,6 +45,20 @@ export async function rechercherRecettes(
   }
   if (filters?.modele) {
     dbQuery = dbQuery.contains("modele_thermomix", [filters.modele]);
+  }
+  if (filters?.temps_min) {
+    dbQuery = dbQuery.filter(
+      "temps_preparation + temps_cuisson",
+      "gte",
+      filters.temps_min,
+    );
+  }
+  if (filters?.temps_max) {
+    dbQuery = dbQuery.filter(
+      "temps_preparation + temps_cuisson",
+      "lte",
+      filters.temps_max,
+    );
   }
 
   dbQuery = dbQuery

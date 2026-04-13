@@ -13,6 +13,7 @@ import {
   Camera,
   Loader2,
   Trophy,
+  Calendar,
 } from "lucide-react";
 import Logo from "@/components/ui/Logo";
 import { useAuth } from "@/hooks/useAuth";
@@ -47,10 +48,23 @@ export default function ProfilPage() {
 
   const [mesRecettes, setMesRecettes] = useState<MaRecette[]>([]);
   const [saving, setSaving] = useState(false);
-  const [modele, setModele] = useState(profil?.modele_thermomix || "TM6");
+  const [appareils, setAppareils] = useState<string[]>(
+    Array.isArray(profil?.modele_thermomix)
+      ? profil.modele_thermomix
+      : [profil?.modele_thermomix || "TM6"],
+  );
   const [uploading, setUploading] = useState(false);
   const [achievements, setAchievements] = useState<
     { achievement_code: string; unlocked_at: string }[]
+  >([]);
+  const [mesPlannings, setMesPlannings] = useState<
+    {
+      id: string;
+      name: string;
+      is_public: boolean;
+      likes_count: number;
+      created_at: string;
+    }[]
   >([]);
 
   // --- FONCTION D'UPLOAD DE L'AVATAR ---
@@ -118,7 +132,13 @@ export default function ProfilPage() {
   }, [user, loading, router]);
 
   useEffect(() => {
-    if (profil) setModele(profil.modele_thermomix);
+    if (profil) {
+      setAppareils(
+        Array.isArray(profil.modele_thermomix)
+          ? profil.modele_thermomix
+          : [profil.modele_thermomix],
+      );
+    }
   }, [profil]);
 
   useEffect(() => {
@@ -150,12 +170,33 @@ export default function ProfilPage() {
     load();
   }, [user, supabase]);
 
-  const handleSaveModele = async () => {
+  // Charger les plannings sauvegardés
+  useEffect(() => {
     if (!user) return;
+    const load = async () => {
+      const { data } = await supabase
+        .from("user_plannings")
+        .select("id, name, is_public, likes_count, created_at")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(10);
+      setMesPlannings(data || []);
+    };
+    load();
+  }, [user, supabase]);
+
+  const toggleAppareil = (id: string) => {
+    setAppareils((prev) =>
+      prev.includes(id) ? prev.filter((a) => a !== id) : [...prev, id],
+    );
+  };
+
+  const handleSaveModele = async () => {
+    if (!user || appareils.length === 0) return;
     setSaving(true);
     await supabase
       .from("profils")
-      .update({ modele_thermomix: modele })
+      .update({ modele_thermomix: appareils })
       .eq("id", user.id);
     if (refreshProfil) await refreshProfil();
     setSaving(false);
@@ -235,39 +276,90 @@ export default function ProfilPage() {
         Proposer une recette
       </Link>
 
-      {/* Model selector */}
+      {/* Sélection appareils */}
       <div className="glass-card p-6 space-y-4 rounded-2xl border border-border">
-        <h2 className="font-display font-semibold flex items-center gap-2">
-          <Logo className="w-5 h-auto" />
-          Mon appareil
-        </h2>
-        <div className="flex flex-wrap items-center gap-3">
-          <select
-            value={modele}
-            onChange={(e) => setModele(e.target.value)}
-            className="input-field flex-1"
-          >
-            {Object.entries(getAppliancesByCategory()).map(([cat, apps]) => (
-              <optgroup
-                key={cat}
-                label={CATEGORY_LABELS[cat as ApplianceCategory]}
-              >
-                {apps.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.label}
-                  </option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
+        <div className="flex items-center justify-between">
+          <h2 className="font-display font-semibold flex items-center gap-2">
+            <Logo className="w-5 h-auto" />
+            Mes appareils
+          </h2>
           <button
             onClick={handleSaveModele}
-            disabled={saving || modele === profil?.modele_thermomix}
-            className="ml-auto px-4 py-2 rounded-lg text-sm bg-accent/10 text-accent font-bold disabled:opacity-40 hover:bg-accent/20 transition-colors"
+            disabled={
+              saving ||
+              JSON.stringify([...appareils].sort()) ===
+                JSON.stringify(
+                  [
+                    ...(Array.isArray(profil?.modele_thermomix)
+                      ? profil.modele_thermomix
+                      : [profil?.modele_thermomix]),
+                  ].sort(),
+                )
+            }
+            className="px-4 py-2 rounded-lg text-sm bg-accent/10 text-accent font-bold disabled:opacity-40 hover:bg-accent/20 transition-colors"
           >
             {saving ? "..." : "Enregistrer"}
           </button>
         </div>
+
+        <p className="text-xs text-muted-foreground">
+          Sélectionnez un ou plusieurs appareils pour filtrer les recettes
+          compatibles.
+        </p>
+
+        {/* Appareils sélectionnés */}
+        {appareils.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {appareils.map((id) => {
+              const spec = APPLIANCES.find((a) => a.id === id);
+              return (
+                <span
+                  key={id}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-accent/15 text-accent border border-accent/30"
+                >
+                  {spec?.label || id}
+                  <button
+                    onClick={() => toggleAppareil(id)}
+                    className="hover:text-error transition-colors"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Menu déroulant par catégorie */}
+        <select
+          value=""
+          onChange={(e) => {
+            if (e.target.value) toggleAppareil(e.target.value);
+          }}
+          className="input-field"
+        >
+          <option value="">+ Ajouter un appareil...</option>
+          {Object.entries(getAppliancesByCategory()).map(([cat, apps]) => (
+            <optgroup
+              key={cat}
+              label={CATEGORY_LABELS[cat as ApplianceCategory]}
+            >
+              {apps
+                .filter((a) => !appareils.includes(a.id))
+                .map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.label}
+                  </option>
+                ))}
+            </optgroup>
+          ))}
+        </select>
+
+        {appareils.length === 0 && (
+          <p className="text-xs text-error">
+            Sélectionnez au moins un appareil.
+          </p>
+        )}
       </div>
 
       {/* Trophées */}
@@ -291,6 +383,63 @@ export default function ProfilPage() {
           </div>
         </div>
       )}
+
+      {/* Mes plannings */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="font-display font-semibold flex items-center gap-2">
+            <Calendar className="w-5 h-5 text-accent" />
+            Mes plannings ({mesPlannings.length})
+          </h2>
+          {mesPlannings.length > 0 && (
+            <Link
+              href="/mes-plannings"
+              className="text-xs text-accent hover:underline font-medium"
+            >
+              Tout voir →
+            </Link>
+          )}
+        </div>
+
+        {mesPlannings.length === 0 ? (
+          <div className="text-center py-8 glass-card rounded-2xl border border-dashed border-border">
+            <p className="text-muted-foreground text-sm">
+              Aucun planning sauvegardé.
+            </p>
+            <Link
+              href="/planificateur"
+              className="inline-flex items-center gap-1 mt-2 text-sm text-accent hover:underline font-bold"
+            >
+              Créer un planning
+            </Link>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {mesPlannings.map((p) => (
+              <Link
+                key={p.id}
+                href={`/planificateur?load=${p.id}`}
+                className="flex items-center justify-between px-4 py-3 glass-card rounded-xl border border-border hover:border-accent/30 transition-all"
+              >
+                <div className="min-w-0">
+                  <span className="text-sm font-bold truncate block hover:text-accent">
+                    {p.name}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">
+                    {new Date(p.created_at).toLocaleDateString("fr-FR", {
+                      day: "numeric",
+                      month: "short",
+                    })}
+                  </span>
+                </div>
+                <span className="text-[9px] font-bold uppercase px-2 py-0.5 rounded bg-accent/10 text-accent border border-accent/20 shrink-0">
+                  {p.is_public ? "Public" : "Privé"}
+                </span>
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Mes recettes */}
       <div className="space-y-4">

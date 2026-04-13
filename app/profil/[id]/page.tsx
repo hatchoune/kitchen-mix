@@ -180,8 +180,18 @@ export default async function ProfilPublicPage({
             <Calendar className="w-3.5 h-3.5" />
             Membre depuis {memberSince}
           </span>
-          <span className="px-2 py-0.5 rounded-full bg-accent/10 text-accent font-bold text-[10px] border border-accent/20">
-            {p.modele_thermomix}
+          <span className="flex items-center gap-1.5 flex-wrap justify-center">
+            {(Array.isArray(p.modele_thermomix)
+              ? p.modele_thermomix
+              : [p.modele_thermomix]
+            ).map((app) => (
+              <span
+                key={app}
+                className="px-2 py-0.5 rounded-full bg-accent/10 text-accent font-bold text-[10px] border border-accent/20"
+              >
+                {app}
+              </span>
+            ))}
           </span>
         </div>
       </div>
@@ -346,7 +356,7 @@ export default async function ProfilPublicPage({
                   {userPlannings.map((p) => (
                     <Link
                       key={p.id}
-                      href={`/planning/${p.id}`}
+                      href={`/planificateur?load=${p.id}`}
                       className="glass-card p-4 rounded-xl border border-border hover:border-accent/30 transition-all block"
                     >
                       <div className="flex items-center justify-between">

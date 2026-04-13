@@ -5,7 +5,7 @@ import RecetteGrid from "@/components/recettes/RecetteGrid";
 import RecetteFiltres from "@/components/recettes/RecetteFiltres";
 import { SkeletonGrid } from "@/components/ui/SkeletonCard";
 import { rechercherRecettes } from "@/app/actions/recherche";
-import { SITE_URL } from "@/lib/constants";
+import { SITE_URL, TEMPS_OPTIONS } from "@/lib/constants";
 import { Search } from "lucide-react";
 
 export const metadata: Metadata = {
@@ -58,10 +58,18 @@ async function SearchResults({
   query: string;
   params: Record<string, string | undefined>;
 }) {
+  const tempsOption = params.temps
+    ? TEMPS_OPTIONS.find((t) => t.value === params.temps)
+    : undefined;
+
   const { data: recettes, count } = await rechercherRecettes(query, {
     categorie: params.categorie,
     modele: params.modele,
     page: params.page ? parseInt(params.page) : 1,
+    ...(tempsOption && {
+      temps_min: tempsOption.min,
+      temps_max: tempsOption.max,
+    }),
   });
 
   return (
