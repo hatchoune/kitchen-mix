@@ -79,7 +79,7 @@ export default function SimulateurThermomix({
       {/* 2. CONTENU DU SIMULATEUR (Full Screen dynamique) */}
       <div className="flex flex-col h-full bg-neutral-950 text-white overflow-hidden">
         {/* Header */}
-        <div className="grid grid-cols-3 items-center p-4 border-b border-white/10 bg-black/50">
+        <div className="grid grid-cols-3 items-center p-2 lg:p-4 border-b border-white/10 bg-black/50">
           {/* Gauche : croix + titre */}
           <div className="flex items-center gap-3 min-w-0">
             <button
@@ -101,7 +101,7 @@ export default function SimulateurThermomix({
         </div>
 
         {/* Zone Centrale - Flex-1 et Overflow-auto règlent le problème du bas "mangé" */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-8 flex flex-col items-center justify-center gap-6 sm:gap-10">
+        <div className="flex-1 overflow-y-auto p-2 lg:p-8 flex flex-col items-center justify-center gap-3 lg:gap-10">
           {/* Les 3 Ronds style Thermomix */}
           <div className="flex gap-3 sm:gap-12 justify-center w-full">
             {/* @ts-ignore - duree peut être undefined selon tes données */}
@@ -181,15 +181,15 @@ export default function SimulateurThermomix({
 
 function CircleParam({ icon: Icon, value, unit, label }: any) {
   return (
-    <div className="flex flex-col items-center gap-2">
-      <div className="w-20 h-20 sm:w-32 sm:h-32 rounded-full border-2 border-white/10 flex flex-col items-center justify-center bg-white/5 backdrop-blur-sm">
-        <Icon className="w-4 h-4 sm:w-6 sm:h-6 text-accent/60 mb-1" />
-        <span className="text-xl sm:text-4xl font-bold font-display">
+    <div className="flex flex-col items-center gap-1 lg:gap-2">
+      <div className="w-16 h-16 lg:w-32 lg:h-32 rounded-full border-2 border-white/10 flex flex-col items-center justify-center bg-white/5 backdrop-blur-sm">
+        <Icon className="w-3 h-3 lg:w-6 lg:h-6 text-accent/60 mb-0.5" />
+        <span className="text-sm lg:text-4xl font-bold font-display">
           {value}
           {unit}
         </span>
       </div>
-      <span className="text-[9px] sm:text-[11px] uppercase tracking-[0.2em] text-gray-500 font-black">
+      <span className="text-[8px] lg:text-[11px] uppercase tracking-[0.2em] text-gray-500 font-black">
         {label}
       </span>
     </div>

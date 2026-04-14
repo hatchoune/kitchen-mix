@@ -43,7 +43,10 @@ export default function Modal({
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center"
+      className={cn(
+        "fixed inset-0 z-[100]",
+        !fullScreen && "flex items-center justify-center",
+      )}
       role="dialog"
       aria-modal="true"
       aria-label={title}
@@ -61,9 +64,9 @@ export default function Modal({
         className={cn(
           "relative z-10 animate-scale-in",
           fullScreen
-            ? "w-[calc(100%-2rem)] h-[calc(100dvh-2rem)] rounded-2xl overflow-hidden"
+            ? "absolute inset-0 lg:inset-3 lg:rounded-2xl overflow-hidden"
             : "w-full max-w-2xl max-h-[90dvh] mx-4 rounded-2xl overflow-hidden",
-          "bg-[#1A1A1A] text-[#F5F5F0]", // Simulateur: toujours dark
+          "bg-[#1A1A1A] text-[#F5F5F0]",
           className,
         )}
       >
