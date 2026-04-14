@@ -186,7 +186,6 @@ lib/
   watermark.ts
 public/
   logo.svg
-  og-default.jpg
 scripts/
   migration-achievements.sql
   migration-banned-users.sql
@@ -245,132 +244,6 @@ export default function AProposLayout({
   children: React.ReactNode;
 }) {
   return <>{children}</>;
-}
-</file>
-
-<file path="app/a-propos/page.tsx">
-// app/a-propos/page.tsx
-import type { Metadata } from "next";
-import Link from "next/link";
-import { ChefHat, Heart, Sparkles, Users } from "lucide-react";
-import Logo from "@/components/ui/Logo";
-import { SITE_NAME, SITE_URL } from "@/lib/constants";
-import { getPageMetadata } from "@/lib/seo";
-
-export const metadata: Metadata = getPageMetadata({
-  title: `À propos de ${SITE_NAME}`,
-  description: `Découvrez l'histoire et la mission de ${SITE_NAME} : partager des recettes originales et fiables pour robots cuiseurs multifonction, avec simulateur intégré et planificateur de repas.`,
-  path: "/a-propos",
-});
-
-export default function AProposPage() {
-  return (
-    <div className="max-w-3xl mx-auto py-8 space-y-12 animate-fade-in">
-      {/* Hero */}
-      <section className="text-center space-y-6">
-        <div className="flex justify-center">
-          <Logo className="w-20 h-auto" />
-        </div>
-        <h1 className="font-display font-bold text-4xl">
-          À propos de <span className="text-accent">{SITE_NAME}</span>
-        </h1>
-        <p className="text-muted-foreground text-lg max-w-2xl mx-auto leading-relaxed">
-          La cuisine maison, sans stress et avec passion.
-        </p>
-      </section>
-
-      {/* Notre histoire */}
-      <section className="glass-card p-8 space-y-4">
-        <h2 className="font-display font-bold text-2xl flex items-center gap-3">
-          <ChefHat className="w-6 h-6 text-accent" />
-          Notre histoire
-        </h2>
-        <div className="space-y-4 text-muted-foreground leading-relaxed">
-          <p>
-            <strong>{SITE_NAME}</strong> est né d&apos;une passion commune pour
-            la cuisine au robot multifonction. Nous avons constaté que les
-            recettes disponibles en ligne étaient souvent mal adaptées, peu
-            fiables ou difficiles à suivre pour des débutants.
-          </p>
-          <p>
-            Nous avons donc décidé de créer un espace où chaque recette est
-            testée, détaillée et accompagnée d&apos;instructions claires pour
-            votre robot. Notre objectif : vous faire gagner du temps et vous
-            donner envie de cuisiner chaque jour.
-          </p>
-          <p>
-            Aujourd&apos;hui, {SITE_NAME} est une communauté de passionnés qui
-            partagent leurs meilleures créations, avec un simulateur intégré et
-            un planificateur de repas pour simplifier votre quotidien.
-          </p>
-        </div>
-      </section>
-
-      {/* Nos valeurs */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <ValueCard
-          icon={<Sparkles className="w-6 h-6" />}
-          title="Fiabilité"
-          description="Chaque recette est vérifiée et approuvée avant publication. Vous pouvez cuisiner en toute confiance."
-        />
-        <ValueCard
-          icon={<Users className="w-6 h-6" />}
-          title="Communauté"
-          description="Partagez vos propres recettes, notez celles des autres et échangez en commentaires."
-        />
-        <ValueCard
-          icon={<Heart className="w-6 h-6" />}
-          title="Passion"
-          description="Nous aimons la bonne cuisine et nous vous transmettons cette passion à travers nos contenus."
-        />
-      </section>
-
-      {/* Contact / techno */}
-      <section className="glass-card p-8 space-y-4">
-        <h2 className="font-display font-bold text-2xl">Technologie</h2>
-        <p className="text-muted-foreground leading-relaxed">
-          {SITE_NAME} est construit avec les technologies web modernes :
-          Next.js, Supabase, Tailwind CSS. Le site est hébergé sur Vercel et
-          optimisé pour une expérience rapide et fluide, que vous soyez sur
-          mobile, tablette ou ordinateur.
-        </p>
-        <p className="text-muted-foreground leading-relaxed">
-          Une question, une suggestion ? N&apos;hésitez pas à nous contacter via
-          les réseaux sociaux ou à nous écrire à{" "}
-          <a
-            href="mailto:contact@mcmalnus.com"
-            className="text-accent hover:underline"
-          >
-            contact@mcmalnus.com
-          </a>
-          .
-        </p>
-      </section>
-    </div>
-  );
-}
-
-// Petit composant interne
-function ValueCard({
-  icon,
-  title,
-  description,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-}) {
-  return (
-    <div className="glass-card p-6 text-center space-y-3">
-      <div className="w-12 h-12 rounded-full bg-accent/15 text-accent flex items-center justify-center mx-auto">
-        {icon}
-      </div>
-      <h3 className="font-display font-semibold text-lg">{title}</h3>
-      <p className="text-sm text-muted-foreground leading-relaxed">
-        {description}
-      </p>
-    </div>
-  );
 }
 </file>
 
@@ -1605,27 +1478,27 @@ export default function MesPlanningsPage() {
   const [plannings, setPlannings] = useState<MyPlanning[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const userId = user?.id;
 
   useEffect(() => {
     if (authLoading) return;
-    if (!user) {
+    if (!userId) {
       router.push("/connexion?next=/mes-plannings");
       return;
     }
-
     const load = async () => {
       const { data } = await supabase
         .from("user_plannings")
         .select(
           "id, name, description, is_public, week_start, likes_count, created_at",
         )
-        .eq("user_id", user.id)
+        .eq("user_id", userId)
         .order("created_at", { ascending: false });
       setPlannings((data || []) as MyPlanning[]);
       setLoading(false);
     };
     load();
-  }, [user, authLoading, supabase, router]);
+  }, [userId, authLoading, supabase, router]);
 
   const handleDelete = async (id: string) => {
     if (!confirm("Supprimer ce planning ?")) return;
@@ -4442,206 +4315,6 @@ export default function RecettesSimilaires({ recettes }: RecettesSimilairesProps
 }
 </file>
 
-<file path="components/recettes/SimulateurThermomix.tsx">
-"use client";
-
-import { useState, useEffect } from "react";
-import {
-  ChevronLeft,
-  ChevronRight,
-  Thermometer,
-  Timer,
-  Gauge,
-  UtensilsCrossed,
-  RotateCw,
-  Check, // Corrigé : ajout de l'import Check
-  X,
-} from "lucide-react";
-import Modal from "@/components/ui/Modal";
-import type { EtapeThermomix } from "@/types";
-import { cn } from "@/lib/utils";
-
-interface SimulateurProps {
-  isOpen: boolean;
-  onClose: () => void;
-  etapes: EtapeThermomix[];
-  titre: string;
-}
-
-export default function SimulateurThermomix({
-  isOpen,
-  onClose,
-  etapes,
-  titre,
-}: SimulateurProps) {
-  const [currentStep, setCurrentStep] = useState(0);
-  const [isPortrait, setIsPortrait] = useState(false);
-
-  // Détection de l'orientation pour le mobile
-  useEffect(() => {
-    const checkOrientation = () => {
-      // On considère "Portrait" si la hauteur > largeur sur un petit écran
-      setIsPortrait(
-        window.innerHeight > window.innerWidth && window.innerWidth < 1024,
-      );
-    };
-    checkOrientation();
-    window.addEventListener("resize", checkOrientation);
-    return () => window.removeEventListener("resize", checkOrientation);
-  }, []);
-
-  if (!isOpen) return null;
-
-  const etape = etapes[currentStep];
-  const isLastStep = currentStep === etapes.length - 1;
-
-  // Fonction pour formater le temps (secondes -> MM:SS)
-  const formatTime = (seconds: number | undefined) => {
-    if (!seconds) return "--:--";
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m}:${s.toString().padStart(2, "0")}`;
-  };
-
-  return (
-    <Modal isOpen={isOpen} onClose={onClose} fullScreen>
-      {/* 1. ALERTE ROTATION (Mobile Portrait uniquement) */}
-      {isPortrait && (
-        <div className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center p-6 text-center">
-          <div className="animate-bounce mb-4 text-accent">
-            <RotateCw className="w-16 h-16" />
-          </div>
-          <h2 className="text-xl font-bold text-white mb-2">
-            Mode Cuisine Guidée
-          </h2>
-          <p className="text-gray-400">
-            Veuillez pivoter votre téléphone en mode paysage pour cuisiner avec
-            confort.
-          </p>
-        </div>
-      )}
-
-      {/* 2. CONTENU DU SIMULATEUR (Full Screen dynamique) */}
-      <div className="flex flex-col h-full bg-neutral-950 text-white overflow-hidden">
-        {/* Header */}
-        <div className="grid grid-cols-3 items-center p-4 border-b border-white/10 bg-black/50">
-          {/* Gauche : croix + titre */}
-          <div className="flex items-center gap-3 min-w-0">
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-white/10 rounded-full shrink-0"
-            >
-              <X className="w-5 h-5" />
-            </button>
-            <h3 className="font-display font-bold text-sm truncate">{titre}</h3>
-          </div>
-          {/* Centre : étape X/Y — parfaitement centré */}
-          <div className="flex justify-center">
-            <div className="text-xs font-mono bg-accent/20 text-accent px-3 py-1 rounded-full border border-accent/30 whitespace-nowrap">
-              ÉTAPE {currentStep + 1} / {etapes.length}
-            </div>
-          </div>
-          {/* Droite : vide pour équilibrer */}
-          <div />
-        </div>
-
-        {/* Zone Centrale - Flex-1 et Overflow-auto règlent le problème du bas "mangé" */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-8 flex flex-col items-center justify-center gap-6 sm:gap-10">
-          {/* Les 3 Ronds style Thermomix */}
-          <div className="flex gap-3 sm:gap-12 justify-center w-full">
-            {/* @ts-ignore - duree peut être undefined selon tes données */}
-            <CircleParam
-              icon={Timer}
-              value={formatTime(etape.duree)}
-              label="Temps"
-            />
-            <CircleParam
-              icon={Thermometer}
-              value={etape.temperature || "---"}
-              unit="°"
-              label="Temp"
-            />
-            <CircleParam
-              icon={Gauge}
-              value={etape.vitesse || "0"}
-              label="Vitesse"
-            />
-          </div>
-
-          {/* L'Instruction - Zone de texte flexible */}
-          <div className="max-w-4xl w-full text-center px-2">
-            <p className="text-sm sm:text-xl font-medium leading-relaxed text-balance">
-              {etape.instruction}
-            </p>
-            {etape.accessoire && (
-              <div className="mt-6 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-accent/10 text-accent border border-accent/20">
-                <UtensilsCrossed className="w-4 h-4" />
-                <span className="text-sm font-bold uppercase tracking-wider">
-                  {etape.accessoire}
-                </span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="p-4 sm:p-6 bg-black/80 border-t border-white/5 flex items-center justify-between gap-4">
-          <button
-            onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
-            disabled={currentStep === 0}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-white/5 hover:bg-white/10 disabled:opacity-20 transition-all text-sm font-medium"
-          >
-            <ChevronLeft className="w-4 h-4" />
-            <span className="hidden sm:inline">Précédent</span>
-          </button>
-
-          {/* Barre de progression */}
-          <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-accent shadow-[0_0_15px_rgba(var(--accent-rgb),0.5)] transition-all duration-500 ease-out"
-              style={{ width: `${((currentStep + 1) / etapes.length) * 100}%` }}
-            />
-          </div>
-
-          <button
-            onClick={() =>
-              !isLastStep ? setCurrentStep(currentStep + 1) : onClose()
-            }
-            className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-accent text-black hover:scale-105 active:scale-95 transition-all text-sm font-bold shadow-lg shadow-accent/20"
-          >
-            <span className="hidden sm:inline">
-              {isLastStep ? "Terminer" : "Suivant"}
-            </span>
-            {isLastStep ? (
-              <Check className="w-4 h-4" />
-            ) : (
-              <ChevronRight className="w-4 h-4" />
-            )}
-          </button>
-        </div>
-      </div>
-    </Modal>
-  );
-}
-
-function CircleParam({ icon: Icon, value, unit, label }: any) {
-  return (
-    <div className="flex flex-col items-center gap-2">
-      <div className="w-20 h-20 sm:w-32 sm:h-32 rounded-full border-2 border-white/10 flex flex-col items-center justify-center bg-white/5 backdrop-blur-sm">
-        <Icon className="w-4 h-4 sm:w-6 sm:h-6 text-accent/60 mb-1" />
-        <span className="text-xl sm:text-4xl font-bold font-display">
-          {value}
-          {unit}
-        </span>
-      </div>
-      <span className="text-[9px] sm:text-[11px] uppercase tracking-[0.2em] text-gray-500 font-black">
-        {label}
-      </span>
-    </div>
-  );
-}
-</file>
-
 <file path="components/recettes/VideoEmbed.tsx">
 "use client";
 
@@ -4874,12 +4547,8 @@ export default function AchievementNotifier() {
     // Check initial (petit délai pour laisser la page se charger)
     const initialTimeout = setTimeout(checkAchievements, 3000);
 
-    // Poll
-    const interval = setInterval(checkAchievements, POLL_INTERVAL);
-
     return () => {
       clearTimeout(initialTimeout);
-      clearInterval(interval);
     };
   }, [user, checkAchievements]);
 
@@ -5089,115 +4758,6 @@ export default function Logo({ className }: { className?: string }) {
       className={className} // C'est ici que h-10 s'applique
       priority
     />
-  );
-}
-</file>
-
-<file path="components/ui/Modal.tsx">
-"use client";
-
-import { useEffect, useCallback, type ReactNode } from "react";
-import { X } from "lucide-react";
-import { cn } from "@/lib/utils";
-
-interface ModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  children: ReactNode;
-  title?: string;
-  className?: string;
-  fullScreen?: boolean;
-}
-
-export default function Modal({
-  isOpen,
-  onClose,
-  children,
-  title,
-  className,
-  fullScreen = false,
-}: ModalProps) {
-  const handleEscape = useCallback(
-    (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    },
-    [onClose],
-  );
-
-  useEffect(() => {
-    if (isOpen) {
-      document.addEventListener("keydown", handleEscape);
-      document.body.style.overflow = "hidden";
-    }
-    return () => {
-      document.removeEventListener("keydown", handleEscape);
-      document.body.style.overflow = "";
-    };
-  }, [isOpen, handleEscape]);
-
-  if (!isOpen) return null;
-
-  return (
-    <div
-      className="fixed inset-0 z-[100] flex items-center justify-center"
-      role="dialog"
-      aria-modal="true"
-      aria-label={title}
-    >
-      {/* Backdrop — masqué en fullScreen */}
-      {!fullScreen && (
-        <div
-          className="absolute inset-0 bg-black/70 animate-fade-in"
-          onClick={onClose}
-        />
-      )}
-
-      {/* Content */}
-      <div
-        className={cn(
-          "relative z-10 animate-scale-in",
-          fullScreen
-            ? "w-[calc(100%-2rem)] max-h-[calc(100dvh-2rem)] rounded-2xl overflow-hidden"
-            : "w-full max-w-2xl max-h-[90dvh] mx-4 rounded-2xl overflow-hidden",
-          "bg-[#1A1A1A] text-[#F5F5F0]", // Simulateur: toujours dark
-          className,
-        )}
-      >
-        {/* Header */}
-        {title && (
-          <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
-            <h2 className="font-display font-bold text-lg">{title}</h2>
-            <button
-              onClick={onClose}
-              className="p-2 rounded-lg hover:bg-white/10 transition-colors"
-              aria-label="Fermer"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-        )}
-
-        {!title && (
-          <button
-            onClick={onClose}
-            className="absolute top-4 right-4 z-10 p-2 rounded-lg hover:bg-white/10 transition-colors"
-            aria-label="Fermer"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        )}
-
-        {/* Body */}
-        <div
-          className={cn(
-            "overflow-y-auto",
-            !fullScreen && "max-h-[calc(90dvh-4rem)]",
-          )}
-        >
-          {children}
-        </div>
-      </div>
-    </div>
   );
 }
 </file>
@@ -5654,6 +5214,8 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
 import type { Profil } from "@/types";
+import { checkBannedEmail } from "@/app/actions/users";
+import { checkAndUnlockAchievements } from "@/app/actions/achievements";
 
 interface AuthContextValue {
   user: User | null;
@@ -5705,7 +5267,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const userEmail =
           (await supabase.auth.getUser()).data.user?.email || "";
         if (userEmail) {
-          const { checkBannedEmail } = await import("@/app/actions/users");
           const banPromise = checkBannedEmail(userEmail);
           const timeoutPromise = new Promise<boolean>((resolve) =>
             setTimeout(() => resolve(false), 3000),
@@ -5734,11 +5295,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       // Achievement login (fire-and-forget)
-      import("@/app/actions/achievements")
-        .then(({ checkAndUnlockAchievements }) => {
-          checkAndUnlockAchievements(userId, "login").catch(() => {});
-        })
-        .catch(() => {});
+      checkAndUnlockAchievements(userId, "login").catch(() => {});
     } catch (err) {
       console.error("Erreur chargement données utilisateur:", err);
     } finally {
@@ -11504,6 +11061,9 @@ Pour obtenir une autorisation écrite ou pour toute question relative à cette l
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  turbopack: {
+    root: __dirname,
+  },
   images: {
     remotePatterns: [
       {
@@ -11686,6 +11246,132 @@ export default config;
   "buildCommand": "next build",
   "outputDirectory": ".next",
   "regions": ["cdg1"]
+}
+</file>
+
+<file path="app/a-propos/page.tsx">
+// app/a-propos/page.tsx
+import type { Metadata } from "next";
+import Link from "next/link";
+import { ChefHat, Heart, Sparkles, Users } from "lucide-react";
+import Logo from "@/components/ui/Logo";
+import { SITE_NAME, SITE_URL } from "@/lib/constants";
+import { getPageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = getPageMetadata({
+  title: `À propos de ${SITE_NAME}`,
+  description: `Découvrez l'histoire et la mission de ${SITE_NAME} : partager des recettes originales et fiables pour robots cuiseurs multifonction, avec simulateur intégré et planificateur de repas.`,
+  path: "/a-propos",
+});
+
+export default function AProposPage() {
+  return (
+    <div className="max-w-3xl mx-auto py-8 space-y-12 animate-fade-in">
+      {/* Hero */}
+      <section className="text-center space-y-6">
+        <div className="flex justify-center">
+          <Logo className="w-20 h-auto" />
+        </div>
+        <h1 className="font-display font-bold text-4xl">
+          À propos de <span className="text-accent">{SITE_NAME}</span>
+        </h1>
+        <p className="text-muted-foreground text-lg max-w-2xl mx-auto leading-relaxed">
+          La cuisine maison, sans stress et avec passion.
+        </p>
+      </section>
+
+      {/* Notre histoire */}
+      <section className="glass-card p-8 space-y-4">
+        <h2 className="font-display font-bold text-2xl flex items-center gap-3">
+          <ChefHat className="w-6 h-6 text-accent" />
+          Notre histoire
+        </h2>
+        <div className="space-y-4 text-muted-foreground leading-relaxed">
+          <p>
+            <strong>{SITE_NAME}</strong> est né d&apos;une passion commune pour
+            la cuisine au robot multifonction. Nous avons constaté que les
+            recettes disponibles en ligne étaient souvent mal adaptées, peu
+            fiables ou difficiles à suivre pour des débutants.
+          </p>
+          <p>
+            Nous avons donc décidé de créer un espace où chaque recette est
+            testée, détaillée et accompagnée d&apos;instructions claires pour
+            votre robot. Notre objectif : vous faire gagner du temps et vous
+            donner envie de cuisiner chaque jour.
+          </p>
+          <p>
+            Aujourd&apos;hui, {SITE_NAME} est une communauté de passionnés qui
+            partagent leurs meilleures créations, avec un simulateur intégré et
+            un planificateur de repas pour simplifier votre quotidien.
+          </p>
+        </div>
+      </section>
+
+      {/* Nos valeurs */}
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <ValueCard
+          icon={<Sparkles className="w-6 h-6" />}
+          title="Fiabilité"
+          description="Chaque recette est vérifiée et approuvée avant publication. Vous pouvez cuisiner en toute confiance."
+        />
+        <ValueCard
+          icon={<Users className="w-6 h-6" />}
+          title="Communauté"
+          description="Partagez vos propres recettes, notez celles des autres et échangez en commentaires."
+        />
+        <ValueCard
+          icon={<Heart className="w-6 h-6" />}
+          title="Passion"
+          description="Nous aimons la bonne cuisine et nous vous transmettons cette passion à travers nos contenus."
+        />
+      </section>
+
+      {/* Contact / techno */}
+      <section className="glass-card p-8 space-y-4">
+        <h2 className="font-display font-bold text-2xl">Technologie</h2>
+        <p className="text-muted-foreground leading-relaxed">
+          {SITE_NAME} est construit avec les technologies web modernes :
+          Next.js, Supabase, Tailwind CSS. Le site est hébergé sur Vercel et
+          optimisé pour une expérience rapide et fluide, que vous soyez sur
+          mobile, tablette ou ordinateur.
+        </p>
+        {/* <p className="text-muted-foreground leading-relaxed">
+          Une question, une suggestion ? N&apos;hésitez pas à nous contacter via
+          les réseaux sociaux ou à nous écrire à{" "}
+          <a
+            href="mailto:contact@mcmalnus.com"
+            className="text-accent hover:underline"
+          >
+            contact@mcmalnus.com
+          </a>
+          .
+        </p> */}
+      </section>
+    </div>
+  );
+}
+
+// Petit composant interne
+function ValueCard({
+  icon,
+  title,
+  description,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="glass-card p-6 text-center space-y-3">
+      <div className="w-12 h-12 rounded-full bg-accent/15 text-accent flex items-center justify-center mx-auto">
+        {icon}
+      </div>
+      <h3 className="font-display font-semibold text-lg">{title}</h3>
+      <p className="text-sm text-muted-foreground leading-relaxed">
+        {description}
+      </p>
+    </div>
+  );
 }
 </file>
 
@@ -14779,6 +14465,206 @@ function FilterSelect({
 }
 </file>
 
+<file path="components/recettes/SimulateurThermomix.tsx">
+"use client";
+
+import { useState, useEffect } from "react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Thermometer,
+  Timer,
+  Gauge,
+  UtensilsCrossed,
+  RotateCw,
+  Check, // Corrigé : ajout de l'import Check
+  X,
+} from "lucide-react";
+import Modal from "@/components/ui/Modal";
+import type { EtapeThermomix } from "@/types";
+import { cn } from "@/lib/utils";
+
+interface SimulateurProps {
+  isOpen: boolean;
+  onClose: () => void;
+  etapes: EtapeThermomix[];
+  titre: string;
+}
+
+export default function SimulateurThermomix({
+  isOpen,
+  onClose,
+  etapes,
+  titre,
+}: SimulateurProps) {
+  const [currentStep, setCurrentStep] = useState(0);
+  const [isPortrait, setIsPortrait] = useState(false);
+
+  // Détection de l'orientation pour le mobile
+  useEffect(() => {
+    const checkOrientation = () => {
+      // On considère "Portrait" si la hauteur > largeur sur un petit écran
+      setIsPortrait(
+        window.innerHeight > window.innerWidth && window.innerWidth < 1024,
+      );
+    };
+    checkOrientation();
+    window.addEventListener("resize", checkOrientation);
+    return () => window.removeEventListener("resize", checkOrientation);
+  }, []);
+
+  if (!isOpen) return null;
+
+  const etape = etapes[currentStep];
+  const isLastStep = currentStep === etapes.length - 1;
+
+  // Fonction pour formater le temps (secondes -> MM:SS)
+  const formatTime = (seconds: number | undefined) => {
+    if (!seconds) return "--:--";
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, "0")}`;
+  };
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} fullScreen>
+      {/* 1. ALERTE ROTATION (Mobile Portrait uniquement) */}
+      {isPortrait && (
+        <div className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center p-6 text-center">
+          <div className="animate-bounce mb-4 text-accent">
+            <RotateCw className="w-16 h-16" />
+          </div>
+          <h2 className="text-xl font-bold text-white mb-2">
+            Mode Cuisine Guidée
+          </h2>
+          <p className="text-gray-400">
+            Veuillez pivoter votre téléphone en mode paysage pour cuisiner avec
+            confort.
+          </p>
+        </div>
+      )}
+
+      {/* 2. CONTENU DU SIMULATEUR (Full Screen dynamique) */}
+      <div className="flex flex-col h-full bg-neutral-950 text-white overflow-hidden">
+        {/* Header */}
+        <div className="grid grid-cols-3 items-center p-2 lg:p-4 border-b border-white/10 bg-black/50">
+          {/* Gauche : croix + titre */}
+          <div className="flex items-center gap-3 min-w-0">
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-white/10 rounded-full shrink-0"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <h3 className="font-display font-bold text-sm truncate">{titre}</h3>
+          </div>
+          {/* Centre : étape X/Y — parfaitement centré */}
+          <div className="flex justify-center">
+            <div className="text-xs font-mono bg-accent/20 text-accent px-3 py-1 rounded-full border border-accent/30 whitespace-nowrap">
+              ÉTAPE {currentStep + 1} / {etapes.length}
+            </div>
+          </div>
+          {/* Droite : vide pour équilibrer */}
+          <div />
+        </div>
+
+        {/* Zone Centrale - Flex-1 et Overflow-auto règlent le problème du bas "mangé" */}
+        <div className="flex-1 overflow-y-auto p-2 lg:p-8 flex flex-col items-center justify-center gap-3 lg:gap-10">
+          {/* Les 3 Ronds style Thermomix */}
+          <div className="flex gap-3 sm:gap-12 justify-center w-full">
+            {/* @ts-ignore - duree peut être undefined selon tes données */}
+            <CircleParam
+              icon={Timer}
+              value={formatTime(etape.duree)}
+              label="Temps"
+            />
+            <CircleParam
+              icon={Thermometer}
+              value={etape.temperature || "---"}
+              unit="°"
+              label="Temp"
+            />
+            <CircleParam
+              icon={Gauge}
+              value={etape.vitesse || "0"}
+              label="Vitesse"
+            />
+          </div>
+
+          {/* L'Instruction - Zone de texte flexible */}
+          <div className="max-w-4xl w-full text-center px-2">
+            <p className="text-sm sm:text-xl font-medium leading-relaxed text-balance">
+              {etape.instruction}
+            </p>
+            {etape.accessoire && (
+              <div className="mt-6 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-accent/10 text-accent border border-accent/20">
+                <UtensilsCrossed className="w-4 h-4" />
+                <span className="text-sm font-bold uppercase tracking-wider">
+                  {etape.accessoire}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="p-4 sm:p-6 bg-black/80 border-t border-white/5 flex items-center justify-between gap-4">
+          <button
+            onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
+            disabled={currentStep === 0}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-white/5 hover:bg-white/10 disabled:opacity-20 transition-all text-sm font-medium"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            <span className="hidden sm:inline">Précédent</span>
+          </button>
+
+          {/* Barre de progression */}
+          <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-accent shadow-[0_0_15px_rgba(var(--accent-rgb),0.5)] transition-all duration-500 ease-out"
+              style={{ width: `${((currentStep + 1) / etapes.length) * 100}%` }}
+            />
+          </div>
+
+          <button
+            onClick={() =>
+              !isLastStep ? setCurrentStep(currentStep + 1) : onClose()
+            }
+            className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-accent text-black hover:scale-105 active:scale-95 transition-all text-sm font-bold shadow-lg shadow-accent/20"
+          >
+            <span className="hidden sm:inline">
+              {isLastStep ? "Terminer" : "Suivant"}
+            </span>
+            {isLastStep ? (
+              <Check className="w-4 h-4" />
+            ) : (
+              <ChevronRight className="w-4 h-4" />
+            )}
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+function CircleParam({ icon: Icon, value, unit, label }: any) {
+  return (
+    <div className="flex flex-col items-center gap-1 lg:gap-2">
+      <div className="w-16 h-16 lg:w-32 lg:h-32 rounded-full border-2 border-white/10 flex flex-col items-center justify-center bg-white/5 backdrop-blur-sm">
+        <Icon className="w-3 h-3 lg:w-6 lg:h-6 text-accent/60 mb-0.5" />
+        <span className="text-sm lg:text-4xl font-bold font-display">
+          {value}
+          {unit}
+        </span>
+      </div>
+      <span className="text-[8px] lg:text-[11px] uppercase tracking-[0.2em] text-gray-500 font-black">
+        {label}
+      </span>
+    </div>
+  );
+}
+</file>
+
 <file path="components/ui/NewsletterForm.tsx">
 "use client";
 
@@ -17432,6 +17318,119 @@ export default function ImageUploader({
 }
 </file>
 
+<file path="components/ui/Modal.tsx">
+"use client";
+
+import { useEffect, useCallback, type ReactNode } from "react";
+import { X } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+interface ModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  children: ReactNode;
+  title?: string;
+  className?: string;
+  fullScreen?: boolean;
+}
+
+export default function Modal({
+  isOpen,
+  onClose,
+  children,
+  title,
+  className,
+  fullScreen = false,
+}: ModalProps) {
+  const handleEscape = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    },
+    [onClose],
+  );
+
+  useEffect(() => {
+    if (isOpen) {
+      document.addEventListener("keydown", handleEscape);
+      document.body.style.overflow = "hidden";
+    }
+    return () => {
+      document.removeEventListener("keydown", handleEscape);
+      document.body.style.overflow = "";
+    };
+  }, [isOpen, handleEscape]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div
+      className={cn(
+        "fixed inset-0 z-[100]",
+        !fullScreen && "flex items-center justify-center",
+      )}
+      role="dialog"
+      aria-modal="true"
+      aria-label={title}
+    >
+      {/* Backdrop — masqué en fullScreen */}
+      {!fullScreen && (
+        <div
+          className="absolute inset-0 bg-black/70 animate-fade-in"
+          onClick={onClose}
+        />
+      )}
+
+      {/* Content */}
+      <div
+        className={cn(
+          "relative z-10 animate-scale-in",
+          fullScreen
+            ? "absolute inset-0 lg:inset-3 lg:rounded-2xl overflow-hidden"
+            : "w-full max-w-2xl max-h-[90dvh] mx-4 rounded-2xl overflow-hidden",
+          "bg-[#1A1A1A] text-[#F5F5F0]",
+          className,
+        )}
+      >
+        {/* Header */}
+        {title && (
+          <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
+            <h2 className="font-display font-bold text-lg">{title}</h2>
+            <button
+              onClick={onClose}
+              className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+              aria-label="Fermer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        )}
+
+        {!title && (
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 z-10 p-2 rounded-lg hover:bg-white/10 transition-colors"
+            aria-label="Fermer"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        )}
+
+        {/* Body */}
+        <div
+          className={cn(
+            fullScreen
+              ? "h-full overflow-hidden"
+              : "overflow-y-auto max-h-[calc(90dvh-4rem)]",
+          )}
+        >
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}
+</file>
+
 <file path="components/Providers.tsx">
 "use client";
 
@@ -19940,7 +19939,7 @@ export interface UserPlanning {
 <file path="app/planificateur/page.tsx">
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Calendar,
   ShoppingCart,
@@ -20024,7 +20023,7 @@ export default function PlanificateurPage() {
   const searchParams = useSearchParams();
   const loadPlanningId = searchParams.get("load");
 
-  const semaine = toDateString(getMondayOfWeek());
+  const semaine = useMemo(() => toDateString(getMondayOfWeek()), []);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [loadedPlanning, setLoadedPlanning] = useState<{
     name: string;

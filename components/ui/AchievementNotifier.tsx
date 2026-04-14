@@ -64,12 +64,8 @@ export default function AchievementNotifier() {
     // Check initial (petit délai pour laisser la page se charger)
     const initialTimeout = setTimeout(checkAchievements, 3000);
 
-    // Poll
-    const interval = setInterval(checkAchievements, POLL_INTERVAL);
-
     return () => {
       clearTimeout(initialTimeout);
-      clearInterval(interval);
     };
   }, [user, checkAchievements]);
 

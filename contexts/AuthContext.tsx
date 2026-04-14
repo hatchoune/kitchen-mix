@@ -12,6 +12,8 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
 import type { Profil } from "@/types";
+import { checkBannedEmail } from "@/app/actions/users";
+import { checkAndUnlockAchievements } from "@/app/actions/achievements";
 
 interface AuthContextValue {
   user: User | null;
@@ -63,7 +65,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const userEmail =
           (await supabase.auth.getUser()).data.user?.email || "";
         if (userEmail) {
-          const { checkBannedEmail } = await import("@/app/actions/users");
           const banPromise = checkBannedEmail(userEmail);
           const timeoutPromise = new Promise<boolean>((resolve) =>
             setTimeout(() => resolve(false), 3000),
@@ -92,11 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       // Achievement login (fire-and-forget)
-      import("@/app/actions/achievements")
-        .then(({ checkAndUnlockAchievements }) => {
-          checkAndUnlockAchievements(userId, "login").catch(() => {});
-        })
-        .catch(() => {});
+      checkAndUnlockAchievements(userId, "login").catch(() => {});
     } catch (err) {
       console.error("Erreur chargement données utilisateur:", err);
     } finally {

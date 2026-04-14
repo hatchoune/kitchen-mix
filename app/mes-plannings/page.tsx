@@ -33,27 +33,27 @@ export default function MesPlanningsPage() {
   const [plannings, setPlannings] = useState<MyPlanning[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const userId = user?.id;
 
   useEffect(() => {
     if (authLoading) return;
-    if (!user) {
+    if (!userId) {
       router.push("/connexion?next=/mes-plannings");
       return;
     }
-
     const load = async () => {
       const { data } = await supabase
         .from("user_plannings")
         .select(
           "id, name, description, is_public, week_start, likes_count, created_at",
         )
-        .eq("user_id", user.id)
+        .eq("user_id", userId)
         .order("created_at", { ascending: false });
       setPlannings((data || []) as MyPlanning[]);
       setLoading(false);
     };
     load();
-  }, [user, authLoading, supabase, router]);
+  }, [userId, authLoading, supabase, router]);
 
   const handleDelete = async (id: string) => {
     if (!confirm("Supprimer ce planning ?")) return;

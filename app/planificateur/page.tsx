@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Calendar,
   ShoppingCart,
@@ -84,7 +84,7 @@ export default function PlanificateurPage() {
   const searchParams = useSearchParams();
   const loadPlanningId = searchParams.get("load");
 
-  const semaine = toDateString(getMondayOfWeek());
+  const semaine = useMemo(() => toDateString(getMondayOfWeek()), []);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [loadedPlanning, setLoadedPlanning] = useState<{
     name: string;
