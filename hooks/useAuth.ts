@@ -5,6 +5,8 @@ import { createClient } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
 import type { Profil } from "@/types";
 
+export { useAuth } from "@/contexts/AuthContext";
+
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [profil, setProfil] = useState<Profil | null>(null);

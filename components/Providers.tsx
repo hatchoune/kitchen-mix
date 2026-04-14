@@ -1,17 +1,14 @@
 "use client";
 
 import { type ReactNode } from "react";
+import { AuthProvider } from "@/contexts/AuthContext";
 import AchievementNotifier from "@/components/ui/AchievementNotifier";
 
-interface ProvidersProps {
-  children: ReactNode;
-}
-
-export default function Providers({ children }: ProvidersProps) {
+export default function Providers({ children }: { children: ReactNode }) {
   return (
-    <>
+    <AuthProvider>
       {children}
       <AchievementNotifier />
-    </>
+    </AuthProvider>
   );
 }
