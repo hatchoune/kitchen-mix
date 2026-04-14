@@ -83,7 +83,7 @@ export default function AProposPage() {
           optimisé pour une expérience rapide et fluide, que vous soyez sur
           mobile, tablette ou ordinateur.
         </p>
-        <p className="text-muted-foreground leading-relaxed">
+        {/* <p className="text-muted-foreground leading-relaxed">
           Une question, une suggestion ? N&apos;hésitez pas à nous contacter via
           les réseaux sociaux ou à nous écrire à{" "}
           <a
@@ -93,7 +93,7 @@ export default function AProposPage() {
             contact@mcmalnus.com
           </a>
           .
-        </p>
+        </p> */}
       </section>
     </div>
   );
