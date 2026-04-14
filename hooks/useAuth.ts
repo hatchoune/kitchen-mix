@@ -5,6 +5,8 @@ import { createClient } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
 import type { Profil } from "@/types";
 
+export { useAuth } from "@/contexts/AuthContext";
+
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [profil, setProfil] = useState<Profil | null>(null);
@@ -72,16 +74,24 @@ export function useAuth() {
 
   useEffect(() => {
     const getSession = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
-
-      if (currentUser) {
-        await loadUserData(currentUser.id);
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
+        if (currentUser) {
+          // Timeout de sécurité : si loadUserData freeze, on débloquez après 5s
+          await Promise.race([
+            loadUserData(currentUser.id),
+            new Promise<void>((_, reject) =>
+              setTimeout(() => reject(new Error("loadUserData timeout")), 5000),
+            ),
+          ]).catch((err) => console.error("useAuth init:", err));
+        }
+      } finally {
+        setLoading(false); // TOUJOURS appelé, quoi qu'il arrive
       }
-      setLoading(false);
     };
 
     getSession();
@@ -126,10 +136,15 @@ export function useAuth() {
   );
 
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    setProfil(null);
-    setIsAdmin(false);
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.error("signOut error:", err);
+    } finally {
+      setUser(null);
+      setProfil(null);
+      setIsAdmin(false);
+    }
   }, [supabase]);
 
   const signInWithMagicLink = useCallback(
