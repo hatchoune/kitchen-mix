@@ -61,7 +61,7 @@ export default function Modal({
         className={cn(
           "relative z-10 animate-scale-in",
           fullScreen
-            ? "w-[calc(100%-2rem)] max-h-[calc(100dvh-2rem)] rounded-2xl overflow-hidden"
+            ? "w-[calc(100%-2rem)] h-[calc(100dvh-2rem)] rounded-2xl overflow-hidden"
             : "w-full max-w-2xl max-h-[90dvh] mx-4 rounded-2xl overflow-hidden",
           "bg-[#1A1A1A] text-[#F5F5F0]", // Simulateur: toujours dark
           className,
@@ -94,8 +94,9 @@ export default function Modal({
         {/* Body */}
         <div
           className={cn(
-            "overflow-y-auto",
-            !fullScreen && "max-h-[calc(90dvh-4rem)]",
+            fullScreen
+              ? "h-full overflow-hidden"
+              : "overflow-y-auto max-h-[calc(90dvh-4rem)]",
           )}
         >
           {children}
