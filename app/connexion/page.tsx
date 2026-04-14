@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Mail, Lock, UserIcon, Wand2 } from "lucide-react";
+import { Mail, Lock, UserIcon, Wand2, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import Logo from "@/components/ui/Logo";
 import { cn } from "@/lib/utils";
@@ -22,7 +22,8 @@ function ConnexionContent() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [submitting, setSubmitting] = useState(false);
-
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [showRegisterPassword, setShowRegisterPassword] = useState(false);
   const {
     user,
     loading,
@@ -164,11 +165,23 @@ function ConnexionContent() {
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <input
-                  type="password"
+                  type={showLoginPassword ? "text" : "password"}
                   {...loginForm.register("password")}
                   placeholder="••••••••"
-                  className="w-full bg-card border border-border rounded-lg pl-10 pr-4 py-2.5 text-sm"
+                  className="w-full bg-card border border-border rounded-lg pl-10 pr-10 py-2.5 text-sm"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowLoginPassword((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  tabIndex={-1}
+                >
+                  {showLoginPassword ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
+                </button>
               </div>
               {loginForm.formState.errors.password && (
                 <p className="text-xs text-error">
@@ -233,11 +246,23 @@ function ConnexionContent() {
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <input
-                  type="password"
+                  type={showRegisterPassword ? "text" : "password"}
                   {...registerForm.register("password")}
                   placeholder="••••••••"
-                  className="w-full bg-card border border-border rounded-lg pl-10 pr-4 py-2.5 text-sm"
+                  className="w-full bg-card border border-border rounded-lg pl-10 pr-10 py-2.5 text-sm"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowRegisterPassword((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  tabIndex={-1}
+                >
+                  {showRegisterPassword ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
+                </button>
               </div>
               {registerForm.formState.errors.password && (
                 <p className="text-xs text-error">
