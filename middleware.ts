@@ -19,9 +19,14 @@ export async function middleware(request: NextRequest) {
             options?: CookieOptions;
           }[],
         ) {
-          cookiesToSet.forEach(({ name, value, options }) => {
+          // D'abord mettre à jour les cookies sur la request
+          cookiesToSet.forEach(({ name, value }) => {
             request.cookies.set(name, value);
-            response = NextResponse.next({ request });
+          });
+          // Créer UNE SEULE response avec la request mise à jour
+          response = NextResponse.next({ request });
+          // Puis setter TOUS les cookies sur cette unique response
+          cookiesToSet.forEach(({ name, value, options }) => {
             response.cookies.set(name, value, options);
           });
         },
@@ -29,6 +34,8 @@ export async function middleware(request: NextRequest) {
     },
   );
 
+  // getUser() valide le token côté serveur et le rafraîchit si expiré
+  // → les cookies mis à jour sont renvoyés au navigateur via setAll
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -47,5 +54,7 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/parametres/:path*", "/favoris/:path*"],
+  matcher: [
+    "/((?!_next/static|_next/image|favicon\\.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|css|js)$).*)",
+  ],
 };

@@ -21,34 +21,49 @@ export default function FavorisPage() {
       setLoading(false);
       return;
     }
+    let cancelled = false;
 
     const load = async () => {
-      // supabase vient du state, plus besoin de le créer ici
-      const { data } = await supabase
-        .from("favoris")
-        .select(
-          `
-          recette_id,
-          recettes (
-            id, slug, titre, description, image_url,
-            temps_preparation, temps_cuisson, difficulte,
-            nombre_portions, modele_thermomix, categories,
-            regime, note_moyenne, nombre_notes,
-            nutriscore, calories_par_portion
+      try {
+        const { data, error } = await supabase
+          .from("favoris")
+          .select(
+            `
+            recette_id,
+            recettes (
+              id, slug, titre, description, image_url,
+              temps_preparation, temps_cuisson, difficulte,
+              nombre_portions, modele_thermomix, categories,
+              regime, note_moyenne, nombre_notes,
+              nutriscore, calories_par_portion
+            )
+          `,
           )
-        `,
-        )
-        .eq("user_id", user.id);
+          .eq("user_id", user.id);
 
-      const fav = (data || [])
-        .map((f) => f.recettes as unknown as RecetteCard)
-        .filter(Boolean);
-      setRecettes(fav);
-      setLoading(false);
+        if (cancelled) return;
+        if (error) {
+          console.error("❌ [FAVORIS] load error", error);
+          setLoading(false);
+          return;
+        }
+
+        const fav = (data || [])
+          .map((f) => f.recettes as unknown as RecetteCard)
+          .filter(Boolean);
+        setRecettes(fav);
+      } catch (err) {
+        console.error("❌ [FAVORIS] load crash", err);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     };
 
     load();
-  }, [user, authLoading]);
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, authLoading, supabase]);
 
   if (authLoading || loading) {
     return (

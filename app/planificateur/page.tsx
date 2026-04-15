@@ -4,15 +4,12 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Calendar,
   ShoppingCart,
-  ChevronDown,
   X,
   Loader2,
-  Plus,
-  Trash2,
+  Save,
   Check,
   Printer,
   Share2,
-  Save,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { createClient } from "@/lib/supabase/client";
@@ -24,15 +21,16 @@ import Image from "next/image";
 import SavePlanningModal from "@/components/planificateur/SavePlanningModal";
 import { useRouter, useSearchParams } from "next/navigation";
 import RecipePreviewModal from "@/components/planificateur/RecipePreviewModal";
+import { useMealPlans } from "@/hooks/useMealPlans";
 
 /* ─── Types ───────────────────────────────────────────────── */
 
-interface RecetteMin {
+export interface RecetteMin {
   id: string;
   slug: string;
   titre: string;
   ingredients: Ingredient[];
-  image_url?: string; // ← tu ajoutes cette ligne
+  image_url?: string | null;
 }
 
 type DaySlots = (RecetteMin | null)[];
@@ -60,31 +58,59 @@ const MAX_SLOTS = 3;
 
 export default function PlanificateurPage() {
   const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const loadPlanningId = searchParams.get("load");
+
+  const semaine = useMemo(() => toDateString(getMondayOfWeek()), []);
+  const [plan, setPlan] = useState<WeekPlan>({});
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [supabase] = useState(() => createClient());
 
-  const [plan, setPlan] = useState<WeekPlan>({});
-  const [loading, setLoading] = useState(true);
+  // ═══ Chargement des données avec React Query ═══
+  const {
+    data: mealPlanRows,
+    isLoading: loading,
+    error: planError,
+    refetch: refetchPlan,
+  } = useMealPlans(user?.id, semaine);
 
-  // Sélection de recette
+  // Construction du WeekPlan
+  useEffect(() => {
+    if (!mealPlanRows) return;
+
+    const loaded: WeekPlan = {};
+    for (let d = 0; d < 7; d++) loaded[d] = [null, null, null];
+
+    for (const row of mealPlanRows) {
+      const recette = row.recettes;
+      if (recette && loaded[row.day_index]) {
+        loaded[row.day_index][row.slot] = recette;
+      }
+    }
+    setPlan(loaded);
+  }, [mealPlanRows]);
+
+  // Gestion des erreurs
+  useEffect(() => {
+    if (planError) {
+      setErrorMessage("Impossible de charger le planning. Veuillez réessayer.");
+    } else {
+      setErrorMessage(null);
+    }
+  }, [planError]);
+
+  // États restants
   const [selectingDay, setSelectingDay] = useState<number | null>(null);
   const [selectingSlot, setSelectingSlot] = useState<number>(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<RecetteMin[]>([]);
   const [dayModalOpen, setDayModalOpen] = useState<number | null>(null);
-
-  // Liste de courses
   const [showListe, setShowListe] = useState(false);
   const [selectedDays, setSelectedDays] = useState<Set<number>>(new Set());
   const [listeItems, setListeItems] = useState<ListeItem[]>([]);
   const [listeLoading, setListeLoading] = useState(false);
-
-  // Mobile accordion
   const [openDay, setOpenDay] = useState<number | null>(null);
-
-  const searchParams = useSearchParams();
-  const loadPlanningId = searchParams.get("load");
-
-  const semaine = useMemo(() => toDateString(getMondayOfWeek()), []);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [loadedPlanning, setLoadedPlanning] = useState<{
     name: string;
@@ -131,159 +157,61 @@ export default function PlanificateurPage() {
     [user, semaine, supabase],
   );
 
-  /* ─── Sécurité & Init ───────────────────────────────────── */
-
-  // On ne fait plus de redirection automatique ici pour permettre
-  // l'affichage du message "Connectez-vous pour planifier" plus bas dans le composant.
-
-  useEffect(() => {
-    // Si l'authentification charge ou si l'utilisateur n'est pas connecté, on ne fait rien
-    if (authLoading || !user) return;
-
-    const loadPlan = async () => {
-      setLoading(true);
-      const { data: rows } = await supabase
-        .from("meal_plans")
-        .select(
-          "day_index, slot, recette_id, recettes(id, slug, titre, ingredients, image_url)",
-        )
-        .eq("user_id", user.id)
-        .eq("week_start", semaine);
-
-      const loaded: WeekPlan = {};
-      for (let d = 0; d < 7; d++) loaded[d] = [null, null, null];
-
-      if (rows && rows.length > 0) {
-        for (const row of rows) {
-          const r = row.recettes as unknown as RecetteMin;
-          if (r && loaded[row.day_index]) {
-            loaded[row.day_index][row.slot] = r;
-          }
-        }
-      }
-      setPlan(loaded);
-      setLoading(false);
-    };
-
-    loadPlan();
-  }, [user, authLoading, semaine, supabase]);
-
-  /* ─── Charger un planning sauvegardé (depuis ?load=ID) ──── */
-
+  /* ─── Charger un planning sauvegardé ──── */
   useEffect(() => {
     if (!loadPlanningId || !user || authLoading) return;
+    let cancelled = false;
 
     const loadSavedPlanning = async () => {
-      setLoading(true);
+      try {
+        const { data: planning } = await supabase
+          .from("user_plannings")
+          .select("name, description, data")
+          .eq("id", loadPlanningId)
+          .single();
 
-      // 1. Récupérer le planning
-      const { data: planning } = await supabase
-        .from("user_plannings")
-        .select("name, description, data")
-        .eq("id", loadPlanningId)
-        .single();
+        if (!planning?.data) return;
 
-      if (!planning?.data) {
-        setLoading(false);
-        return;
-      }
-
-      const planData = planning.data as Record<string, (string | null)[]>;
-
-      // 2. Récupérer toutes les recettes référencées
-      const recetteIds = new Set<string>();
-      for (const slots of Object.values(planData)) {
-        for (const rid of slots) {
-          if (rid) recetteIds.add(rid);
+        const planData = planning.data as Record<string, (string | null)[]>;
+        const recetteIds = new Set<string>();
+        for (const slots of Object.values(planData)) {
+          for (const rid of slots) if (rid) recetteIds.add(rid);
         }
+        if (recetteIds.size === 0) return;
+
+        const { data: recettes } = await supabase
+          .from("recettes")
+          .select("id, slug, titre, ingredients, image_url")
+          .in("id", Array.from(recetteIds));
+
+        const recettesMap: Record<string, RecetteMin> = {};
+        for (const r of recettes || []) {
+          recettesMap[r.id] = r as RecetteMin;
+        }
+
+        const loaded: WeekPlan = {};
+        for (let d = 0; d < 7; d++) {
+          const slots = planData[d.toString()] || [];
+          loaded[d] = slots.map((rid) => (rid && recettesMap[rid]) || null);
+          while (loaded[d].length < 3) loaded[d].push(null);
+        }
+
+        await savePlan(loaded);
+        setLoadedPlanning({
+          name: planning.name,
+          description: planning.description,
+        });
+        window.history.replaceState({}, "", "/planificateur");
+      } catch (err) {
+        console.error("Erreur chargement planning sauvegardé:", err);
       }
-
-      if (recetteIds.size === 0) {
-        setLoading(false);
-        return;
-      }
-
-      const { data: recettes } = await supabase
-        .from("recettes")
-        .select("id, slug, titre, ingredients, image_url")
-        .in("id", Array.from(recetteIds));
-
-      const recettesMap: Record<string, RecetteMin> = {};
-      for (const r of (recettes || []) as RecetteMin[]) {
-        recettesMap[r.id] = r;
-      }
-
-      // 3. Construire le WeekPlan
-      const loaded: WeekPlan = {};
-      for (let d = 0; d < 7; d++) {
-        const slots = planData[d.toString()] || [];
-        loaded[d] = slots.map((rid) => (rid && recettesMap[rid]) || null);
-        // Remplir à 3 slots
-        while (loaded[d].length < 3) loaded[d].push(null);
-      }
-
-      // 4. Sauvegarder dans meal_plans (comme si c'était le plan de l'utilisateur)
-      await savePlan(loaded);
-      setLoading(false);
-      setLoadedPlanning({
-        name: planning.name,
-        description: planning.description,
-      });
-
-      // 5. Afficher le nom du planning
-      setLoadedPlanning({
-        name: planning.name,
-        description: planning.description,
-      });
-
-      // 6. Retirer le param de l'URL pour éviter de recharger en boucle
-      window.history.replaceState({}, "", "/planificateur");
     };
 
     loadSavedPlanning();
+    return () => {
+      cancelled = true;
+    };
   }, [loadPlanningId, user, authLoading, supabase, savePlan]);
-
-  /* ─── Gestion des affichages prioritaires (Auth) ────────── */
-  // 1. Pendant le chargement initial de la session
-  if (authLoading) {
-    return (
-      <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
-        <div className="skeleton h-10 w-64 rounded-xl" />
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-7 gap-4">
-          {Array.from({ length: 7 }).map((_, i) => (
-            <div
-              key={i}
-              className="h-48 bg-card animate-pulse rounded-2xl border border-border"
-            />
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  // 2. Si l'utilisateur n'est pas connecté (Ton bel écran avec bouton)
-  if (!user) {
-    return (
-      <div className="text-center py-20 space-y-6 max-w-md mx-auto px-4">
-        <div className="w-20 h-20 bg-accent/10 rounded-full flex items-center justify-center mx-auto">
-          <Calendar className="w-10 h-10 text-accent" />
-        </div>
-        <div className="space-y-2">
-          <h1 className="font-display font-bold text-3xl">Mon Planning</h1>
-          <p className="text-muted-foreground text-balance">
-            Organisez votre semaine culinaire et générez votre liste de courses
-            en un clic.
-          </p>
-        </div>
-        <Link
-          href="/connexion?next=/planificateur"
-          className="inline-flex px-8 py-4 rounded-2xl bg-accent text-black font-bold hover:bg-accent-hover transition-all hover:scale-105 shadow-lg shadow-accent/20"
-        >
-          Se connecter pour planifier
-        </Link>
-      </div>
-    );
-  }
 
   /* ─── Actions ───────────────────────────────────────────── */
 
@@ -296,7 +224,7 @@ export default function PlanificateurPage() {
 
     const { data } = await supabase
       .from("recettes")
-      .select("id, slug, titre, ingredients")
+      .select("id, slug, titre, ingredients, image_url")
       .eq("approuve", true)
       .eq("publie", true)
       .ilike("titre", `%${q}%`)
@@ -315,7 +243,7 @@ export default function PlanificateurPage() {
       .eq("user_id", user.id);
 
     const fav = (data || [])
-      .map((f) => f.recettes as unknown as RecetteMin & { image_url?: string })
+      .map((f) => f.recettes as unknown as RecetteMin)
       .filter(Boolean);
 
     setFavoris(fav);
@@ -362,7 +290,7 @@ export default function PlanificateurPage() {
 
   const generateListe = async () => {
     if (selectedDays.size === 0) return;
-    setListeLoading(true); // ← pas setLoading
+    setListeLoading(true);
     try {
       const items = await getShoppingListForDays(
         semaine,
@@ -376,8 +304,6 @@ export default function PlanificateurPage() {
       setListeLoading(false);
     }
   };
-
-  /* ─── Print / Share ─────────────────────────────────────── */
 
   const formatListeTexte = (): string => {
     const grouped = new Map<string, ListeItem[]>();
@@ -452,9 +378,64 @@ export default function PlanificateurPage() {
     win.print();
   };
 
-  /* ─── Loading ───────────────────────────────────────────── */
+  /* ─── RENDU ───────────────────────────────────────────────── */
 
-  if (authLoading || !user || loading)
+  if (authLoading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
+        <div className="skeleton h-10 w-64 rounded-xl" />
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-7 gap-4">
+          {Array.from({ length: 7 }).map((_, i) => (
+            <div
+              key={i}
+              className="h-48 bg-card animate-pulse rounded-2xl border border-border"
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="text-center py-20 space-y-6 max-w-md mx-auto px-4">
+        <div className="w-20 h-20 bg-accent/10 rounded-full flex items-center justify-center mx-auto">
+          <Calendar className="w-10 h-10 text-accent" />
+        </div>
+        <div className="space-y-2">
+          <h1 className="font-display font-bold text-3xl">Mon Planning</h1>
+          <p className="text-muted-foreground text-balance">
+            Organisez votre semaine culinaire et générez votre liste de courses
+            en un clic.
+          </p>
+        </div>
+        <Link
+          href="/connexion?next=/planificateur"
+          className="inline-flex px-8 py-4 rounded-2xl bg-accent text-black font-bold hover:bg-accent-hover transition-all hover:scale-105 shadow-lg shadow-accent/20"
+        >
+          Se connecter pour planifier
+        </Link>
+      </div>
+    );
+  }
+
+  if (errorMessage) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-8 text-center">
+        <div className="glass-card p-8 rounded-2xl space-y-4">
+          <p className="text-error font-medium">{errorMessage}</p>
+          <button
+            onClick={() => refetchPlan()}
+            className="px-6 py-3 rounded-xl bg-accent text-black font-medium hover:bg-accent-hover transition-colors"
+          >
+            Réessayer
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
         <div className="skeleton h-10 w-64 rounded-xl" />
@@ -465,6 +446,7 @@ export default function PlanificateurPage() {
         </div>
       </div>
     );
+  }
 
   const totalRecipes = Object.values(plan).flat().filter(Boolean).length;
 
@@ -502,6 +484,7 @@ export default function PlanificateurPage() {
           </div>
         </div>
       </div>
+
       {/* Planning chargé */}
       {loadedPlanning && (
         <div className="glass-card px-5 py-4 rounded-xl border border-accent/20 bg-accent/5 flex items-start justify-between gap-4">
@@ -526,7 +509,8 @@ export default function PlanificateurPage() {
           </button>
         </div>
       )}
-      {/* ═══ GRILLE DESKTOP ═══ */}{" "}
+
+      {/* Grille desktop */}
       <div className="hidden lg:grid grid-cols-7 gap-3">
         {JOURS.map((jour, dayIdx) => {
           const slots = plan[dayIdx] || [null, null, null];
@@ -594,7 +578,6 @@ export default function PlanificateurPage() {
                 ))}
               </div>
 
-              {/* Bouton ouvrir modal jour */}
               <button
                 onClick={() => setDayModalOpen(dayIdx)}
                 className="mt-2 w-full py-1 rounded-lg text-[10px] text-muted-foreground hover:text-accent hover:bg-accent/5 transition-colors border border-transparent hover:border-accent/20"
@@ -605,13 +588,12 @@ export default function PlanificateurPage() {
           );
         })}
       </div>
-      {/* ═══ MOBILE ACCORDION ═══ */}
+
+      {/* Mobile accordion */}
       <div className="lg:hidden space-y-2">
         {JOURS.map((jour, dayIdx) => {
           const slots = plan[dayIdx] || [null, null, null];
           const filled = getFilledSlots(dayIdx);
-          const isOpen = openDay === dayIdx;
-
           return (
             <div
               key={dayIdx}
@@ -675,7 +657,6 @@ export default function PlanificateurPage() {
                 ))}
               </div>
 
-              {/* Bouton ouvrir modal jour ← ICI c'est le nouveau */}
               <button
                 onClick={() => setDayModalOpen(dayIdx)}
                 className="mt-2 w-full py-1 rounded-lg text-[10px] text-muted-foreground hover:text-accent hover:bg-accent/5 transition-colors border border-transparent hover:border-accent/20"
@@ -686,7 +667,8 @@ export default function PlanificateurPage() {
           );
         })}
       </div>
-      {/* ═══ SECTION LISTE DE COURSES ═══ */}
+
+      {/* Liste de courses */}
       {totalRecipes > 0 && (
         <div className="glass-card p-6 space-y-4">
           <h2 className="font-display font-bold text-lg flex items-center gap-2">
@@ -743,7 +725,8 @@ export default function PlanificateurPage() {
           </button>
         </div>
       )}
-      {/* ═══ MODAL DÉTAIL JOUR ═══ */}
+
+      {/* Modal détail jour */}
       {dayModalOpen !== null && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
@@ -754,7 +737,6 @@ export default function PlanificateurPage() {
             className="relative z-10 w-full max-w-lg rounded-2xl p-6 space-y-4 max-h-[85dvh] flex flex-col animate-scale-in"
             style={{ backgroundColor: "var(--color-bg)" }}
           >
-            {/* Header */}
             <div className="flex items-center justify-between">
               <h3 className="font-display font-bold text-xl text-accent">
                 {JOURS[dayModalOpen]}
@@ -764,14 +746,12 @@ export default function PlanificateurPage() {
               </button>
             </div>
 
-            {/* Liste des recettes du jour */}
             <div className="space-y-3 flex-1 overflow-y-auto">
               {(plan[dayModalOpen] || [null, null, null]).map(
                 (recipe, slotIdx) => (
                   <div key={slotIdx}>
                     {recipe ? (
                       <div className="flex items-center gap-3 bg-card/50 rounded-xl px-3 py-3 border border-border">
-                        {/* Image */}
                         {recipe.image_url ? (
                           <div className="relative w-12 h-12 shrink-0">
                             <Image
@@ -786,7 +766,6 @@ export default function PlanificateurPage() {
                             🍽️
                           </div>
                         )}
-                        {/* Titre + lien */}
                         <div className="flex-1 min-w-0">
                           <p className="text-xs text-muted-foreground mb-0.5">
                             Repas {slotIdx + 1}
@@ -799,7 +778,6 @@ export default function PlanificateurPage() {
                             {recipe.titre}
                           </Link>
                         </div>
-                        {/* Supprimer */}
                         <button
                           onClick={() => removeRecipe(dayModalOpen, slotIdx)}
                           className="text-error shrink-0 p-1 hover:bg-error/10 rounded-lg transition-colors"
@@ -831,7 +809,8 @@ export default function PlanificateurPage() {
           </div>
         </div>
       )}
-      {/* ═══ MODAL SÉLECTION RECETTE ═══ */}
+
+      {/* Modal sélection recette */}
       {selectingDay !== null && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
           <div
@@ -847,7 +826,6 @@ export default function PlanificateurPage() {
             className="relative z-10 w-full max-w-md mx-4 rounded-t-2xl sm:rounded-2xl p-6 space-y-4 max-h-[80dvh] flex flex-col animate-slide-up"
             style={{ backgroundColor: "var(--color-bg)" }}
           >
-            {/* Header */}
             <div className="flex items-center justify-between flex-shrink-0">
               <h3 className="font-display font-bold text-lg">
                 {JOURS[selectingDay]} — Repas {selectingSlot + 1}
@@ -864,7 +842,6 @@ export default function PlanificateurPage() {
               </button>
             </div>
 
-            {/* Onglets */}
             <div className="flex gap-1 bg-card rounded-xl p-1 flex-shrink-0">
               <button
                 onClick={() => setActiveTab("search")}
@@ -893,7 +870,6 @@ export default function PlanificateurPage() {
               </button>
             </div>
 
-            {/* Contenu onglet Recherche */}
             {activeTab === "search" && (
               <div className="space-y-2 overflow-y-auto flex-1">
                 <input
@@ -923,7 +899,6 @@ export default function PlanificateurPage() {
               </div>
             )}
 
-            {/* Contenu onglet Favoris — carousel horizontal façon Finder */}
             {activeTab === "favoris" && (
               <div className="flex-1 overflow-hidden">
                 {favorisLoading && (
@@ -949,15 +924,14 @@ export default function PlanificateurPage() {
                         onClick={() => setPreviewRecipe(r)}
                         className="flex-shrink-0 snap-start w-36 rounded-xl overflow-hidden border border-border hover:border-accent hover:scale-[1.03] transition-all duration-200 group bg-card text-left"
                       >
-                        {/* Image ou placeholder */}
                         <div className="w-full h-24 bg-accent/10 overflow-hidden">
-                          {(r as any).image_url ? (
+                          {r.image_url ? (
                             <div className="relative w-full h-full">
                               <Image
-                                src={(r as any).image_url}
+                                src={r.image_url}
                                 alt={r.titre}
                                 fill
-                                className="object-cover group-hover:scale-105 ..."
+                                className="object-cover group-hover:scale-105 transition-transform"
                               />
                             </div>
                           ) : (
@@ -966,7 +940,6 @@ export default function PlanificateurPage() {
                             </div>
                           )}
                         </div>
-                        {/* Titre */}
                         <div className="p-2">
                           <p className="text-xs font-medium leading-tight line-clamp-2 group-hover:text-accent transition-colors">
                             {r.titre}
@@ -981,7 +954,8 @@ export default function PlanificateurPage() {
           </div>
         </div>
       )}
-      {/* ═══ MODAL LISTE DE COURSES ═══ */}
+
+      {/* Modal liste de courses */}
       {showListe && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center">
           <div
@@ -1036,7 +1010,8 @@ export default function PlanificateurPage() {
           </div>
         </div>
       )}
-      {/* ═══ MODAL PREVIEW RECETTE ═══ */}
+
+      {/* Modal preview recette */}
       {previewRecipe && selectingDay !== null && (
         <RecipePreviewModal
           recetteId={previewRecipe.id}
@@ -1047,7 +1022,8 @@ export default function PlanificateurPage() {
           onClose={() => setPreviewRecipe(null)}
         />
       )}
-      {/* ═══ MODAL SAUVEGARDER PLANNING ═══ */}
+
+      {/* Modal sauvegarde planning */}
       {showSaveModal && (
         <SavePlanningModal
           weekStart={semaine}

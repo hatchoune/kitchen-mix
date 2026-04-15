@@ -50,6 +50,39 @@ const antiFlashScript = `
 })();
 `;
 
+const chunkRecoveryScript = `
+(function(){
+  var reloaded = sessionStorage.getItem("kmx-chunk-reload");
+  window.addEventListener("error", function(e) {
+    if (
+      e.message && (
+        e.message.indexOf("Loading chunk") !== -1 ||
+        e.message.indexOf("Loading CSS chunk") !== -1 ||
+        e.message.indexOf("Failed to fetch") !== -1 ||
+        e.message.indexOf("ChunkLoadError") !== -1
+      ) && !reloaded
+    ) {
+      sessionStorage.setItem("kmx-chunk-reload", "1");
+      window.location.reload();
+    }
+  });
+  window.addEventListener("unhandledrejection", function(e) {
+    var msg = e.reason && (e.reason.message || String(e.reason));
+    if (
+      msg && (
+        msg.indexOf("Loading chunk") !== -1 ||
+        msg.indexOf("Loading CSS chunk") !== -1 ||
+        msg.indexOf("ChunkLoadError") !== -1
+      ) && !reloaded
+    ) {
+      sessionStorage.setItem("kmx-chunk-reload", "1");
+      window.location.reload();
+    }
+  });
+  if (reloaded) sessionStorage.removeItem("kmx-chunk-reload");
+})();
+`;
+
 export default function RootLayout({
   children,
 }: {
@@ -64,6 +97,7 @@ export default function RootLayout({
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: antiFlashScript }} />
+        <script dangerouslySetInnerHTML={{ __html: chunkRecoveryScript }} />
       </head>
       <body className="min-h-dvh flex flex-col">
         <QueryProvider>

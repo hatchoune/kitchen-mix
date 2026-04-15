@@ -34,7 +34,6 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-// Client Supabase singleton — créé une seule fois pour toute l'app
 const supabase = createClient();
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -42,64 +41,71 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profil, setProfil] = useState<Profil | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
-  const loadingRef = useRef(false); // évite les double-appels en race condition
 
-  const loadUserData = useCallback(async (userId: string) => {
-    if (loadingRef.current) return;
-    loadingRef.current = true;
-    try {
-      const [profilRes, adminRes] = await Promise.all([
-        supabase.from("profils").select("*").eq("id", userId).single(),
-        supabase
-          .from("admins")
-          .select("user_id")
-          .eq("user_id", userId)
-          .maybeSingle(),
-      ]);
+  // Refs pour éviter les race conditions et les re-renders inutiles
+  const loadingRef = useRef(false);
+  const userIdRef = useRef<string | null>(null);
+  const explicitSignOut = useRef(false);
 
-      setProfil(profilRes.data as Profil | null);
-      setIsAdmin(!!adminRes.data);
-
-      // Vérif ban (avec timeout de sécurité)
+  const loadUserData = useCallback(
+    async (userId: string, userEmail?: string) => {
+      // Si les données de cet user sont déjà chargées, on skip
+      if (loadingRef.current) return;
+      loadingRef.current = true;
       try {
-        const userEmail =
-          (await supabase.auth.getUser()).data.user?.email || "";
-        if (userEmail) {
-          const banPromise = checkBannedEmail(userEmail);
-          const timeoutPromise = new Promise<boolean>((resolve) =>
-            setTimeout(() => resolve(false), 3000),
-          );
-          const isBanned = await Promise.race([banPromise, timeoutPromise]);
-          if (isBanned) {
-            await supabase.auth.signOut();
-            setUser(null);
-            setProfil(null);
-            setIsAdmin(false);
-            alert("Votre compte a été suspendu.");
-            return;
+        const [profilRes, adminRes] = await Promise.all([
+          supabase.from("profils").select("*").eq("id", userId).single(),
+          supabase
+            .from("admins")
+            .select("user_id")
+            .eq("user_id", userId)
+            .maybeSingle(),
+        ]);
+
+        setProfil(profilRes.data as Profil | null);
+        setIsAdmin(!!adminRes.data);
+
+        // Vérif ban
+        try {
+          if (userEmail) {
+            const banPromise = checkBannedEmail(userEmail);
+            const timeoutPromise = new Promise<boolean>((resolve) =>
+              setTimeout(() => resolve(false), 3000),
+            );
+            const isBanned = await Promise.race([banPromise, timeoutPromise]);
+            if (isBanned) {
+              explicitSignOut.current = true;
+              await supabase.auth.signOut();
+              setUser(null);
+              setProfil(null);
+              setIsAdmin(false);
+              userIdRef.current = null;
+              alert("Votre compte a été suspendu.");
+              return;
+            }
+          }
+        } catch {
+          // ban check optionnel
+        }
+
+        // Sync thème
+        if (profilRes.data?.theme_preference) {
+          const theme = profilRes.data.theme_preference;
+          if (["dark", "light", "grey"].includes(theme)) {
+            localStorage.setItem("kmx-theme", theme);
+            document.documentElement.setAttribute("data-theme", theme);
           }
         }
-      } catch {
-        // ban check optionnel — on continue si ça échoue
-      }
 
-      // Sync thème
-      if (profilRes.data?.theme_preference) {
-        const theme = profilRes.data.theme_preference;
-        if (["dark", "light", "grey"].includes(theme)) {
-          localStorage.setItem("kmx-theme", theme);
-          document.documentElement.setAttribute("data-theme", theme);
-        }
+        checkAndUnlockAchievements(userId, "login").catch(() => {});
+      } catch (err) {
+        console.error("Erreur chargement données utilisateur:", err);
+      } finally {
+        loadingRef.current = false;
       }
-
-      // Achievement login (fire-and-forget)
-      checkAndUnlockAchievements(userId, "login").catch(() => {});
-    } catch (err) {
-      console.error("Erreur chargement données utilisateur:", err);
-    } finally {
-      loadingRef.current = false;
-    }
-  }, []);
+    },
+    [],
+  );
 
   useEffect(() => {
     let mounted = true;
@@ -112,8 +118,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!mounted) return;
         const currentUser = session?.user ?? null;
         setUser(currentUser);
+        userIdRef.current = currentUser?.id ?? null;
         if (currentUser) {
-          await loadUserData(currentUser.id);
+          await loadUserData(currentUser.id, currentUser.email ?? undefined);
         }
       } catch (err) {
         console.error("Auth init error:", err);
@@ -128,15 +135,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (!mounted) return;
+
       const currentUser = session?.user ?? null;
-      setUser(currentUser);
-      if (currentUser) {
-        await loadUserData(currentUser.id);
-      } else {
+
+      // ────── PROTECTION CLÉ ──────
+      // Si on avait un user connecté et que l'event dit "plus de session"
+      // MAIS que ce n'est PAS un signOut explicite → IGNORER.
+      // C'est le cas quand on switch d'onglet et que le token refresh
+      // échoue ou prend trop de temps. Les cookies sont toujours valides.
+      if (!currentUser && userIdRef.current && !explicitSignOut.current) {
+        // On ignore cet event parasite
+        return;
+      }
+
+      // Reset le flag après un signOut explicite
+      if (explicitSignOut.current && _event === "SIGNED_OUT") {
+        explicitSignOut.current = false;
+        setUser(null);
         setProfil(null);
         setIsAdmin(false);
+        userIdRef.current = null;
+        setLoading(false);
+        return;
       }
-      // setLoading(false) ici aussi au cas où init() n'aurait pas encore terminé
+
+      if (currentUser) {
+        // Nouvel user ou reconnexion
+        const isNewUser = currentUser.id !== userIdRef.current;
+        setUser(currentUser);
+        userIdRef.current = currentUser.id;
+
+        if (isNewUser) {
+          // Charger les données seulement si c'est un NOUVEAU user
+          await loadUserData(currentUser.id, currentUser.email ?? undefined);
+        }
+      }
+
       setLoading(false);
     });
 
@@ -167,14 +201,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const signOut = useCallback(async () => {
+    explicitSignOut.current = true;
     try {
       await supabase.auth.signOut();
     } catch (err) {
       console.error("signOut error:", err);
-    } finally {
+      // Forcer le nettoyage même si signOut échoue
       setUser(null);
       setProfil(null);
       setIsAdmin(false);
+      userIdRef.current = null;
+      explicitSignOut.current = false;
     }
   }, []);
 
@@ -195,7 +232,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const refreshProfil = useCallback(() => {
-    if (user) loadUserData(user.id);
+    if (user) {
+      loadingRef.current = false; // Forcer le rechargement
+      loadUserData(user.id, user.email ?? undefined);
+    }
   }, [user, loadUserData]);
 
   return (
@@ -218,8 +258,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export function useAuth(): AuthContextValue {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth doit être utilisé dans AuthProvider");
-  return ctx;
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (!context)
+    throw new Error("useAuth doit être utilisé dans un AuthProvider");
+  return context;
 }

@@ -1,10 +1,10 @@
 // hooks/useRecettes.ts
 import { useQuery } from "@tanstack/react-query";
-import { createClient } from "@/lib/supabase/client";
+import { createAnonClient } from "@/lib/supabase/client";
 import type { RecetteFilters, RecetteCard } from "@/types";
 import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
 
-const supabaseClient = createClient(); // singleton module-level
+const supabaseAnon = createAnonClient();
 
 const CARD_FIELDS = `
   id, slug, titre, description, image_url,
@@ -15,7 +15,8 @@ const CARD_FIELDS = `
 `;
 
 async function fetchRecettes(filters: RecetteFilters) {
-  const supabase = supabaseClient;
+  console.log("🟡 [RECETTES] fetchRecettes START", filters);
+  const supabase = supabaseAnon;
   const page = filters.page || 1;
   const limit = filters.limit || DEFAULT_PAGE_SIZE;
   const offset = (page - 1) * limit;
@@ -58,7 +59,14 @@ async function fetchRecettes(filters: RecetteFilters) {
 
   query = query.range(offset, offset + limit - 1);
 
+  console.log("🟡 [RECETTES] query about to execute...");
   const { data, count, error } = await query;
+  console.log("🟡 [RECETTES] query result", {
+    dataLength: data?.length,
+    count,
+    error,
+  });
+
   if (error) throw new Error(error.message);
   return { data: (data || []) as RecetteCard[], count: count || 0 };
 }

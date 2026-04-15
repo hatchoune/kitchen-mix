@@ -1,0 +1,31 @@
+
+> kitchen-mix@1.0.0 dev
+> next dev --turbopack
+
+   ▲ Next.js 15.5.15 (Turbopack)
+   - Local:        http://localhost:3000
+   - Network:      http://192.168.1.74:3000
+   - Environments: .env.local, .env
+
+ ✓ Starting...
+ ✓ Compiled middleware in 193ms
+ ✓ Ready in 1170ms
+ ○ Compiling /planificateur ...
+ ✓ Compiled /planificateur in 2.3s
+ GET /planificateur 200 in 2841ms
+ POST /planificateur 200 in 450ms
+ POST /planificateur 200 in 218ms
+ POST /planificateur 200 in 357ms
+ ○ Compiling /recherche ...
+ ✓ Compiled /recherche in 588ms
+ GET /recherche 200 in 682ms
+ GET /recherche 200 in 72ms
+ ✓ Compiled /mes-plannings in 286ms
+ GET /mes-plannings 200 in 327ms
+ GET /mes-plannings 200 in 62ms
+ ✓ Compiled in 170ms
+ ✓ Compiled in 169ms
+ ✓ Compiled in 185ms
+ GET /mes-plannings 200 in 87ms
+ POST /mes-plannings 200 in 963ms
+[?25h
