@@ -77,7 +77,7 @@ export default function SimulateurThermomix({
       )}
 
       {/* 2. CONTENU DU SIMULATEUR (Full Screen dynamique) */}
-      <div className="flex flex-col h-full bg-neutral-950 text-white overflow-hidden">
+      <div className="flex flex-col h-[100dvh] lg:h-full bg-neutral-950 text-white overflow-hidden">
         {/* Header */}
         <div className="grid grid-cols-3 items-center p-2 lg:p-4 border-b border-white/10 bg-black/50">
           {/* Gauche : croix + titre */}
@@ -140,7 +140,7 @@ export default function SimulateurThermomix({
         </div>
 
         {/* Footer */}
-        <div className="p-4 sm:p-6 bg-black/80 border-t border-white/5 flex items-center justify-between gap-4">
+        <div className="p-4 sm:p-6 pb-safe max-md:pb-12 lg:pb-6 bg-black/80 border-t border-white/5 flex items-center justify-between gap-4">
           <button
             onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
             disabled={currentStep === 0}

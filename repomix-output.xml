@@ -151,6 +151,7 @@ components/
     SkeletonCard.tsx
     StarRating.tsx
     ThemeToggle.tsx
+    Toast.tsx
   LogoIcon.tsx
   Providers.tsx
   QueryProvider.tsx
@@ -203,6 +204,7 @@ scripts/
   migration-multi-appareils.sql
   migration-plannings-publics.sql
   migration-profil-public.sql
+  migration-temps-total.sql
   newsletter-migration.sql
   reset-recettes.ts
   seed-companion.ts
@@ -3137,332 +3139,6 @@ export default function BottomNav() {
 }
 </file>
 
-<file path="components/planificateur/RecipePreviewModal.tsx">
-"use client";
-
-import { useState, useEffect } from "react";
-import {
-  X,
-  Clock,
-  Users,
-  Zap,
-  Star,
-  Plus,
-  Loader2,
-  ChevronRight,
-} from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
-import { cn } from "@/lib/utils";
-import Image from "next/image";
-import NutriScore from "@/components/ui/NutriScore";
-import type { NutriScore as NutriScoreType } from "@/types";
-
-/* ─── Types ───────────────────────────────────────────────── */
-
-interface RecettePreview {
-  id: string;
-  slug: string;
-  titre: string;
-  description: string;
-  image_url: string | null;
-  temps_preparation: number;
-  temps_cuisson: number;
-  difficulte: string;
-  nombre_portions: number;
-  modele_thermomix: string[];
-  categories: string[];
-  regime: string[];
-  note_moyenne: number;
-  nombre_notes: number;
-  nutriscore: NutriScoreType | null;
-  calories_par_portion: number | null;
-  ingredients: { nom: string; quantite: number; unite: string }[];
-  etapes: {
-    numero: number;
-    instruction: string;
-    vitesse?: number;
-    temperature?: number;
-    duree?: number;
-    accessoire?: string;
-    conseil?: string;
-  }[];
-}
-
-interface RecipePreviewModalProps {
-  recetteId: string;
-  onAdd: () => void;
-  onClose: () => void;
-}
-
-/* ─── Helpers ─────────────────────────────────────────────── */
-
-const REGIME_LABELS: Record<string, string> = {
-  vegetarien: "Végétarien",
-  vegan: "Vegan",
-  "sans-gluten": "Sans gluten",
-  "sans-lactose": "Sans lactose",
-  keto: "Keto",
-  halal: "Halal",
-};
-
-function formatDuree(minutes: number): string {
-  if (minutes < 60) return `${minutes} min`;
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
-  return m > 0 ? `${h}h${m.toString().padStart(2, "0")}` : `${h}h`;
-}
-
-/* ─── Composant ───────────────────────────────────────────── */
-
-export default function RecipePreviewModal({
-  recetteId,
-  onAdd,
-  onClose,
-}: RecipePreviewModalProps) {
-  const [supabase] = useState(() => createClient());
-  const [recette, setRecette] = useState<RecettePreview | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const load = async () => {
-      const { data } = await supabase
-        .from("recettes")
-        .select(
-          "id, slug, titre, description, image_url, temps_preparation, temps_cuisson, difficulte, nombre_portions, modele_thermomix, categories, regime, note_moyenne, nombre_notes, nutriscore, calories_par_portion, ingredients, etapes",
-        )
-        .eq("id", recetteId)
-        .single();
-
-      setRecette(data as RecettePreview | null);
-      setLoading(false);
-    };
-    load();
-  }, [recetteId, supabase]);
-
-  const total = recette
-    ? recette.temps_preparation + recette.temps_cuisson
-    : 0;
-
-  return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/70" onClick={onClose} />
-      <div
-        className="relative z-10 w-full max-w-lg max-h-[90dvh] rounded-2xl flex flex-col animate-scale-in overflow-hidden"
-        style={{ backgroundColor: "var(--color-bg)" }}
-      >
-        {/* Header fixe */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-border shrink-0">
-          <h3 className="font-display font-bold text-sm truncate pr-4">
-            Aperçu de la recette
-          </h3>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-card-hover text-muted-foreground shrink-0"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Contenu scrollable */}
-        <div className="flex-1 overflow-y-auto">
-          {loading && (
-            <div className="flex items-center justify-center py-20">
-              <Loader2 className="w-6 h-6 animate-spin text-accent" />
-            </div>
-          )}
-
-          {!loading && !recette && (
-            <div className="text-center py-20 text-muted-foreground text-sm">
-              Recette introuvable.
-            </div>
-          )}
-
-          {recette && (
-            <div className="space-y-5">
-              {/* Image */}
-              {recette.image_url ? (
-                <div className="relative w-full aspect-[16/9]">
-                  <Image
-                    src={recette.image_url}
-                    alt={recette.titre}
-                    fill
-                    className="object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
-                </div>
-              ) : (
-                <div className="w-full aspect-[16/9] bg-accent/5 flex items-center justify-center text-5xl">
-                  🍽️
-                </div>
-              )}
-
-              <div className="px-5 space-y-5 pb-4">
-                {/* Titre + description */}
-                <div className="space-y-2">
-                  <h2 className="font-display font-bold text-xl leading-tight">
-                    {recette.titre}
-                  </h2>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    {recette.description}
-                  </p>
-                </div>
-
-                {/* Badges meta */}
-                <div className="flex flex-wrap gap-2">
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-accent/10 text-accent text-xs font-medium">
-                    <Clock className="w-3 h-3" /> {formatDuree(total)}
-                  </span>
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-card border border-border text-xs">
-                    <Users className="w-3 h-3" /> {recette.nombre_portions}{" "}
-                    portions
-                  </span>
-                  <span
-                    className={cn(
-                      "px-2.5 py-1 rounded-lg text-xs font-bold",
-                      recette.difficulte === "facile"
-                        ? "bg-sage/10 text-sage"
-                        : recette.difficulte === "moyen"
-                          ? "bg-yellow-500/10 text-yellow-500"
-                          : "bg-error/10 text-error",
-                    )}
-                  >
-                    {recette.difficulte === "facile"
-                      ? "🟢"
-                      : recette.difficulte === "moyen"
-                        ? "🟡"
-                        : "🔴"}{" "}
-                    {recette.difficulte.charAt(0).toUpperCase() +
-                      recette.difficulte.slice(1)}
-                  </span>
-                  {recette.modele_thermomix.map((m) => (
-                    <span
-                      key={m}
-                      className="px-2.5 py-1 rounded-lg bg-accent/10 text-accent text-xs font-medium"
-                    >
-                      {m}
-                    </span>
-                  ))}
-                  {recette.note_moyenne > 0 && (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-card border border-border text-xs">
-                      <Star className="w-3 h-3 text-accent fill-accent" />
-                      {recette.note_moyenne.toFixed(1)} ({recette.nombre_notes})
-                    </span>
-                  )}
-                </div>
-
-                {/* Nutri-Score */}
-                {(recette.nutriscore || recette.calories_par_portion) && (
-                  <div className="flex items-center gap-3">
-                    {recette.nutriscore && (
-                      <NutriScore score={recette.nutriscore} size="sm" />
-                    )}
-                    {recette.calories_par_portion && (
-                      <span className="text-xs text-muted-foreground">
-                        ~{recette.calories_par_portion} cal/portion
-                      </span>
-                    )}
-                  </div>
-                )}
-
-                {/* Régimes */}
-                {recette.regime.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5">
-                    {recette.regime.map((r) => (
-                      <span
-                        key={r}
-                        className="px-2 py-0.5 rounded-md bg-sage/10 text-sage text-[10px] font-bold"
-                      >
-                        {REGIME_LABELS[r] || r}
-                      </span>
-                    ))}
-                  </div>
-                )}
-
-                {/* Ingrédients */}
-                <div className="space-y-2">
-                  <h4 className="font-display font-semibold text-sm">
-                    Ingrédients ({recette.ingredients.length})
-                  </h4>
-                  <div className="grid grid-cols-1 gap-1">
-                    {recette.ingredients.map((ing, i) => (
-                      <div
-                        key={i}
-                        className="flex items-center justify-between py-1.5 px-3 rounded-lg text-xs bg-card/50"
-                      >
-                        <span>{ing.nom}</span>
-                        <span className="font-medium text-accent">
-                          {ing.quantite} {ing.unite}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Étapes (résumé) */}
-                <div className="space-y-2">
-                  <h4 className="font-display font-semibold text-sm">
-                    Préparation ({recette.etapes.length} étapes)
-                  </h4>
-                  <div className="space-y-2">
-                    {recette.etapes.map((etape) => (
-                      <div key={etape.numero} className="flex gap-3">
-                        <div className="flex-shrink-0 w-6 h-6 rounded-full bg-accent/15 text-accent font-display font-bold text-[10px] flex items-center justify-center mt-0.5">
-                          {etape.numero}
-                        </div>
-                        <div className="space-y-1 flex-1">
-                          <p className="text-xs leading-relaxed">
-                            {etape.instruction}
-                          </p>
-                          {(etape.vitesse !== undefined ||
-                            etape.temperature !== undefined ||
-                            etape.duree !== undefined) && (
-                            <div className="flex flex-wrap gap-1">
-                              {etape.vitesse !== undefined && (
-                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-accent/10 text-accent text-[10px] font-medium">
-                                  <Zap className="w-2.5 h-2.5" /> Vit.{" "}
-                                  {etape.vitesse}
-                                </span>
-                              )}
-                              {etape.temperature !== undefined && (
-                                <span className="px-1.5 py-0.5 rounded bg-accent/10 text-accent text-[10px] font-medium">
-                                  🌡 {etape.temperature}°C
-                                </span>
-                              )}
-                              {etape.duree !== undefined && (
-                                <span className="px-1.5 py-0.5 rounded bg-accent/10 text-accent text-[10px] font-medium">
-                                  ⏱ {Math.ceil(etape.duree / 60)} min
-                                </span>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Footer fixe : bouton Ajouter */}
-        {recette && (
-          <div className="px-5 py-3 border-t border-border shrink-0">
-            <button
-              onClick={onAdd}
-              className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-accent text-black font-display font-bold text-sm hover:bg-accent-hover transition-colors"
-            >
-              <Plus className="w-4 h-4" />
-              Ajouter au planning
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-</file>
-
 <file path="components/planificateur/SavePlanningModal.tsx">
 "use client";
 
@@ -4707,6 +4383,182 @@ export default function ThemeToggle() {
     >
       <Icon className="w-5 h-5" />
     </button>
+  );
+}
+</file>
+
+<file path="components/ui/Toast.tsx">
+"use client";
+
+import { useState, useEffect, useCallback, createContext, useContext } from "react";
+import { X, CheckCircle2, AlertTriangle, Info, XCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+/* ─── Types ───────────────────────────────────────────────── */
+
+type ToastType = "success" | "error" | "warning" | "info";
+
+interface Toast {
+  id: string;
+  message: string;
+  type: ToastType;
+  duration?: number;
+}
+
+interface ToastContextValue {
+  toast: (message: string, type?: ToastType, duration?: number) => void;
+  toastSuccess: (message: string) => void;
+  toastError: (message: string) => void;
+  toastWarning: (message: string) => void;
+  toastInfo: (message: string) => void;
+}
+
+/* ─── Context ─────────────────────────────────────────────── */
+
+const ToastContext = createContext<ToastContextValue | null>(null);
+
+export function useToast() {
+  const ctx = useContext(ToastContext);
+  if (!ctx) throw new Error("useToast must be used inside ToastProvider");
+  return ctx;
+}
+
+/* ─── Provider ────────────────────────────────────────────── */
+
+export function ToastProvider({ children }: { children: React.ReactNode }) {
+  const [toasts, setToasts] = useState<Toast[]>([]);
+
+  const removeToast = useCallback((id: string) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  }, []);
+
+  const addToast = useCallback(
+    (message: string, type: ToastType = "info", duration = 4000) => {
+      const id = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+      setToasts((prev) => [...prev, { id, message, type, duration }]);
+    },
+    [],
+  );
+
+  const toast = useCallback(
+    (message: string, type?: ToastType, duration?: number) =>
+      addToast(message, type, duration),
+    [addToast],
+  );
+
+  const toastSuccess = useCallback(
+    (msg: string) => addToast(msg, "success"),
+    [addToast],
+  );
+  const toastError = useCallback(
+    (msg: string) => addToast(msg, "error", 6000),
+    [addToast],
+  );
+  const toastWarning = useCallback(
+    (msg: string) => addToast(msg, "warning", 5000),
+    [addToast],
+  );
+  const toastInfo = useCallback(
+    (msg: string) => addToast(msg, "info"),
+    [addToast],
+  );
+
+  return (
+    <ToastContext.Provider
+      value={{ toast, toastSuccess, toastError, toastWarning, toastInfo }}
+    >
+      {children}
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
+    </ToastContext.Provider>
+  );
+}
+
+/* ─── Container ───────────────────────────────────────────── */
+
+function ToastContainer({
+  toasts,
+  onRemove,
+}: {
+  toasts: Toast[];
+  onRemove: (id: string) => void;
+}) {
+  return (
+    <div className="fixed bottom-20 md:bottom-6 right-4 left-4 md:left-auto md:right-6 z-[200] flex flex-col gap-2 items-center md:items-end pointer-events-none">
+      {toasts.map((t) => (
+        <ToastItem key={t.id} toast={t} onRemove={onRemove} />
+      ))}
+    </div>
+  );
+}
+
+/* ─── Single toast ────────────────────────────────────────── */
+
+const ICON_MAP = {
+  success: CheckCircle2,
+  error: XCircle,
+  warning: AlertTriangle,
+  info: Info,
+};
+
+const STYLE_MAP: Record<ToastType, string> = {
+  success:
+    "border-sage/30 bg-sage/10 text-sage [&_.toast-icon]:text-sage",
+  error:
+    "border-error/30 bg-error/10 text-error [&_.toast-icon]:text-error",
+  warning:
+    "border-yellow-500/30 bg-yellow-500/10 text-yellow-500 [&_.toast-icon]:text-yellow-500",
+  info: "border-accent/30 bg-accent/10 text-accent [&_.toast-icon]:text-accent",
+};
+
+function ToastItem({
+  toast,
+  onRemove,
+}: {
+  toast: Toast;
+  onRemove: (id: string) => void;
+}) {
+  const [visible, setVisible] = useState(false);
+  const [exiting, setExiting] = useState(false);
+  const Icon = ICON_MAP[toast.type];
+
+  useEffect(() => {
+    // Trigger enter animation
+    requestAnimationFrame(() => setVisible(true));
+
+    const timer = setTimeout(() => {
+      setExiting(true);
+      setTimeout(() => onRemove(toast.id), 300);
+    }, toast.duration || 4000);
+
+    return () => clearTimeout(timer);
+  }, [toast, onRemove]);
+
+  return (
+    <div
+      className={cn(
+        "pointer-events-auto w-full md:max-w-sm rounded-xl border px-4 py-3 shadow-lg backdrop-blur-md",
+        "flex items-start gap-3 transition-all duration-300 ease-out",
+        STYLE_MAP[toast.type],
+        visible && !exiting
+          ? "opacity-100 translate-y-0"
+          : "opacity-0 translate-y-3",
+      )}
+      style={{ backgroundColor: "var(--color-bg)" }}
+    >
+      <Icon className="toast-icon w-5 h-5 shrink-0 mt-0.5" />
+      <p className="flex-1 text-sm font-medium text-foreground leading-snug">
+        {toast.message}
+      </p>
+      <button
+        onClick={() => {
+          setExiting(true);
+          setTimeout(() => onRemove(toast.id), 300);
+        }}
+        className="shrink-0 p-0.5 rounded hover:bg-white/10 transition-colors text-muted-foreground"
+      >
+        <X className="w-4 h-4" />
+      </button>
+    </div>
   );
 }
 </file>
@@ -9477,6 +9329,24 @@ CREATE POLICY "Profil modifiable par le propriétaire"
 -- 3. Index pour accélérer les lookups par auteur_id sur recettes
 CREATE INDEX IF NOT EXISTS idx_recettes_auteur_id ON recettes (auteur_id);
 CREATE INDEX IF NOT EXISTS idx_recipe_comments_user_id ON recipe_comments (user_id);
+</file>
+
+<file path="scripts/migration-temps-total.sql">
+-- Migration: Ajouter colonne temps_total calculée pour le filtre durée
+-- À exécuter dans Supabase SQL Editor
+
+-- Colonne calculée (STORED = indexable)
+ALTER TABLE recettes
+ADD COLUMN IF NOT EXISTS temps_total integer
+  GENERATED ALWAYS AS (COALESCE(temps_preparation, 0) + COALESCE(temps_cuisson, 0)) STORED;
+
+-- Index pour accélérer les filtres par durée
+CREATE INDEX IF NOT EXISTS idx_recettes_temps_total ON recettes (temps_total);
+
+-- Vérification
+SELECT slug, temps_preparation, temps_cuisson, temps_total
+FROM recettes
+LIMIT 5;
 </file>
 
 <file path="scripts/newsletter-migration.sql">
@@ -20778,242 +20648,6 @@ export default function ConnexionPage() {
 }
 </file>
 
-<file path="app/mes-plannings/page.tsx">
-"use client";
-
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import {
-  Calendar,
-  Globe,
-  Lock,
-  Trash2,
-  ThumbsUp,
-  Loader2,
-  Plus,
-} from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
-import { createClient } from "@/lib/supabase/client";
-import { cn } from "@/lib/utils";
-import Link from "next/link";
-
-interface MyPlanning {
-  id: string;
-  name: string;
-  description: string | null;
-  is_public: boolean;
-  week_start: string;
-  likes_count: number;
-  created_at: string;
-}
-
-export default function MesPlanningsPage() {
-  const { user, loading: authLoading } = useAuth();
-  const router = useRouter();
-  const [supabase] = useState(() => createClient());
-  const [plannings, setPlannings] = useState<MyPlanning[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [deleting, setDeleting] = useState<string | null>(null);
-  const userId = user?.id;
-
-  useEffect(() => {
-    if (authLoading) return;
-    if (!userId) {
-      router.push("/connexion?next=/mes-plannings");
-      return;
-    }
-    const load = async () => {
-      const { data } = await supabase
-        .from("user_plannings")
-        .select(
-          "id, name, description, is_public, week_start, likes_count, created_at",
-        )
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false });
-      setPlannings((data || []) as MyPlanning[]);
-      setLoading(false);
-    };
-    load();
-  }, [userId, authLoading, supabase, router]);
-
-  const handleDelete = async (id: string) => {
-    if (!confirm("Supprimer ce planning ?")) return;
-    setDeleting(id);
-    try {
-      await supabase.from("user_plannings").delete().eq("id", id);
-      setPlannings((prev) => prev.filter((p) => p.id !== id));
-    } catch {
-      alert("Erreur lors de la suppression");
-    } finally {
-      setDeleting(null);
-    }
-  };
-
-  if (authLoading || !user) {
-    return (
-      <div className="max-w-2xl mx-auto px-4 py-8 space-y-4">
-        <div className="skeleton h-10 w-64 rounded-xl" />
-        {Array.from({ length: 3 }).map((_, i) => (
-          <div
-            key={i}
-            className="h-20 bg-card animate-pulse rounded-2xl border border-border"
-          />
-        ))}
-      </div>
-    );
-  }
-
-  const publics = plannings.filter((p) => p.is_public);
-  const prives = plannings.filter((p) => !p.is_public);
-
-  return (
-    <div className="max-w-2xl mx-auto px-4 py-8 space-y-8">
-      {/* Header */}
-      <div className="space-y-1">
-        <h1 className="font-display font-bold text-3xl flex items-center gap-3">
-          <Calendar className="w-8 h-8 text-accent" />
-          Mes plannings
-        </h1>
-        <p className="text-muted-foreground text-sm">
-          {plannings.length} planning{plannings.length > 1 ? "s" : ""}{" "}
-          sauvegardé{plannings.length > 1 ? "s" : ""}
-        </p>
-      </div>
-
-      {plannings.length === 0 && !loading && (
-        <div className="text-center py-16 glass-card rounded-2xl border border-dashed border-border space-y-4">
-          <Calendar className="w-12 h-12 text-accent/30 mx-auto" />
-          <p className="text-muted-foreground text-sm">
-            Vous n&apos;avez pas encore sauvegardé de planning.
-          </p>
-          <Link
-            href="/planificateur"
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-accent text-black font-bold text-sm hover:bg-accent-hover transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            Créer un planning
-          </Link>
-        </div>
-      )}
-
-      {loading && (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-6 h-6 animate-spin text-accent" />
-        </div>
-      )}
-
-      {/* Plannings privés */}
-      {prives.length > 0 && (
-        <section className="space-y-3">
-          <h2 className="font-display font-semibold text-sm flex items-center gap-2 text-muted-foreground uppercase tracking-wider">
-            <Lock className="w-4 h-4" />
-            Privés ({prives.length})
-          </h2>
-          <div className="space-y-2">
-            {prives.map((p) => (
-              <PlanningRow
-                key={p.id}
-                planning={p}
-                onDelete={handleDelete}
-                deleting={deleting}
-              />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Plannings publics */}
-      {publics.length > 0 && (
-        <section className="space-y-3">
-          <h2 className="font-display font-semibold text-sm flex items-center gap-2 text-muted-foreground uppercase tracking-wider">
-            <Globe className="w-4 h-4" />
-            Publics ({publics.length})
-          </h2>
-          <div className="space-y-2">
-            {publics.map((p) => (
-              <PlanningRow
-                key={p.id}
-                planning={p}
-                onDelete={handleDelete}
-                deleting={deleting}
-              />
-            ))}
-          </div>
-        </section>
-      )}
-    </div>
-  );
-}
-
-/* ─── Composant ligne ─────────────────────────────────────── */
-
-function PlanningRow({
-  planning,
-  onDelete,
-  deleting,
-}: {
-  planning: MyPlanning;
-  onDelete: (id: string) => void;
-  deleting: string | null;
-}) {
-  return (
-    <div className="flex items-center gap-3 glass-card rounded-xl border border-border px-4 py-3 hover:border-accent/30 transition-all">
-      <div className="flex-1 min-w-0">
-        <Link
-          href={`/planificateur?load=${planning.id}`}
-          className="font-display font-semibold text-sm hover:text-accent transition-colors block truncate"
-        >
-          {planning.name}
-        </Link>
-        <div className="flex items-center gap-3 text-[10px] text-muted-foreground mt-0.5">
-          {planning.description && (
-            <span className="truncate max-w-[200px]">
-              {planning.description}
-            </span>
-          )}
-          <span>
-            {new Date(planning.created_at).toLocaleDateString("fr-FR", {
-              day: "numeric",
-              month: "short",
-            })}
-          </span>
-          {planning.is_public && (
-            <span className="flex items-center gap-0.5">
-              <ThumbsUp className="w-3 h-3" />
-              {planning.likes_count}
-            </span>
-          )}
-        </div>
-      </div>
-
-      <div className="flex items-center gap-2 shrink-0">
-        <span
-          className={cn(
-            "text-[9px] font-bold uppercase px-2 py-0.5 rounded",
-            planning.is_public
-              ? "bg-accent/10 text-accent border border-accent/20"
-              : "bg-card text-muted-foreground border border-border",
-          )}
-        >
-          {planning.is_public ? "Public" : "Privé"}
-        </span>
-        <button
-          onClick={() => onDelete(planning.id)}
-          disabled={deleting === planning.id}
-          className="p-1.5 rounded-lg text-muted-foreground hover:text-error hover:bg-error/10 transition-colors disabled:opacity-40"
-        >
-          {deleting === planning.id ? (
-            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-          ) : (
-            <Trash2 className="w-3.5 h-3.5" />
-          )}
-        </button>
-      </div>
-    </div>
-  );
-}
-</file>
-
 <file path="app/parametres/page.tsx">
 "use client";
 
@@ -22680,6 +22314,404 @@ export default function Footer() {
 }
 </file>
 
+<file path="components/planificateur/RecipePreviewModal.tsx">
+"use client";
+
+import { useState, useEffect } from "react";
+import {
+  X,
+  Clock,
+  Users,
+  Zap,
+  Star,
+  Plus,
+  Loader2,
+  Heart,
+} from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import { cn } from "@/lib/utils";
+import Image from "next/image";
+import NutriScore from "@/components/ui/NutriScore";
+import type { NutriScore as NutriScoreType } from "@/types";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/components/ui/Toast";
+
+/* ─── Types ───────────────────────────────────────────────── */
+
+interface RecettePreview {
+  id: string;
+  slug: string;
+  titre: string;
+  description: string;
+  image_url: string | null;
+  temps_preparation: number;
+  temps_cuisson: number;
+  difficulte: string;
+  nombre_portions: number;
+  modele_thermomix: string[];
+  categories: string[];
+  regime: string[];
+  note_moyenne: number;
+  nombre_notes: number;
+  nutriscore: NutriScoreType | null;
+  calories_par_portion: number | null;
+  ingredients: { nom: string; quantite: number; unite: string }[];
+  etapes: {
+    numero: number;
+    instruction: string;
+    vitesse?: number;
+    temperature?: number;
+    duree?: number;
+    accessoire?: string;
+    conseil?: string;
+  }[];
+}
+
+interface RecipePreviewModalProps {
+  recetteId: string;
+  onAdd: () => void;
+  onClose: () => void;
+}
+
+/* ─── Helpers ─────────────────────────────────────────────── */
+
+const REGIME_LABELS: Record<string, string> = {
+  vegetarien: "Végétarien",
+  vegan: "Vegan",
+  "sans-gluten": "Sans gluten",
+  "sans-lactose": "Sans lactose",
+  keto: "Keto",
+  halal: "Halal",
+};
+
+function formatDuree(minutes: number): string {
+  if (minutes < 60) return `${minutes} min`;
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return m > 0 ? `${h}h${m.toString().padStart(2, "0")}` : `${h}h`;
+}
+
+/* ─── Composant ───────────────────────────────────────────── */
+
+export default function RecipePreviewModal({
+  recetteId,
+  onAdd,
+  onClose,
+}: RecipePreviewModalProps) {
+  const [supabase] = useState(() => createClient());
+  const [recette, setRecette] = useState<RecettePreview | null>(null);
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  const { toastSuccess, toastError } = useToast();
+
+  // ─── Favoris state (point 4) ───
+  const [isFavoris, setIsFavoris] = useState(false);
+  const [favLoading, setFavLoading] = useState(false);
+
+  useEffect(() => {
+    const load = async () => {
+      const { data } = await supabase
+        .from("recettes")
+        .select(
+          "id, slug, titre, description, image_url, temps_preparation, temps_cuisson, difficulte, nombre_portions, modele_thermomix, categories, regime, note_moyenne, nombre_notes, nutriscore, calories_par_portion, ingredients, etapes",
+        )
+        .eq("id", recetteId)
+        .single();
+
+      setRecette(data as RecettePreview | null);
+      setLoading(false);
+    };
+    load();
+  }, [recetteId, supabase]);
+
+  // Check si déjà en favoris
+  useEffect(() => {
+    if (!user || !recetteId) return;
+    const checkFav = async () => {
+      const { data } = await supabase
+        .from("favoris")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("recette_id", recetteId)
+        .maybeSingle();
+      setIsFavoris(!!data);
+    };
+    checkFav();
+  }, [user, recetteId, supabase]);
+
+  const toggleFavoris = async () => {
+    if (!user || !recette) return;
+    setFavLoading(true);
+    try {
+      if (isFavoris) {
+        await supabase
+          .from("favoris")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("recette_id", recette.id);
+        setIsFavoris(false);
+        toastSuccess("Retiré des favoris");
+      } else {
+        await supabase.from("favoris").insert({
+          user_id: user.id,
+          recette_id: recette.id,
+        });
+        setIsFavoris(true);
+        toastSuccess("Ajouté aux favoris !");
+      }
+    } catch {
+      toastError("Erreur lors de la mise à jour des favoris");
+    } finally {
+      setFavLoading(false);
+    }
+  };
+
+  const total = recette
+    ? recette.temps_preparation + recette.temps_cuisson
+    : 0;
+
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/70" onClick={onClose} />
+      <div
+        className="relative z-10 w-full max-w-lg max-h-[90dvh] rounded-2xl flex flex-col animate-scale-in overflow-hidden"
+        style={{ backgroundColor: "var(--color-bg)" }}
+      >
+        {/* Header fixe */}
+        <div className="flex items-center justify-between px-5 py-3 border-b border-border shrink-0">
+          <h3 className="font-display font-bold text-sm truncate pr-4">
+            Aperçu de la recette
+          </h3>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg hover:bg-card-hover text-muted-foreground shrink-0"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Contenu scrollable */}
+        <div className="flex-1 overflow-y-auto">
+          {loading && (
+            <div className="flex items-center justify-center py-20">
+              <Loader2 className="w-6 h-6 animate-spin text-accent" />
+            </div>
+          )}
+
+          {!loading && !recette && (
+            <div className="text-center py-20 text-muted-foreground text-sm">
+              Recette introuvable.
+            </div>
+          )}
+
+          {recette && (
+            <div className="space-y-5">
+              {/* Image */}
+              {recette.image_url ? (
+                <div className="relative w-full aspect-[16/9]">
+                  <Image
+                    src={recette.image_url}
+                    alt={recette.titre}
+                    fill
+                    className="object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+                </div>
+              ) : (
+                <div className="w-full aspect-[16/9] bg-accent/5 flex items-center justify-center text-5xl">
+                  🍽️
+                </div>
+              )}
+
+              <div className="px-5 space-y-5 pb-4">
+                {/* Titre + description */}
+                <div className="space-y-2">
+                  <h2 className="font-display font-bold text-xl leading-tight">
+                    {recette.titre}
+                  </h2>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    {recette.description}
+                  </p>
+                </div>
+
+                {/* Badges meta */}
+                <div className="flex flex-wrap gap-2">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-accent/10 text-accent text-xs font-medium">
+                    <Clock className="w-3 h-3" /> {formatDuree(total)}
+                  </span>
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-card border border-border text-xs">
+                    <Users className="w-3 h-3" /> {recette.nombre_portions}{" "}
+                    portions
+                  </span>
+                  <span
+                    className={cn(
+                      "px-2.5 py-1 rounded-lg text-xs font-bold",
+                      recette.difficulte === "facile"
+                        ? "bg-sage/10 text-sage"
+                        : recette.difficulte === "moyen"
+                          ? "bg-yellow-500/10 text-yellow-500"
+                          : "bg-error/10 text-error",
+                    )}
+                  >
+                    {recette.difficulte === "facile"
+                      ? "🟢"
+                      : recette.difficulte === "moyen"
+                        ? "🟡"
+                        : "🔴"}{" "}
+                    {recette.difficulte.charAt(0).toUpperCase() +
+                      recette.difficulte.slice(1)}
+                  </span>
+                  {recette.modele_thermomix.map((m) => (
+                    <span
+                      key={m}
+                      className="px-2.5 py-1 rounded-lg bg-accent/10 text-accent text-xs font-medium"
+                    >
+                      {m}
+                    </span>
+                  ))}
+                  {recette.note_moyenne > 0 && (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-card border border-border text-xs">
+                      <Star className="w-3 h-3 text-accent fill-accent" />
+                      {recette.note_moyenne.toFixed(1)} ({recette.nombre_notes})
+                    </span>
+                  )}
+                </div>
+
+                {/* Nutri-Score */}
+                {(recette.nutriscore || recette.calories_par_portion) && (
+                  <div className="flex items-center gap-3">
+                    {recette.nutriscore && (
+                      <NutriScore score={recette.nutriscore} size="sm" />
+                    )}
+                    {recette.calories_par_portion && (
+                      <span className="text-xs text-muted-foreground">
+                        ~{recette.calories_par_portion} cal/portion
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {/* Régimes */}
+                {recette.regime.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {recette.regime.map((r) => (
+                      <span
+                        key={r}
+                        className="px-2 py-0.5 rounded-md bg-sage/10 text-sage text-[10px] font-bold"
+                      >
+                        {REGIME_LABELS[r] || r}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {/* Ingrédients */}
+                <div className="space-y-2">
+                  <h4 className="font-display font-semibold text-sm">
+                    Ingrédients ({recette.ingredients.length})
+                  </h4>
+                  <div className="grid grid-cols-1 gap-1">
+                    {recette.ingredients.map((ing, i) => (
+                      <div
+                        key={i}
+                        className="flex items-center justify-between py-1.5 px-3 rounded-lg text-xs bg-card/50"
+                      >
+                        <span>{ing.nom}</span>
+                        <span className="font-medium text-accent">
+                          {ing.quantite} {ing.unite}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Étapes (résumé) */}
+                <div className="space-y-2">
+                  <h4 className="font-display font-semibold text-sm">
+                    Préparation ({recette.etapes.length} étapes)
+                  </h4>
+                  <div className="space-y-2">
+                    {recette.etapes.map((etape) => (
+                      <div key={etape.numero} className="flex gap-3">
+                        <div className="flex-shrink-0 w-6 h-6 rounded-full bg-accent/15 text-accent font-display font-bold text-[10px] flex items-center justify-center mt-0.5">
+                          {etape.numero}
+                        </div>
+                        <div className="space-y-1 flex-1">
+                          <p className="text-xs leading-relaxed">
+                            {etape.instruction}
+                          </p>
+                          {(etape.vitesse !== undefined ||
+                            etape.temperature !== undefined ||
+                            etape.duree !== undefined) && (
+                            <div className="flex flex-wrap gap-1">
+                              {etape.vitesse !== undefined && (
+                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-accent/10 text-accent text-[10px] font-medium">
+                                  <Zap className="w-2.5 h-2.5" /> Vit.{" "}
+                                  {etape.vitesse}
+                                </span>
+                              )}
+                              {etape.temperature !== undefined && (
+                                <span className="px-1.5 py-0.5 rounded bg-accent/10 text-accent text-[10px] font-medium">
+                                  🌡 {etape.temperature}°C
+                                </span>
+                              )}
+                              {etape.duree !== undefined && (
+                                <span className="px-1.5 py-0.5 rounded bg-accent/10 text-accent text-[10px] font-medium">
+                                  ⏱ {Math.ceil(etape.duree / 60)} min
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer fixe : boutons Favoris + Ajouter (point 4) */}
+        {recette && (
+          <div className="px-5 py-3 border-t border-border shrink-0 flex gap-2">
+            {/* Bouton Favoris */}
+            {user && (
+              <button
+                onClick={toggleFavoris}
+                disabled={favLoading}
+                className={cn(
+                  "flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-display font-bold text-sm transition-colors border",
+                  isFavoris
+                    ? "bg-red-500/10 border-red-500/30 text-red-500 hover:bg-red-500/20"
+                    : "border-border text-muted-foreground hover:text-red-500 hover:border-red-500/30",
+                )}
+              >
+                <Heart
+                  className={cn(
+                    "w-4 h-4",
+                    isFavoris && "fill-red-500",
+                    favLoading && "animate-pulse",
+                  )}
+                />
+              </button>
+            )}
+            {/* Bouton Ajouter */}
+            <button
+              onClick={onAdd}
+              className="flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-accent text-black font-display font-bold text-sm hover:bg-accent-hover transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Ajouter au planning
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+</file>
+
 <file path="components/recettes/RecetteFiltres.tsx">
 "use client";
 
@@ -23871,87 +23903,6 @@ export async function soumettreRecette(rawData: unknown) {
 }
 </file>
 
-<file path="app/actions/recherche.ts">
-"use server";
-
-import { createServerSupabase } from "@/lib/supabase/server";
-import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
-
-const CARD_FIELDS = `
-  id, slug, titre, description, image_url,
-  temps_preparation, temps_cuisson, difficulte,
-  nombre_portions, modele_thermomix, categories,
-  regime, note_moyenne, nombre_notes,
-  nutriscore, calories_par_portion
-`;
-
-export async function rechercherRecettes(
-  query: string,
-  filters?: {
-    categorie?: string;
-    modele?: string;
-    temps_min?: number;
-    temps_max?: number;
-    page?: number;
-    limit?: number;
-  },
-) {
-  // Validation longueur + sanitisation
-  if (!query?.trim() || query.length > 200) {
-    return { data: [], count: 0, page: 1, limit: DEFAULT_PAGE_SIZE };
-  }
-  const safeQuery = query.replace(/[%_,]/g, "\\$&").trim();
-
-  const supabase = await createServerSupabase();
-  const page = filters?.page || 1;
-  const limit = filters?.limit || DEFAULT_PAGE_SIZE;
-  const offset = (page - 1) * limit;
-
-  let dbQuery = supabase
-    .from("recettes")
-    .select(CARD_FIELDS, { count: "exact" })
-    .eq("approuve", true)
-    .eq("publie", true)
-    .or(`titre.ilike.%${safeQuery}%,description.ilike.%${safeQuery}%`);
-
-  if (filters?.categorie) {
-    dbQuery = dbQuery.contains("categories", [filters.categorie]);
-  }
-  if (filters?.modele) {
-    dbQuery = dbQuery.contains("modele_thermomix", [filters.modele]);
-  }
-  if (filters?.temps_min) {
-    dbQuery = dbQuery.filter(
-      "temps_preparation + temps_cuisson",
-      "gte",
-      filters.temps_min,
-    );
-  }
-  if (filters?.temps_max) {
-    dbQuery = dbQuery.filter(
-      "temps_preparation + temps_cuisson",
-      "lte",
-      filters.temps_max,
-    );
-  }
-
-  dbQuery = dbQuery
-    .order("note_moyenne", { ascending: false })
-    .range(offset, offset + limit - 1);
-
-  const { data, count, error } = await dbQuery;
-
-  if (error) throw new Error(error.message);
-
-  return {
-    data: data || [],
-    count: count || 0,
-    page,
-    limit,
-  };
-}
-</file>
-
 <file path="app/admin/page.tsx">
 "use client";
 
@@ -24715,6 +24666,244 @@ export default function FavorisPage() {
           </p>
         </div>
       )}
+    </div>
+  );
+}
+</file>
+
+<file path="app/mes-plannings/page.tsx">
+"use client";
+
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import {
+  Calendar,
+  Globe,
+  Lock,
+  Trash2,
+  ThumbsUp,
+  Loader2,
+  Plus,
+} from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { createClient } from "@/lib/supabase/client";
+import { cn } from "@/lib/utils";
+import Link from "next/link";
+import { useToast } from "@/components/ui/Toast";
+
+interface MyPlanning {
+  id: string;
+  name: string;
+  description: string | null;
+  is_public: boolean;
+  week_start: string;
+  likes_count: number;
+  created_at: string;
+}
+
+export default function MesPlanningsPage() {
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
+  const [supabase] = useState(() => createClient());
+  const [plannings, setPlannings] = useState<MyPlanning[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const { toastError } = useToast();
+  const userId = user?.id;
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!userId) {
+      router.push("/connexion?next=/mes-plannings");
+      return;
+    }
+    const load = async () => {
+      const { data } = await supabase
+        .from("user_plannings")
+        .select(
+          "id, name, description, is_public, week_start, likes_count, created_at",
+        )
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false });
+      setPlannings((data || []) as MyPlanning[]);
+      setLoading(false);
+    };
+    load();
+  }, [userId, authLoading, supabase, router]);
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Supprimer ce planning ?")) return;
+    setDeleting(id);
+    try {
+      await supabase.from("user_plannings").delete().eq("id", id);
+      setPlannings((prev) => prev.filter((p) => p.id !== id));
+    } catch {
+      toastError("Erreur lors de la suppression");
+    } finally {
+      setDeleting(null);
+    }
+  };
+
+  if (authLoading || !user) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-8 space-y-4">
+        <div className="skeleton h-10 w-64 rounded-xl" />
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div
+            key={i}
+            className="h-20 bg-card animate-pulse rounded-2xl border border-border"
+          />
+        ))}
+      </div>
+    );
+  }
+
+  const publics = plannings.filter((p) => p.is_public);
+  const prives = plannings.filter((p) => !p.is_public);
+
+  return (
+    <div className="max-w-2xl mx-auto px-4 py-8 space-y-8">
+      {/* Header */}
+      <div className="space-y-1">
+        <h1 className="font-display font-bold text-3xl flex items-center gap-3">
+          <Calendar className="w-8 h-8 text-accent" />
+          Mes plannings
+        </h1>
+        <p className="text-muted-foreground text-sm">
+          {plannings.length} planning{plannings.length > 1 ? "s" : ""}{" "}
+          sauvegardé{plannings.length > 1 ? "s" : ""}
+        </p>
+      </div>
+
+      {plannings.length === 0 && !loading && (
+        <div className="text-center py-16 glass-card rounded-2xl border border-dashed border-border space-y-4">
+          <Calendar className="w-12 h-12 text-accent/30 mx-auto" />
+          <p className="text-muted-foreground text-sm">
+            Vous n&apos;avez pas encore sauvegardé de planning.
+          </p>
+          <Link
+            href="/planificateur"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-accent text-black font-bold text-sm hover:bg-accent-hover transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            Créer un planning
+          </Link>
+        </div>
+      )}
+
+      {loading && (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-6 h-6 animate-spin text-accent" />
+        </div>
+      )}
+
+      {/* Plannings privés */}
+      {prives.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="font-display font-semibold text-sm flex items-center gap-2 text-muted-foreground uppercase tracking-wider">
+            <Lock className="w-4 h-4" />
+            Privés ({prives.length})
+          </h2>
+          <div className="space-y-2">
+            {prives.map((p) => (
+              <PlanningRow
+                key={p.id}
+                planning={p}
+                onDelete={handleDelete}
+                deleting={deleting}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Plannings publics */}
+      {publics.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="font-display font-semibold text-sm flex items-center gap-2 text-muted-foreground uppercase tracking-wider">
+            <Globe className="w-4 h-4" />
+            Publics ({publics.length})
+          </h2>
+          <div className="space-y-2">
+            {publics.map((p) => (
+              <PlanningRow
+                key={p.id}
+                planning={p}
+                onDelete={handleDelete}
+                deleting={deleting}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+    </div>
+  );
+}
+
+/* ─── Composant ligne ─────────────────────────────────────── */
+
+function PlanningRow({
+  planning,
+  onDelete,
+  deleting,
+}: {
+  planning: MyPlanning;
+  onDelete: (id: string) => void;
+  deleting: string | null;
+}) {
+  return (
+    <div className="flex items-center gap-3 glass-card rounded-xl border border-border px-4 py-3 hover:border-accent/30 transition-all">
+      <div className="flex-1 min-w-0">
+        <Link
+          href={`/planificateur?load=${planning.id}`}
+          className="font-display font-semibold text-sm hover:text-accent transition-colors block truncate"
+        >
+          {planning.name}
+        </Link>
+        <div className="flex items-center gap-3 text-[10px] text-muted-foreground mt-0.5">
+          {planning.description && (
+            <span className="truncate max-w-[200px]">
+              {planning.description}
+            </span>
+          )}
+          <span>
+            {new Date(planning.created_at).toLocaleDateString("fr-FR", {
+              day: "numeric",
+              month: "short",
+            })}
+          </span>
+          {planning.is_public && (
+            <span className="flex items-center gap-0.5">
+              <ThumbsUp className="w-3 h-3" />
+              {planning.likes_count}
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2 shrink-0">
+        <span
+          className={cn(
+            "text-[9px] font-bold uppercase px-2 py-0.5 rounded",
+            planning.is_public
+              ? "bg-accent/10 text-accent border border-accent/20"
+              : "bg-card text-muted-foreground border border-border",
+          )}
+        >
+          {planning.is_public ? "Public" : "Privé"}
+        </span>
+        <button
+          onClick={() => onDelete(planning.id)}
+          disabled={deleting === planning.id}
+          className="p-1.5 rounded-lg text-muted-foreground hover:text-error hover:bg-error/10 transition-colors disabled:opacity-40"
+        >
+          {deleting === planning.id ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          ) : (
+            <Trash2 className="w-3.5 h-3.5" />
+          )}
+        </button>
+      </div>
     </div>
   );
 }
@@ -26072,23 +26261,6 @@ export default function Modal({
 }
 </file>
 
-<file path="components/Providers.tsx">
-"use client";
-
-import { type ReactNode } from "react";
-import { AuthProvider } from "@/contexts/AuthContext";
-import AchievementNotifier from "@/components/ui/AchievementNotifier";
-
-export default function Providers({ children }: { children: ReactNode }) {
-  return (
-    <AuthProvider>
-      {children}
-      <AchievementNotifier />
-    </AuthProvider>
-  );
-}
-</file>
-
 <file path="contexts/AuthContext.tsx">
 "use client";
 
@@ -26831,553 +27003,78 @@ export async function deleteRecette(id: string) {
 }
 </file>
 
-<file path="app/profil/page.tsx">
-"use client";
+<file path="app/actions/recherche.ts">
+"use server";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import {
-  User,
-  LogOut,
-  BookOpen,
-  Plus,
-  Clock,
-  Check,
-  X,
-  Camera,
-  Loader2,
-  Trophy,
-  Calendar,
-} from "lucide-react";
-import Logo from "@/components/ui/Logo";
-import { useAuth } from "@/hooks/useAuth";
-import { createClient } from "@/lib/supabase/client";
-import {
-  APPLIANCES,
-  getAppliancesByCategory,
-  CATEGORY_LABELS,
-  type ApplianceCategory,
-} from "@/lib/appliance-specs";
-import { cn } from "@/lib/utils";
-import Link from "next/link";
-import imageCompression from "browser-image-compression";
-import Image from "next/image";
-import AchievementBadge from "@/components/ui/AchievementBadge";
+import { createServerSupabase } from "@/lib/supabase/server";
+import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
 
-// Type enrichi pour afficher le statut
-interface MaRecette {
-  id: string;
-  slug: string;
-  titre: string;
-  difficulte: string;
-  approuve: boolean;
-  raison_rejet: string | null;
-  created_at: string;
-}
+const CARD_FIELDS = `
+  id, slug, titre, description, image_url,
+  temps_preparation, temps_cuisson, difficulte,
+  nombre_portions, modele_thermomix, categories,
+  regime, note_moyenne, nombre_notes,
+  nutriscore, calories_par_portion
+`;
 
-export default function ProfilPage() {
-  const { user, profil, loading, signOut, refreshProfil } = useAuth();
-  const router = useRouter();
-  const [supabase] = useState(() => createClient());
+export async function rechercherRecettes(
+  query: string,
+  filters?: {
+    categorie?: string;
+    modele?: string;
+    temps_min?: number;
+    temps_max?: number;
+    page?: number;
+    limit?: number;
+  },
+) {
+  // Validation longueur + sanitisation
+  if (!query?.trim() || query.length > 200) {
+    return { data: [], count: 0, page: 1, limit: DEFAULT_PAGE_SIZE };
+  }
+  const safeQuery = query.replace(/[%_,]/g, "\\$&").trim();
 
-  const [mesRecettes, setMesRecettes] = useState<MaRecette[]>([]);
-  const [saving, setSaving] = useState(false);
-  const [appareils, setAppareils] = useState<string[]>(
-    Array.isArray(profil?.modele_thermomix)
-      ? profil.modele_thermomix
-      : [profil?.modele_thermomix || "TM6"],
-  );
-  const [uploading, setUploading] = useState(false);
-  const [achievements, setAchievements] = useState<
-    { achievement_code: string; unlocked_at: string }[]
-  >([]);
-  const [mesPlannings, setMesPlannings] = useState<
-    {
-      id: string;
-      name: string;
-      is_public: boolean;
-      likes_count: number;
-      created_at: string;
-    }[]
-  >([]);
+  const supabase = await createServerSupabase();
+  const page = filters?.page || 1;
+  const limit = filters?.limit || DEFAULT_PAGE_SIZE;
+  const offset = (page - 1) * limit;
 
-  // --- FONCTION D'UPLOAD DE L'AVATAR ---
-  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !user) return;
+  let dbQuery = supabase
+    .from("recettes")
+    .select(CARD_FIELDS, { count: "exact" })
+    .eq("approuve", true)
+    .eq("publie", true)
+    .or(`titre.ilike.%${safeQuery}%,description.ilike.%${safeQuery}%`);
 
-    setUploading(true);
-    try {
-      // 1. Compression
-      const options = {
-        maxSizeMB: 0.2,
-        maxWidthOrHeight: 500,
-        useWebWorker: true,
-        fileType: "image/webp",
-      };
-      const compressedFile = await imageCompression(file, options);
-
-      // 2. Upload vers le bucket "avatars"
-      const fileName = `${user.id}-${Math.random()}.webp`;
-      const { error: uploadError } = await supabase.storage
-        .from("avatars")
-        .upload(fileName, compressedFile);
-
-      if (uploadError) throw uploadError;
-
-      // 3. Récupération URL
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("avatars").getPublicUrl(fileName);
-
-      // 4. Update BDD (Table profils avec un S)
-      const { error: updateError } = await supabase
-        .from("profils")
-        .update({ avatar_url: publicUrl })
-        .eq("id", user.id);
-
-      if (updateError) throw updateError;
-
-      // 5. Refresh
-      if (refreshProfil) await refreshProfil();
-
-      // Achievement avatar
-      import("@/app/actions/achievements").then(
-        ({ checkAndUnlockAchievements }) => {
-          checkAndUnlockAchievements(user.id, "avatar_set").catch(() => {});
-        },
-      );
-
-      alert("Photo de profil mise à jour !");
-    } catch (error: unknown) {
-      console.error("Erreur avatar:", error);
-      const message =
-        error instanceof Error ? error.message : "Erreur inconnue";
-      alert("Erreur : " + message);
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (!loading && !user) {
-      router.push("/connexion?next=/profil");
-    }
-  }, [user, loading, router]);
-
-  useEffect(() => {
-    if (profil) {
-      setAppareils(
-        Array.isArray(profil.modele_thermomix)
-          ? profil.modele_thermomix
-          : [profil.modele_thermomix],
-      );
-    }
-  }, [profil]);
-
-  useEffect(() => {
-    if (!user) return;
-    const load = async () => {
-      const { data } = await supabase
-        .from("recettes")
-        .select(
-          "id, slug, titre, difficulte, approuve, raison_rejet, created_at",
-        )
-        .eq("auteur_id", user.id)
-        .order("created_at", { ascending: false });
-      setMesRecettes((data || []) as MaRecette[]);
-    };
-    load();
-  }, [user, supabase]);
-
-  // Charger les achievements
-  useEffect(() => {
-    if (!user) return;
-    const load = async () => {
-      const { data } = await supabase
-        .from("user_achievements")
-        .select("achievement_code, unlocked_at")
-        .eq("user_id", user.id)
-        .order("unlocked_at", { ascending: false });
-      setAchievements(data || []);
-    };
-    load();
-  }, [user, supabase]);
-
-  // Charger les plannings sauvegardés
-  useEffect(() => {
-    if (!user) return;
-    const load = async () => {
-      const { data } = await supabase
-        .from("user_plannings")
-        .select("id, name, is_public, likes_count, created_at")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(10);
-      setMesPlannings(data || []);
-    };
-    load();
-  }, [user, supabase]);
-
-  const toggleAppareil = (id: string) => {
-    setAppareils((prev) =>
-      prev.includes(id) ? prev.filter((a) => a !== id) : [...prev, id],
-    );
-  };
-
-  const handleSaveModele = async () => {
-    if (!user || appareils.length === 0) return;
-    setSaving(true);
-    await supabase
-      .from("profils")
-      .update({ modele_thermomix: appareils })
-      .eq("id", user.id);
-    if (refreshProfil) await refreshProfil();
-    setSaving(false);
-  };
-
-  const handleLogout = async () => {
-    await signOut();
-    router.push("/");
-  };
-
-  if (loading || !user) {
-    return (
-      <div className="space-y-4 max-w-lg mx-auto py-10">
-        <div className="w-20 h-20 rounded-full bg-card animate-pulse mx-auto" />
-        <div className="h-6 w-48 bg-card animate-pulse rounded mx-auto" />
-        <div className="h-40 bg-card animate-pulse rounded-xl" />
-      </div>
-    );
+  if (filters?.categorie) {
+    dbQuery = dbQuery.contains("categories", [filters.categorie]);
+  }
+  if (filters?.modele) {
+    dbQuery = dbQuery.contains("modele_thermomix", [filters.modele]);
   }
 
-  const pending = mesRecettes.filter(
-    (r) => !r.approuve && !r.raison_rejet,
-  ).length;
-  const approved = mesRecettes.filter((r) => r.approuve).length;
-  const rejected = mesRecettes.filter(
-    (r) => !r.approuve && r.raison_rejet,
-  ).length;
+  // ─── Filtre durée (point 2) — utilise la colonne générée temps_total ───
+  if (filters?.temps_min) {
+    dbQuery = dbQuery.gte("temps_total", filters.temps_min);
+  }
+  if (filters?.temps_max && filters.temps_max < 9999) {
+    dbQuery = dbQuery.lte("temps_total", filters.temps_max);
+  }
 
-  return (
-    <div className="max-w-2xl mx-auto space-y-8 py-6 px-4">
-      {/* Header avec Avatar Interactif */}
-      <div className="text-center space-y-3">
-        <div className="relative group w-24 h-24 mx-auto mb-4">
-          <div className="w-full h-full rounded-full overflow-hidden bg-accent/15 border-2 border-accent/20 flex items-center justify-center">
-            {profil?.avatar_url ? (
-              <Image
-                src={profil.avatar_url}
-                alt="Avatar"
-                width={96}
-                height={96}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <User className="w-10 h-10 text-accent" />
-            )}
-          </div>
+  dbQuery = dbQuery
+    .order("note_moyenne", { ascending: false })
+    .range(offset, offset + limit - 1);
 
-          {/* Bouton Camera au survol */}
-          <label className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 rounded-full cursor-pointer transition-all border border-white/20">
-            {uploading ? (
-              <Loader2 className="w-6 h-6 text-white animate-spin" />
-            ) : (
-              <Camera className="w-6 h-6 text-white" />
-            )}
-            <input
-              type="file"
-              className="hidden"
-              accept="image/*"
-              onChange={handleAvatarUpload}
-              disabled={uploading}
-            />
-          </label>
-        </div>
+  const { data, count, error } = await dbQuery;
 
-        <h1 className="font-display font-bold text-2xl">
-          {profil?.pseudo || user.email?.split("@")[0]}
-        </h1>
-        <p className="text-sm text-muted-foreground">{user.email}</p>
-      </div>
+  if (error) throw new Error(error.message);
 
-      {/* CTA : Proposer une recette */}
-      <Link
-        href="/soumettre"
-        className="flex items-center justify-center gap-2 w-full px-6 py-4 rounded-xl bg-accent text-black font-display font-bold text-sm hover:bg-accent-hover transition-colors shadow-lg shadow-accent/10"
-      >
-        <Plus className="w-5 h-5" />
-        Proposer une recette
-      </Link>
-
-      {/* Sélection appareils */}
-      <div className="glass-card p-6 space-y-4 rounded-2xl border border-border">
-        <div className="flex items-center justify-between">
-          <h2 className="font-display font-semibold flex items-center gap-2">
-            <Logo className="w-5 h-auto" />
-            Mes appareils
-          </h2>
-          <button
-            onClick={handleSaveModele}
-            disabled={
-              saving ||
-              JSON.stringify([...appareils].sort()) ===
-                JSON.stringify(
-                  [
-                    ...(Array.isArray(profil?.modele_thermomix)
-                      ? profil.modele_thermomix
-                      : [profil?.modele_thermomix]),
-                  ].sort(),
-                )
-            }
-            className="px-4 py-2 rounded-lg text-sm bg-accent/10 text-accent font-bold disabled:opacity-40 hover:bg-accent/20 transition-colors"
-          >
-            {saving ? "..." : "Enregistrer"}
-          </button>
-        </div>
-
-        <p className="text-xs text-muted-foreground">
-          Sélectionnez un ou plusieurs appareils pour filtrer les recettes
-          compatibles.
-        </p>
-
-        {/* Appareils sélectionnés */}
-        {appareils.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {appareils.map((id) => {
-              const spec = APPLIANCES.find((a) => a.id === id);
-              return (
-                <span
-                  key={id}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-accent/15 text-accent border border-accent/30"
-                >
-                  {spec?.label || id}
-                  <button
-                    onClick={() => toggleAppareil(id)}
-                    className="hover:text-error transition-colors"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Menu déroulant par catégorie */}
-        <select
-          value=""
-          onChange={(e) => {
-            if (e.target.value) toggleAppareil(e.target.value);
-          }}
-          className="input-field"
-        >
-          <option value="">+ Ajouter un appareil...</option>
-          {Object.entries(getAppliancesByCategory()).map(([cat, apps]) => (
-            <optgroup
-              key={cat}
-              label={CATEGORY_LABELS[cat as ApplianceCategory]}
-            >
-              {apps
-                .filter((a) => !appareils.includes(a.id))
-                .map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.label}
-                  </option>
-                ))}
-            </optgroup>
-          ))}
-        </select>
-
-        {appareils.length === 0 && (
-          <p className="text-xs text-error">
-            Sélectionnez au moins un appareil.
-          </p>
-        )}
-      </div>
-
-      {/* Trophées */}
-      {achievements.length > 0 && (
-        <div className="space-y-4">
-          <h2 className="font-display font-semibold flex items-center gap-2">
-            <Trophy className="w-5 h-5 text-accent" />
-            Mes trophées ({achievements.length})
-          </h2>
-          <div className="glass-card p-4 rounded-2xl border border-border">
-            <div className="flex flex-wrap gap-3">
-              {achievements.map((a) => (
-                <AchievementBadge
-                  key={a.achievement_code}
-                  code={a.achievement_code}
-                  unlocked_at={a.unlocked_at}
-                  size="md"
-                />
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Mes plannings */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="font-display font-semibold flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-accent" />
-            Mes plannings ({mesPlannings.length})
-          </h2>
-          {mesPlannings.length > 0 && (
-            <Link
-              href="/mes-plannings"
-              className="text-xs text-accent hover:underline font-medium"
-            >
-              Tout voir →
-            </Link>
-          )}
-        </div>
-
-        {mesPlannings.length === 0 ? (
-          <div className="text-center py-8 glass-card rounded-2xl border border-dashed border-border">
-            <p className="text-muted-foreground text-sm">
-              Aucun planning sauvegardé.
-            </p>
-            <Link
-              href="/planificateur"
-              className="inline-flex items-center gap-1 mt-2 text-sm text-accent hover:underline font-bold"
-            >
-              Créer un planning
-            </Link>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {mesPlannings.map((p) => (
-              <Link
-                key={p.id}
-                href={`/planificateur?load=${p.id}`}
-                className="flex items-center justify-between px-4 py-3 glass-card rounded-xl border border-border hover:border-accent/30 transition-all"
-              >
-                <div className="min-w-0">
-                  <span className="text-sm font-bold truncate block hover:text-accent">
-                    {p.name}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground">
-                    {new Date(p.created_at).toLocaleDateString("fr-FR", {
-                      day: "numeric",
-                      month: "short",
-                    })}
-                  </span>
-                </div>
-                <span className="text-[9px] font-bold uppercase px-2 py-0.5 rounded bg-accent/10 text-accent border border-accent/20 shrink-0">
-                  {p.is_public ? "Public" : "Privé"}
-                </span>
-              </Link>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Mes recettes */}
-      <div className="space-y-4">
-        <h2 className="font-display font-semibold flex items-center gap-2">
-          <BookOpen className="w-5 h-5 text-accent" />
-          Mes recettes ({mesRecettes.length})
-        </h2>
-
-        {mesRecettes.length > 0 && (
-          <div className="flex gap-3 text-[10px] uppercase tracking-wider font-bold">
-            {approved > 0 && (
-              <span className="px-2 py-1 rounded bg-sage/10 text-sage border border-sage/20">
-                {approved} EN LIGNE
-              </span>
-            )}
-            {pending > 0 && (
-              <span className="px-2 py-1 rounded bg-yellow-500/10 text-yellow-500 border border-yellow-500/20">
-                {pending} EN ATTENTE
-              </span>
-            )}
-            {rejected > 0 && (
-              <span className="px-2 py-1 rounded bg-error/10 text-error border border-error/20">
-                {rejected} REFUSÉE{rejected > 1 ? "S" : ""}
-              </span>
-            )}
-          </div>
-        )}
-
-        {mesRecettes.length === 0 ? (
-          <div className="text-center py-12 glass-card rounded-2xl border border-dashed border-border">
-            <Logo className="w-11 h-auto mx-auto mb-3 opacity-20" />{" "}
-            <p className="text-muted-foreground text-sm">
-              Vous n&apos;avez pas encore soumis de recette.
-            </p>
-            <Link
-              href="/soumettre"
-              className="inline-flex items-center gap-1 mt-3 text-sm text-accent hover:underline font-bold"
-            >
-              <Plus className="w-4 h-4" /> Proposer ma première recette
-            </Link>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {mesRecettes.map((r) => (
-              <div
-                key={r.id}
-                className={cn(
-                  "flex items-center justify-between px-5 py-4 glass-card rounded-2xl border border-border hover:border-accent/30 transition-all",
-                  !r.approuve && r.raison_rejet && "border-l-4 border-l-error",
-                )}
-              >
-                <div className="flex items-center gap-4 min-w-0">
-                  <div className="min-w-0">
-                    <Link
-                      href={r.approuve ? `/recettes/${r.slug}` : "#"}
-                      className={cn(
-                        "text-sm font-bold truncate block",
-                        r.approuve ? "hover:text-accent" : "cursor-default",
-                      )}
-                    >
-                      {r.titre}
-                    </Link>
-                    {!r.approuve && r.raison_rejet && (
-                      <p className="text-[11px] text-error mt-1 font-medium italic">
-                        Refusé : {r.raison_rejet}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 shrink-0">
-                  <span
-                    className={cn(
-                      "text-[9px] font-black uppercase tracking-tighter px-2 py-1 rounded",
-                      r.approuve
-                        ? "bg-sage/10 text-sage"
-                        : r.raison_rejet
-                          ? "bg-error/10 text-error"
-                          : "bg-yellow-500/10 text-yellow-500",
-                    )}
-                  >
-                    {r.approuve
-                      ? "Public"
-                      : r.raison_rejet
-                        ? "Refusé"
-                        : "Vérification"}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Logout */}
-      <button
-        onClick={handleLogout}
-        className="w-full flex items-center justify-center gap-2 px-6 py-4 rounded-xl bg-card border border-error/20 text-error hover:bg-error/5 hover:border-error/40 transition-all font-bold text-sm"
-      >
-        <LogOut className="w-4 h-4" />
-        Déconnexion
-      </button>
-    </div>
-  );
+  return {
+    data: data || [],
+    count: count || 0,
+    page,
+    limit,
+  };
 }
 </file>
 
@@ -28408,6 +28105,26 @@ function CommentNode({
 }
 </file>
 
+<file path="components/Providers.tsx">
+"use client";
+
+import { type ReactNode } from "react";
+import { AuthProvider } from "@/contexts/AuthContext";
+import AchievementNotifier from "@/components/ui/AchievementNotifier";
+import { ToastProvider } from "@/components/ui/Toast";
+
+export default function Providers({ children }: { children: ReactNode }) {
+  return (
+    <AuthProvider>
+      <ToastProvider>
+        {children}
+        <AchievementNotifier />
+      </ToastProvider>
+    </AuthProvider>
+  );
+}
+</file>
+
 <file path="lib/supabase/queries.ts">
 /* =============================================================
    Kitchen Mix — Queries Supabase centralisées
@@ -28892,6 +28609,558 @@ export interface UserPlanning {
 }
 </file>
 
+<file path="app/profil/page.tsx">
+"use client";
+
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import {
+  User,
+  LogOut,
+  BookOpen,
+  Plus,
+  Clock,
+  Check,
+  X,
+  Camera,
+  Loader2,
+  Trophy,
+  Calendar,
+} from "lucide-react";
+import Logo from "@/components/ui/Logo";
+import { useAuth } from "@/hooks/useAuth";
+import { createClient } from "@/lib/supabase/client";
+import {
+  APPLIANCES,
+  getAppliancesByCategory,
+  CATEGORY_LABELS,
+  type ApplianceCategory,
+} from "@/lib/appliance-specs";
+import { cn } from "@/lib/utils";
+import Link from "next/link";
+import imageCompression from "browser-image-compression";
+import Image from "next/image";
+import AchievementBadge from "@/components/ui/AchievementBadge";
+import { useToast } from "@/components/ui/Toast";
+
+// Type enrichi pour afficher le statut
+interface MaRecette {
+  id: string;
+  slug: string;
+  titre: string;
+  difficulte: string;
+  approuve: boolean;
+  raison_rejet: string | null;
+  created_at: string;
+}
+
+export default function ProfilPage() {
+  const { toastSuccess, toastError, toastWarning } = useToast();
+  const { user, profil, loading, signOut, refreshProfil } = useAuth();
+  const router = useRouter();
+  const [supabase] = useState(() => createClient());
+
+  const [mesRecettes, setMesRecettes] = useState<MaRecette[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [appareils, setAppareils] = useState<string[]>(
+    Array.isArray(profil?.modele_thermomix)
+      ? profil.modele_thermomix
+      : [profil?.modele_thermomix || "TM6"],
+  );
+  const [uploading, setUploading] = useState(false);
+  const [achievements, setAchievements] = useState<
+    { achievement_code: string; unlocked_at: string }[]
+  >([]);
+  const [mesPlannings, setMesPlannings] = useState<
+    {
+      id: string;
+      name: string;
+      is_public: boolean;
+      likes_count: number;
+      created_at: string;
+    }[]
+  >([]);
+
+  // --- FONCTION D'UPLOAD DE L'AVATAR ---
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    setUploading(true);
+    try {
+      // 1. Compression
+      const options = {
+        maxSizeMB: 0.2,
+        maxWidthOrHeight: 500,
+        useWebWorker: true,
+        fileType: "image/webp",
+      };
+      const compressedFile = await imageCompression(file, options);
+
+      // 2. Upload vers le bucket "avatars"
+      const fileName = `${user.id}-${Math.random()}.webp`;
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(fileName, compressedFile);
+
+      if (uploadError) throw uploadError;
+
+      // 3. Récupération URL
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("avatars").getPublicUrl(fileName);
+
+      // 4. Update BDD (Table profils avec un S)
+      const { error: updateError } = await supabase
+        .from("profils")
+        .update({ avatar_url: publicUrl })
+        .eq("id", user.id);
+
+      if (updateError) throw updateError;
+
+      // 5. Refresh
+      if (refreshProfil) await refreshProfil();
+
+      // Achievement avatar
+      import("@/app/actions/achievements").then(
+        ({ checkAndUnlockAchievements }) => {
+          checkAndUnlockAchievements(user.id, "avatar_set").catch(() => {});
+        },
+      );
+
+      alert("Photo de profil mise à jour !");
+    } catch (error: unknown) {
+      console.error("Erreur avatar:", error);
+      const message =
+        error instanceof Error ? error.message : "Erreur inconnue";
+      alert("Erreur : " + message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push("/connexion?next=/profil");
+    }
+  }, [user, loading, router]);
+
+  useEffect(() => {
+    if (profil) {
+      setAppareils(
+        Array.isArray(profil.modele_thermomix)
+          ? profil.modele_thermomix
+          : [profil.modele_thermomix],
+      );
+    }
+  }, [profil]);
+
+  useEffect(() => {
+    if (!user) return;
+    const load = async () => {
+      const { data } = await supabase
+        .from("recettes")
+        .select(
+          "id, slug, titre, difficulte, approuve, raison_rejet, created_at",
+        )
+        .eq("auteur_id", user.id)
+        .order("created_at", { ascending: false });
+      setMesRecettes((data || []) as MaRecette[]);
+    };
+    load();
+  }, [user, supabase]);
+
+  // Charger les achievements
+  useEffect(() => {
+    if (!user) return;
+    const load = async () => {
+      const { data } = await supabase
+        .from("user_achievements")
+        .select("achievement_code, unlocked_at")
+        .eq("user_id", user.id)
+        .order("unlocked_at", { ascending: false });
+      setAchievements(data || []);
+    };
+    load();
+  }, [user, supabase]);
+
+  // Charger les plannings sauvegardés
+  useEffect(() => {
+    if (!user) return;
+    const load = async () => {
+      const { data } = await supabase
+        .from("user_plannings")
+        .select("id, name, is_public, likes_count, created_at")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(10);
+      setMesPlannings(data || []);
+    };
+    load();
+  }, [user, supabase]);
+
+  const toggleAppareil = (id: string) => {
+    setAppareils((prev) =>
+      prev.includes(id) ? prev.filter((a) => a !== id) : [...prev, id],
+    );
+  };
+
+  const handleSaveModele = async () => {
+    if (!user || appareils.length === 0) return;
+    setSaving(true);
+    await supabase
+      .from("profils")
+      .update({ modele_thermomix: appareils })
+      .eq("id", user.id);
+    if (refreshProfil) await refreshProfil();
+    setSaving(false);
+  };
+
+  const handleLogout = async () => {
+    await signOut();
+    router.push("/");
+  };
+
+  if (loading || !user) {
+    return (
+      <div className="space-y-4 max-w-lg mx-auto py-10">
+        <div className="w-20 h-20 rounded-full bg-card animate-pulse mx-auto" />
+        <div className="h-6 w-48 bg-card animate-pulse rounded mx-auto" />
+        <div className="h-40 bg-card animate-pulse rounded-xl" />
+      </div>
+    );
+  }
+
+  const pending = mesRecettes.filter(
+    (r) => !r.approuve && !r.raison_rejet,
+  ).length;
+  const approved = mesRecettes.filter((r) => r.approuve).length;
+  const rejected = mesRecettes.filter(
+    (r) => !r.approuve && r.raison_rejet,
+  ).length;
+
+  return (
+    <div className="max-w-2xl mx-auto space-y-8 py-6 px-4">
+      {/* Header avec Avatar Interactif */}
+      <div className="text-center space-y-3">
+        <div className="relative group w-24 h-24 mx-auto mb-4">
+          <div className="w-full h-full rounded-full overflow-hidden bg-accent/15 border-2 border-accent/20 flex items-center justify-center">
+            {profil?.avatar_url ? (
+              <Image
+                src={profil.avatar_url}
+                alt="Avatar"
+                width={96}
+                height={96}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <User className="w-10 h-10 text-accent" />
+            )}
+          </div>
+
+          {/* Bouton Camera au survol */}
+          <label className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 rounded-full cursor-pointer transition-all border border-white/20">
+            {uploading ? (
+              <Loader2 className="w-6 h-6 text-white animate-spin" />
+            ) : (
+              <Camera className="w-6 h-6 text-white" />
+            )}
+            <input
+              type="file"
+              className="hidden"
+              accept="image/*"
+              onChange={handleAvatarUpload}
+              disabled={uploading}
+            />
+          </label>
+        </div>
+
+        <h1 className="font-display font-bold text-2xl">
+          {profil?.pseudo || user.email?.split("@")[0]}
+        </h1>
+        <p className="text-sm text-muted-foreground">{user.email}</p>
+      </div>
+
+      {/* CTA : Proposer une recette */}
+      <Link
+        href="/soumettre"
+        className="flex items-center justify-center gap-2 w-full px-6 py-4 rounded-xl bg-accent text-black font-display font-bold text-sm hover:bg-accent-hover transition-colors shadow-lg shadow-accent/10"
+      >
+        <Plus className="w-5 h-5" />
+        Proposer une recette
+      </Link>
+
+      {/* Sélection appareils */}
+      <div className="glass-card p-6 space-y-4 rounded-2xl border border-border">
+        <div className="flex items-center justify-between">
+          <h2 className="font-display font-semibold flex items-center gap-2">
+            <Logo className="w-5 h-auto" />
+            Mes appareils
+          </h2>
+          <button
+            onClick={handleSaveModele}
+            disabled={
+              saving ||
+              JSON.stringify([...appareils].sort()) ===
+                JSON.stringify(
+                  [
+                    ...(Array.isArray(profil?.modele_thermomix)
+                      ? profil.modele_thermomix
+                      : [profil?.modele_thermomix]),
+                  ].sort(),
+                )
+            }
+            className="px-4 py-2 rounded-lg text-sm bg-accent/10 text-accent font-bold disabled:opacity-40 hover:bg-accent/20 transition-colors"
+          >
+            {saving ? "..." : "Enregistrer"}
+          </button>
+        </div>
+
+        <p className="text-xs text-muted-foreground">
+          Sélectionnez un ou plusieurs appareils pour filtrer les recettes
+          compatibles.
+        </p>
+
+        {/* Appareils sélectionnés */}
+        {appareils.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {appareils.map((id) => {
+              const spec = APPLIANCES.find((a) => a.id === id);
+              return (
+                <span
+                  key={id}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-accent/15 text-accent border border-accent/30"
+                >
+                  {spec?.label || id}
+                  <button
+                    onClick={() => toggleAppareil(id)}
+                    className="hover:text-error transition-colors"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Menu déroulant par catégorie */}
+        <select
+          value=""
+          onChange={(e) => {
+            if (e.target.value) toggleAppareil(e.target.value);
+          }}
+          className="input-field"
+        >
+          <option value="">+ Ajouter un appareil...</option>
+          {Object.entries(getAppliancesByCategory()).map(([cat, apps]) => (
+            <optgroup
+              key={cat}
+              label={CATEGORY_LABELS[cat as ApplianceCategory]}
+            >
+              {apps
+                .filter((a) => !appareils.includes(a.id))
+                .map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.label}
+                  </option>
+                ))}
+            </optgroup>
+          ))}
+        </select>
+
+        {appareils.length === 0 && (
+          <p className="text-xs text-error">
+            Sélectionnez au moins un appareil.
+          </p>
+        )}
+      </div>
+
+      {/* Trophées */}
+      {achievements.length > 0 && (
+        <div className="space-y-4">
+          <h2 className="font-display font-semibold flex items-center gap-2">
+            <Trophy className="w-5 h-5 text-accent" />
+            Mes trophées ({achievements.length})
+          </h2>
+          <div className="glass-card p-4 rounded-2xl border border-border">
+            <div className="flex flex-wrap gap-3">
+              {achievements.map((a) => (
+                <AchievementBadge
+                  key={a.achievement_code}
+                  code={a.achievement_code}
+                  unlocked_at={a.unlocked_at}
+                  size="md"
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mes plannings */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="font-display font-semibold flex items-center gap-2">
+            <Calendar className="w-5 h-5 text-accent" />
+            Mes plannings ({mesPlannings.length})
+          </h2>
+          {mesPlannings.length > 0 && (
+            <Link
+              href="/mes-plannings"
+              className="text-xs text-accent hover:underline font-medium"
+            >
+              Tout voir →
+            </Link>
+          )}
+        </div>
+
+        {mesPlannings.length === 0 ? (
+          <div className="text-center py-8 glass-card rounded-2xl border border-dashed border-border">
+            <p className="text-muted-foreground text-sm">
+              Aucun planning sauvegardé.
+            </p>
+            <Link
+              href="/planificateur"
+              className="inline-flex items-center gap-1 mt-2 text-sm text-accent hover:underline font-bold"
+            >
+              Créer un planning
+            </Link>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {mesPlannings.map((p) => (
+              <Link
+                key={p.id}
+                href={`/planificateur?load=${p.id}`}
+                className="flex items-center justify-between px-4 py-3 glass-card rounded-xl border border-border hover:border-accent/30 transition-all"
+              >
+                <div className="min-w-0">
+                  <span className="text-sm font-bold truncate block hover:text-accent">
+                    {p.name}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">
+                    {new Date(p.created_at).toLocaleDateString("fr-FR", {
+                      day: "numeric",
+                      month: "short",
+                    })}
+                  </span>
+                </div>
+                <span className="text-[9px] font-bold uppercase px-2 py-0.5 rounded bg-accent/10 text-accent border border-accent/20 shrink-0">
+                  {p.is_public ? "Public" : "Privé"}
+                </span>
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Mes recettes */}
+      <div className="space-y-4">
+        <h2 className="font-display font-semibold flex items-center gap-2">
+          <BookOpen className="w-5 h-5 text-accent" />
+          Mes recettes ({mesRecettes.length})
+        </h2>
+
+        {mesRecettes.length > 0 && (
+          <div className="flex gap-3 text-[10px] uppercase tracking-wider font-bold">
+            {approved > 0 && (
+              <span className="px-2 py-1 rounded bg-sage/10 text-sage border border-sage/20">
+                {approved} EN LIGNE
+              </span>
+            )}
+            {pending > 0 && (
+              <span className="px-2 py-1 rounded bg-yellow-500/10 text-yellow-500 border border-yellow-500/20">
+                {pending} EN ATTENTE
+              </span>
+            )}
+            {rejected > 0 && (
+              <span className="px-2 py-1 rounded bg-error/10 text-error border border-error/20">
+                {rejected} REFUSÉE{rejected > 1 ? "S" : ""}
+              </span>
+            )}
+          </div>
+        )}
+
+        {mesRecettes.length === 0 ? (
+          <div className="text-center py-12 glass-card rounded-2xl border border-dashed border-border">
+            <Logo className="w-11 h-auto mx-auto mb-3 opacity-20" />{" "}
+            <p className="text-muted-foreground text-sm">
+              Vous n&apos;avez pas encore soumis de recette.
+            </p>
+            <Link
+              href="/soumettre"
+              className="inline-flex items-center gap-1 mt-3 text-sm text-accent hover:underline font-bold"
+            >
+              <Plus className="w-4 h-4" /> Proposer ma première recette
+            </Link>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {mesRecettes.map((r) => (
+              <div
+                key={r.id}
+                className={cn(
+                  "flex items-center justify-between px-5 py-4 glass-card rounded-2xl border border-border hover:border-accent/30 transition-all",
+                  !r.approuve && r.raison_rejet && "border-l-4 border-l-error",
+                )}
+              >
+                <div className="flex items-center gap-4 min-w-0">
+                  <div className="min-w-0">
+                    <Link
+                      href={r.approuve ? `/recettes/${r.slug}` : "#"}
+                      className={cn(
+                        "text-sm font-bold truncate block",
+                        r.approuve ? "hover:text-accent" : "cursor-default",
+                      )}
+                    >
+                      {r.titre}
+                    </Link>
+                    {!r.approuve && r.raison_rejet && (
+                      <p className="text-[11px] text-error mt-1 font-medium italic">
+                        Refusé : {r.raison_rejet}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 shrink-0">
+                  <span
+                    className={cn(
+                      "text-[9px] font-black uppercase tracking-tighter px-2 py-1 rounded",
+                      r.approuve
+                        ? "bg-sage/10 text-sage"
+                        : r.raison_rejet
+                          ? "bg-error/10 text-error"
+                          : "bg-yellow-500/10 text-yellow-500",
+                    )}
+                  >
+                    {r.approuve
+                      ? "Public"
+                      : r.raison_rejet
+                        ? "Refusé"
+                        : "Vérification"}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Logout */}
+      <button
+        onClick={handleLogout}
+        className="w-full flex items-center justify-center gap-2 px-6 py-4 rounded-xl bg-card border border-error/20 text-error hover:bg-error/5 hover:border-error/40 transition-all font-bold text-sm"
+      >
+        <LogOut className="w-4 h-4" />
+        Déconnexion
+      </button>
+    </div>
+  );
+}
+</file>
+
 <file path="hooks/useRecettes.ts">
 // hooks/useRecettes.ts
 import { useQuery } from "@tanstack/react-query";
@@ -28910,7 +29179,6 @@ const CARD_FIELDS = `
 `;
 
 async function fetchRecettes(filters: RecetteFilters) {
-  console.log("🟡 [RECETTES] fetchRecettes START", filters);
   const supabase = supabaseAnon;
   const page = filters.page || 1;
   const limit = filters.limit || DEFAULT_PAGE_SIZE;
@@ -28938,6 +29206,14 @@ async function fetchRecettes(filters: RecetteFilters) {
     query = query.eq("nutriscore", filters.nutriscore);
   }
 
+  // ─── Filtre durée (point 2) — utilise la colonne générée temps_total ───
+  if (filters.temps_min !== undefined) {
+    query = query.gte("temps_total", filters.temps_min);
+  }
+  if (filters.temps_max !== undefined && filters.temps_max < 9999) {
+    query = query.lte("temps_total", filters.temps_max);
+  }
+
   switch (filters.tri) {
     case "populaire":
       query = query.order("vues", { ascending: false });
@@ -28946,7 +29222,7 @@ async function fetchRecettes(filters: RecetteFilters) {
       query = query.order("note_moyenne", { ascending: false });
       break;
     case "rapide":
-      query = query.order("temps_preparation", { ascending: true });
+      query = query.order("temps_total", { ascending: true });
       break;
     default:
       query = query.order("created_at", { ascending: false });
@@ -28954,13 +29230,7 @@ async function fetchRecettes(filters: RecetteFilters) {
 
   query = query.range(offset, offset + limit - 1);
 
-  console.log("🟡 [RECETTES] query about to execute...");
   const { data, count, error } = await query;
-  console.log("🟡 [RECETTES] query result", {
-    dataLength: data?.length,
-    count,
-    error,
-  });
 
   if (error) throw new Error(error.message);
   return { data: (data || []) as RecetteCard[], count: count || 0 };
@@ -28973,6 +29243,10 @@ export function useRecettes(filters: RecetteFilters) {
     staleTime: 5 * 60 * 1000,
   });
 }
+</file>
+
+<file path="hooks/useAuth.ts">
+export { useAuth } from "@/contexts/AuthContext";
 </file>
 
 <file path="app/planificateur/page.tsx">
@@ -28988,6 +29262,7 @@ import {
   Check,
   Printer,
   Share2,
+  RotateCw,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { createClient } from "@/lib/supabase/client";
@@ -29000,6 +29275,7 @@ import SavePlanningModal from "@/components/planificateur/SavePlanningModal";
 import { useRouter, useSearchParams } from "next/navigation";
 import RecipePreviewModal from "@/components/planificateur/RecipePreviewModal";
 import { useMealPlans } from "@/hooks/useMealPlans";
+import { useToast } from "@/components/ui/Toast";
 
 /* ─── Types ───────────────────────────────────────────────── */
 
@@ -29039,6 +29315,7 @@ export default function PlanificateurPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const loadPlanningId = searchParams.get("load");
+  const { toastSuccess, toastError } = useToast();
 
   const semaine = useMemo(() => toDateString(getMondayOfWeek()), []);
   const [plan, setPlan] = useState<WeekPlan>({});
@@ -29252,6 +29529,20 @@ export default function PlanificateurPage() {
   const getFilledSlots = (dayIndex: number): number =>
     (plan[dayIndex] || []).filter(Boolean).length;
 
+  /* ─── Nouveau planning (point 3) ────────────────────────── */
+
+  const resetPlanning = async () => {
+    if (!user) return;
+    const emptyPlan: WeekPlan = {};
+    for (let d = 0; d < 7; d++) emptyPlan[d] = [null, null, null];
+    await savePlan(emptyPlan);
+    setLoadedPlanning(null);
+    setSelectedDays(new Set());
+    setListeItems([]);
+    setShowListe(false);
+    toastSuccess("Nouveau planning vide créé !");
+  };
+
   /* ─── Liste de courses ──────────────────────────────────── */
 
   const toggleDayForListe = (d: number) => {
@@ -29277,7 +29568,9 @@ export default function PlanificateurPage() {
       setListeItems(items);
       setShowListe(true);
     } catch (err: unknown) {
-      alert("Erreur : " + (err instanceof Error ? err.message : ""));
+      toastError(
+        "Erreur : " + (err instanceof Error ? err.message : "Erreur inconnue"),
+      );
     } finally {
       setListeLoading(false);
     }
@@ -29310,7 +29603,7 @@ export default function PlanificateurPage() {
       await navigator.share({ title: "Liste de courses", text });
     else {
       await navigator.clipboard.writeText(text);
-      alert("Copié !");
+      toastSuccess("Liste copiée dans le presse-papier !");
     }
   };
 
@@ -29428,23 +29721,33 @@ export default function PlanificateurPage() {
 
   const totalRecipes = Object.values(plan).flat().filter(Boolean).length;
 
+  /* ─── Bouton Sauvegarder (réutilisé) ────────────────────── */
+  const SaveButton = ({ className = "" }: { className?: string }) =>
+    totalRecipes >= 1 ? (
+      <button
+        onClick={() => setShowSaveModal(true)}
+        className={cn(
+          "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border border-accent/30 text-accent hover:bg-accent/10 transition-colors",
+          className,
+        )}
+      >
+        <Save className="w-4 h-4" />
+        Sauvegarder
+      </button>
+    ) : null;
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
       {/* Header */}
       <div className="space-y-1">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           <h1 className="font-display font-bold text-3xl flex items-center gap-3">
             <Calendar className="w-8 h-8 text-accent" /> Planificateur
           </h1>
-          {totalRecipes >= 3 && (
-            <button
-              onClick={() => setShowSaveModal(true)}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border border-accent/30 text-accent hover:bg-accent/10 transition-colors"
-            >
-              <Save className="w-4 h-4" />
-              Sauvegarder
-            </button>
-          )}
+          {/* Bouton Sauvegarder — desktop uniquement (point 1) */}
+          <div className="hidden md:block">
+            <SaveButton />
+          </div>
         </div>
         <div className="flex flex-col gap-2">
           <p className="text-muted-foreground mt-1">
@@ -29455,10 +29758,18 @@ export default function PlanificateurPage() {
             })}{" "}
             · {totalRecipes} repas
           </p>
-          <div>
+          <div className="flex flex-wrap items-center gap-2">
             <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-accent/10 text-accent text-[10px] font-bold border border-accent/20 uppercase tracking-wider">
               Les quantités sont pour 4 personnes / portions par défaut
             </span>
+            {/* Bouton Nouveau planning (point 3) */}
+            <button
+              onClick={resetPlanning}
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-medium border border-border text-muted-foreground hover:text-accent hover:border-accent/30 transition-colors"
+            >
+              <RotateCw className="w-3 h-3" />
+              Nouveau planning
+            </button>
           </div>
         </div>
       </div>
@@ -29612,7 +29923,7 @@ export default function PlanificateurPage() {
                         </Link>
                         <button
                           onClick={() => removeRecipe(dayIdx, slotIdx)}
-                          className="opacity-0 group-hover:opacity-100 text-error ml-1 shrink-0"
+                          className="text-error ml-1 shrink-0"
                         >
                           <X className="w-3 h-3" />
                         </button>
@@ -29644,6 +29955,11 @@ export default function PlanificateurPage() {
             </div>
           );
         })}
+      </div>
+
+      {/* ─── Bouton Sauvegarder mobile (point 1) — entre planning et liste ─── */}
+      <div className="md:hidden">
+        <SaveButton className="w-full justify-center py-3" />
       </div>
 
       {/* Liste de courses */}
@@ -29788,7 +30104,7 @@ export default function PlanificateurPage() {
         </div>
       )}
 
-      {/* Modal sélection recette */}
+      {/* Modal sélection recette (point 6 — fix mobile) */}
       {selectingDay !== null && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
           <div
@@ -29801,10 +30117,16 @@ export default function PlanificateurPage() {
             }}
           />
           <div
-            className="relative z-10 w-full max-w-md mx-4 rounded-t-2xl sm:rounded-2xl p-6 space-y-4 max-h-[80dvh] flex flex-col animate-slide-up"
-            style={{ backgroundColor: "var(--color-bg)" }}
+            className="relative z-10 w-full sm:max-w-md sm:mx-4 rounded-t-2xl sm:rounded-2xl p-5 sm:p-6 space-y-4 flex flex-col animate-slide-up"
+            style={{
+              backgroundColor: "var(--color-bg)",
+              maxHeight:
+                "min(85dvh, calc(100dvh - env(safe-area-inset-bottom, 0px) - 60px))",
+            }}
           >
             <div className="flex items-center justify-between flex-shrink-0">
+              {/* Poignée mobile */}
+              <div className="absolute top-2 left-1/2 -translate-x-1/2 w-10 h-1 rounded-full bg-border sm:hidden" />
               <h3 className="font-display font-bold text-lg">
                 {JOURS[selectingDay]} — Repas {selectingSlot + 1}
               </h3>
@@ -29849,7 +30171,7 @@ export default function PlanificateurPage() {
             </div>
 
             {activeTab === "search" && (
-              <div className="space-y-2 overflow-y-auto flex-1">
+              <div className="space-y-2 overflow-y-auto flex-1 min-h-0">
                 <input
                   type="search"
                   value={searchQuery}
@@ -29858,7 +30180,7 @@ export default function PlanificateurPage() {
                   autoFocus
                   className="input-field"
                 />
-                <div className="space-y-1">
+                <div className="space-y-1 overflow-y-auto">
                   {searchResults.map((r) => (
                     <button
                       key={r.id}
@@ -29878,7 +30200,7 @@ export default function PlanificateurPage() {
             )}
 
             {activeTab === "favoris" && (
-              <div className="flex-1 overflow-hidden">
+              <div className="flex-1 overflow-hidden min-h-0">
                 {favorisLoading && (
                   <div className="flex items-center justify-center py-8">
                     <Loader2 className="w-5 h-5 animate-spin text-accent" />
@@ -30014,8 +30336,8 @@ export default function PlanificateurPage() {
           onClose={() => setShowSaveModal(false)}
           onSaved={(id) => {
             setShowSaveModal(false);
-            alert(
-              "Planning sauvegardé ! Vous pouvez le retrouver dans votre profil.",
+            toastSuccess(
+              "Planning sauvegardé ! Retrouvez-le dans votre profil.",
             );
           }}
         />
@@ -30067,10 +30389,6 @@ function ListeDisplay({ items }: { items: ListeItem[] }) {
     </div>
   );
 }
-</file>
-
-<file path="hooks/useAuth.ts">
-export { useAuth } from "@/contexts/AuthContext";
 </file>
 
 </files>
