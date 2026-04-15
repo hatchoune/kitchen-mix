@@ -15,7 +15,6 @@ const CARD_FIELDS = `
 `;
 
 async function fetchRecettes(filters: RecetteFilters) {
-  console.log("🟡 [RECETTES] fetchRecettes START", filters);
   const supabase = supabaseAnon;
   const page = filters.page || 1;
   const limit = filters.limit || DEFAULT_PAGE_SIZE;
@@ -43,6 +42,14 @@ async function fetchRecettes(filters: RecetteFilters) {
     query = query.eq("nutriscore", filters.nutriscore);
   }
 
+  // ─── Filtre durée (point 2) — utilise la colonne générée temps_total ───
+  if (filters.temps_min !== undefined) {
+    query = query.gte("temps_total", filters.temps_min);
+  }
+  if (filters.temps_max !== undefined && filters.temps_max < 9999) {
+    query = query.lte("temps_total", filters.temps_max);
+  }
+
   switch (filters.tri) {
     case "populaire":
       query = query.order("vues", { ascending: false });
@@ -51,7 +58,7 @@ async function fetchRecettes(filters: RecetteFilters) {
       query = query.order("note_moyenne", { ascending: false });
       break;
     case "rapide":
-      query = query.order("temps_preparation", { ascending: true });
+      query = query.order("temps_total", { ascending: true });
       break;
     default:
       query = query.order("created_at", { ascending: false });
@@ -59,13 +66,7 @@ async function fetchRecettes(filters: RecetteFilters) {
 
   query = query.range(offset, offset + limit - 1);
 
-  console.log("🟡 [RECETTES] query about to execute...");
   const { data, count, error } = await query;
-  console.log("🟡 [RECETTES] query result", {
-    dataLength: data?.length,
-    count,
-    error,
-  });
 
   if (error) throw new Error(error.message);
   return { data: (data || []) as RecetteCard[], count: count || 0 };

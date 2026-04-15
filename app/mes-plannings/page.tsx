@@ -15,6 +15,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { useToast } from "@/components/ui/Toast";
 
 interface MyPlanning {
   id: string;
@@ -33,6 +34,7 @@ export default function MesPlanningsPage() {
   const [plannings, setPlannings] = useState<MyPlanning[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const { toastError } = useToast();
   const userId = user?.id;
 
   useEffect(() => {
@@ -62,7 +64,7 @@ export default function MesPlanningsPage() {
       await supabase.from("user_plannings").delete().eq("id", id);
       setPlannings((prev) => prev.filter((p) => p.id !== id));
     } catch {
-      alert("Erreur lors de la suppression");
+      toastError("Erreur lors de la suppression");
     } finally {
       setDeleting(null);
     }

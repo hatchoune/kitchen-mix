@@ -46,19 +46,13 @@ export async function rechercherRecettes(
   if (filters?.modele) {
     dbQuery = dbQuery.contains("modele_thermomix", [filters.modele]);
   }
+
+  // ─── Filtre durée (point 2) — utilise la colonne générée temps_total ───
   if (filters?.temps_min) {
-    dbQuery = dbQuery.filter(
-      "temps_preparation + temps_cuisson",
-      "gte",
-      filters.temps_min,
-    );
+    dbQuery = dbQuery.gte("temps_total", filters.temps_min);
   }
-  if (filters?.temps_max) {
-    dbQuery = dbQuery.filter(
-      "temps_preparation + temps_cuisson",
-      "lte",
-      filters.temps_max,
-    );
+  if (filters?.temps_max && filters.temps_max < 9999) {
+    dbQuery = dbQuery.lte("temps_total", filters.temps_max);
   }
 
   dbQuery = dbQuery

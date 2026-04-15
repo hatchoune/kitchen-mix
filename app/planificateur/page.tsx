@@ -10,6 +10,7 @@ import {
   Check,
   Printer,
   Share2,
+  RotateCw,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { createClient } from "@/lib/supabase/client";
@@ -22,6 +23,7 @@ import SavePlanningModal from "@/components/planificateur/SavePlanningModal";
 import { useRouter, useSearchParams } from "next/navigation";
 import RecipePreviewModal from "@/components/planificateur/RecipePreviewModal";
 import { useMealPlans } from "@/hooks/useMealPlans";
+import { useToast } from "@/components/ui/Toast";
 
 /* ─── Types ───────────────────────────────────────────────── */
 
@@ -61,6 +63,7 @@ export default function PlanificateurPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const loadPlanningId = searchParams.get("load");
+  const { toastSuccess, toastError } = useToast();
 
   const semaine = useMemo(() => toDateString(getMondayOfWeek()), []);
   const [plan, setPlan] = useState<WeekPlan>({});
@@ -274,6 +277,20 @@ export default function PlanificateurPage() {
   const getFilledSlots = (dayIndex: number): number =>
     (plan[dayIndex] || []).filter(Boolean).length;
 
+  /* ─── Nouveau planning (point 3) ────────────────────────── */
+
+  const resetPlanning = async () => {
+    if (!user) return;
+    const emptyPlan: WeekPlan = {};
+    for (let d = 0; d < 7; d++) emptyPlan[d] = [null, null, null];
+    await savePlan(emptyPlan);
+    setLoadedPlanning(null);
+    setSelectedDays(new Set());
+    setListeItems([]);
+    setShowListe(false);
+    toastSuccess("Nouveau planning vide créé !");
+  };
+
   /* ─── Liste de courses ──────────────────────────────────── */
 
   const toggleDayForListe = (d: number) => {
@@ -299,7 +316,9 @@ export default function PlanificateurPage() {
       setListeItems(items);
       setShowListe(true);
     } catch (err: unknown) {
-      alert("Erreur : " + (err instanceof Error ? err.message : ""));
+      toastError(
+        "Erreur : " + (err instanceof Error ? err.message : "Erreur inconnue"),
+      );
     } finally {
       setListeLoading(false);
     }
@@ -332,7 +351,7 @@ export default function PlanificateurPage() {
       await navigator.share({ title: "Liste de courses", text });
     else {
       await navigator.clipboard.writeText(text);
-      alert("Copié !");
+      toastSuccess("Liste copiée dans le presse-papier !");
     }
   };
 
@@ -450,23 +469,33 @@ export default function PlanificateurPage() {
 
   const totalRecipes = Object.values(plan).flat().filter(Boolean).length;
 
+  /* ─── Bouton Sauvegarder (réutilisé) ────────────────────── */
+  const SaveButton = ({ className = "" }: { className?: string }) =>
+    totalRecipes >= 1 ? (
+      <button
+        onClick={() => setShowSaveModal(true)}
+        className={cn(
+          "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border border-accent/30 text-accent hover:bg-accent/10 transition-colors",
+          className,
+        )}
+      >
+        <Save className="w-4 h-4" />
+        Sauvegarder
+      </button>
+    ) : null;
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
       {/* Header */}
       <div className="space-y-1">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           <h1 className="font-display font-bold text-3xl flex items-center gap-3">
             <Calendar className="w-8 h-8 text-accent" /> Planificateur
           </h1>
-          {totalRecipes >= 3 && (
-            <button
-              onClick={() => setShowSaveModal(true)}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border border-accent/30 text-accent hover:bg-accent/10 transition-colors"
-            >
-              <Save className="w-4 h-4" />
-              Sauvegarder
-            </button>
-          )}
+          {/* Bouton Sauvegarder — desktop uniquement (point 1) */}
+          <div className="hidden md:block">
+            <SaveButton />
+          </div>
         </div>
         <div className="flex flex-col gap-2">
           <p className="text-muted-foreground mt-1">
@@ -477,10 +506,18 @@ export default function PlanificateurPage() {
             })}{" "}
             · {totalRecipes} repas
           </p>
-          <div>
+          <div className="flex flex-wrap items-center gap-2">
             <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-accent/10 text-accent text-[10px] font-bold border border-accent/20 uppercase tracking-wider">
               Les quantités sont pour 4 personnes / portions par défaut
             </span>
+            {/* Bouton Nouveau planning (point 3) */}
+            <button
+              onClick={resetPlanning}
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-medium border border-border text-muted-foreground hover:text-accent hover:border-accent/30 transition-colors"
+            >
+              <RotateCw className="w-3 h-3" />
+              Nouveau planning
+            </button>
           </div>
         </div>
       </div>
@@ -634,7 +671,7 @@ export default function PlanificateurPage() {
                         </Link>
                         <button
                           onClick={() => removeRecipe(dayIdx, slotIdx)}
-                          className="opacity-0 group-hover:opacity-100 text-error ml-1 shrink-0"
+                          className="text-error ml-1 shrink-0"
                         >
                           <X className="w-3 h-3" />
                         </button>
@@ -666,6 +703,11 @@ export default function PlanificateurPage() {
             </div>
           );
         })}
+      </div>
+
+      {/* ─── Bouton Sauvegarder mobile (point 1) — entre planning et liste ─── */}
+      <div className="md:hidden">
+        <SaveButton className="w-full justify-center py-3" />
       </div>
 
       {/* Liste de courses */}
@@ -810,7 +852,7 @@ export default function PlanificateurPage() {
         </div>
       )}
 
-      {/* Modal sélection recette */}
+      {/* Modal sélection recette (point 6 — fix mobile) */}
       {selectingDay !== null && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
           <div
@@ -823,10 +865,16 @@ export default function PlanificateurPage() {
             }}
           />
           <div
-            className="relative z-10 w-full max-w-md mx-4 rounded-t-2xl sm:rounded-2xl p-6 space-y-4 max-h-[80dvh] flex flex-col animate-slide-up"
-            style={{ backgroundColor: "var(--color-bg)" }}
+            className="relative z-10 w-full sm:max-w-md sm:mx-4 rounded-t-2xl sm:rounded-2xl p-5 sm:p-6 space-y-4 flex flex-col animate-slide-up"
+            style={{
+              backgroundColor: "var(--color-bg)",
+              maxHeight:
+                "min(85dvh, calc(100dvh - env(safe-area-inset-bottom, 0px) - 60px))",
+            }}
           >
             <div className="flex items-center justify-between flex-shrink-0">
+              {/* Poignée mobile */}
+              <div className="absolute top-2 left-1/2 -translate-x-1/2 w-10 h-1 rounded-full bg-border sm:hidden" />
               <h3 className="font-display font-bold text-lg">
                 {JOURS[selectingDay]} — Repas {selectingSlot + 1}
               </h3>
@@ -871,7 +919,7 @@ export default function PlanificateurPage() {
             </div>
 
             {activeTab === "search" && (
-              <div className="space-y-2 overflow-y-auto flex-1">
+              <div className="space-y-2 overflow-y-auto flex-1 min-h-0">
                 <input
                   type="search"
                   value={searchQuery}
@@ -880,7 +928,7 @@ export default function PlanificateurPage() {
                   autoFocus
                   className="input-field"
                 />
-                <div className="space-y-1">
+                <div className="space-y-1 overflow-y-auto">
                   {searchResults.map((r) => (
                     <button
                       key={r.id}
@@ -900,7 +948,7 @@ export default function PlanificateurPage() {
             )}
 
             {activeTab === "favoris" && (
-              <div className="flex-1 overflow-hidden">
+              <div className="flex-1 overflow-hidden min-h-0">
                 {favorisLoading && (
                   <div className="flex items-center justify-center py-8">
                     <Loader2 className="w-5 h-5 animate-spin text-accent" />
@@ -1036,8 +1084,8 @@ export default function PlanificateurPage() {
           onClose={() => setShowSaveModal(false)}
           onSaved={(id) => {
             setShowSaveModal(false);
-            alert(
-              "Planning sauvegardé ! Vous pouvez le retrouver dans votre profil.",
+            toastSuccess(
+              "Planning sauvegardé ! Retrouvez-le dans votre profil.",
             );
           }}
         />

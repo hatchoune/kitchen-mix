@@ -9,13 +9,15 @@ import {
   Star,
   Plus,
   Loader2,
-  ChevronRight,
+  Heart,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import NutriScore from "@/components/ui/NutriScore";
 import type { NutriScore as NutriScoreType } from "@/types";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/components/ui/Toast";
 
 /* ─── Types ───────────────────────────────────────────────── */
 
@@ -82,6 +84,12 @@ export default function RecipePreviewModal({
   const [supabase] = useState(() => createClient());
   const [recette, setRecette] = useState<RecettePreview | null>(null);
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  const { toastSuccess, toastError } = useToast();
+
+  // ─── Favoris state (point 4) ───
+  const [isFavoris, setIsFavoris] = useState(false);
+  const [favLoading, setFavLoading] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -98,6 +106,48 @@ export default function RecipePreviewModal({
     };
     load();
   }, [recetteId, supabase]);
+
+  // Check si déjà en favoris
+  useEffect(() => {
+    if (!user || !recetteId) return;
+    const checkFav = async () => {
+      const { data } = await supabase
+        .from("favoris")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("recette_id", recetteId)
+        .maybeSingle();
+      setIsFavoris(!!data);
+    };
+    checkFav();
+  }, [user, recetteId, supabase]);
+
+  const toggleFavoris = async () => {
+    if (!user || !recette) return;
+    setFavLoading(true);
+    try {
+      if (isFavoris) {
+        await supabase
+          .from("favoris")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("recette_id", recette.id);
+        setIsFavoris(false);
+        toastSuccess("Retiré des favoris");
+      } else {
+        await supabase.from("favoris").insert({
+          user_id: user.id,
+          recette_id: recette.id,
+        });
+        setIsFavoris(true);
+        toastSuccess("Ajouté aux favoris !");
+      }
+    } catch {
+      toastError("Erreur lors de la mise à jour des favoris");
+    } finally {
+      setFavLoading(false);
+    }
+  };
 
   const total = recette
     ? recette.temps_preparation + recette.temps_cuisson
@@ -305,12 +355,34 @@ export default function RecipePreviewModal({
           )}
         </div>
 
-        {/* Footer fixe : bouton Ajouter */}
+        {/* Footer fixe : boutons Favoris + Ajouter (point 4) */}
         {recette && (
-          <div className="px-5 py-3 border-t border-border shrink-0">
+          <div className="px-5 py-3 border-t border-border shrink-0 flex gap-2">
+            {/* Bouton Favoris */}
+            {user && (
+              <button
+                onClick={toggleFavoris}
+                disabled={favLoading}
+                className={cn(
+                  "flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-display font-bold text-sm transition-colors border",
+                  isFavoris
+                    ? "bg-red-500/10 border-red-500/30 text-red-500 hover:bg-red-500/20"
+                    : "border-border text-muted-foreground hover:text-red-500 hover:border-red-500/30",
+                )}
+              >
+                <Heart
+                  className={cn(
+                    "w-4 h-4",
+                    isFavoris && "fill-red-500",
+                    favLoading && "animate-pulse",
+                  )}
+                />
+              </button>
+            )}
+            {/* Bouton Ajouter */}
             <button
               onClick={onAdd}
-              className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-accent text-black font-display font-bold text-sm hover:bg-accent-hover transition-colors"
+              className="flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-accent text-black font-display font-bold text-sm hover:bg-accent-hover transition-colors"
             >
               <Plus className="w-4 h-4" />
               Ajouter au planning

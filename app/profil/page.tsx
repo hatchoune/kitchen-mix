@@ -29,6 +29,7 @@ import Link from "next/link";
 import imageCompression from "browser-image-compression";
 import Image from "next/image";
 import AchievementBadge from "@/components/ui/AchievementBadge";
+import { useToast } from "@/components/ui/Toast";
 
 // Type enrichi pour afficher le statut
 interface MaRecette {
@@ -42,6 +43,7 @@ interface MaRecette {
 }
 
 export default function ProfilPage() {
+  const { toastSuccess, toastError, toastWarning } = useToast();
   const { user, profil, loading, signOut, refreshProfil } = useAuth();
   const router = useRouter();
   const [supabase] = useState(() => createClient());
