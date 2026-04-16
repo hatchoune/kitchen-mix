@@ -70,51 +70,57 @@ export default function AdminPage() {
     setLoadingData(true);
     const errors: string[] = [];
 
-    // Chaque fetch est isolé — un échec ne fait pas tomber les autres
-    const [
-      pendingRecData,
-      allRecData,
-      pendingComData,
-      allComData,
-      usersData,
-      bannedData,
-    ] = await Promise.all([
-      getAdminPendingRecettes().catch((err) => {
-        errors.push(`Recettes en attente: ${err.message}`);
-        return [] as Recette[];
-      }),
-      getAdminAllRecettes().catch((err) => {
-        errors.push(`Toutes recettes: ${err.message}`);
-        return [] as Recette[];
-      }),
-      getAdminPendingComments().catch((err) => {
-        errors.push(`Commentaires en attente: ${err.message}`);
-        return [] as RecipeComment[];
-      }),
-      getAdminAllComments().catch((err) => {
-        errors.push(`Historique commentaires: ${err.message}`);
-        return [] as RecipeComment[];
-      }),
-      getUsers(50).catch((err) => {
-        errors.push(`Utilisateurs: ${err.message}`);
-        return [];
-      }),
-      getBannedUsers().catch((err) => {
-        errors.push(`Bannis: ${err.message}`);
-        return [];
-      }),
-    ]);
-    // Dans le composant AdminPage, ajouter un state pour la recherche
-    const [searchTerm, setSearchTerm] = useState("");
+    const safeFetch = async <T,>(
+      fetcher: () => Promise<T>,
+      label: string,
+    ): Promise<T | null> => {
+      try {
+        return await fetcher();
+      } catch (err: any) {
+        const msg = `${label}: ${err?.message || "Erreur inconnue"}`;
+        console.error("❌ Admin loadData error", msg, err);
+        errors.push(msg);
+        return null;
+      }
+    };
 
-    setRecettesEnAttente(pendingRecData as Recette[]);
-    setAllRecettes(allRecData as Recette[]);
-    setPendingComments(pendingComData as RecipeComment[]);
-    setAllComments(allComData as RecipeComment[]);
-    setUsers(usersData);
-    setBannedUsers(bannedData);
+    const pendingRecData = (await safeFetch(
+      () => getAdminPendingRecettes(),
+      "Recettes en attente",
+    )) as Recette[] | null;
+    const allRecData = (await safeFetch(
+      () => getAdminAllRecettes(),
+      "Toutes les recettes",
+    )) as Recette[] | null;
+    const pendingComData = (await safeFetch(
+      () => getAdminPendingComments(),
+      "Commentaires en attente",
+    )) as RecipeComment[] | null;
+    const allComData = (await safeFetch(
+      () => getAdminAllComments(),
+      "Historique commentaires",
+    )) as RecipeComment[] | null;
+    const usersData = await safeFetch(
+      () => getUsers(50),
+      "Liste des utilisateurs",
+    );
+    const bannedData = await safeFetch(
+      () => getBannedUsers(),
+      "Utilisateurs bannis",
+    );
+
+    setRecettesEnAttente(pendingRecData || []);
+    setAllRecettes(allRecData || []);
+    setPendingComments(pendingComData || []);
+    setAllComments(allComData || []);
+    setUsers((usersData as any[]) || []);
+    setBannedUsers((bannedData as any[]) || []);
     setLoadErrors(errors);
     setLoadingData(false);
+
+    if (errors.length > 0) {
+      console.warn("⚠️ Certains chargements admin ont échoué :", errors);
+    }
   }, []);
 
   useEffect(() => {
