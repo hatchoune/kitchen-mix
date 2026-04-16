@@ -200,16 +200,30 @@ export default function AdminEditerPage({ params }: PageProps) {
     if (!imageFile) return;
 
     setSaving(true);
+    setError("");
 
     try {
+      // Options de compression
+      const options = {
+        maxSizeMB: 0.4, // 400 Ko max
+        maxWidthOrHeight: 1200,
+        useWebWorker: true,
+        fileType: "image/webp",
+      };
+
+      const compressedFile = await imageCompression(imageFile, options);
+
       const formData = new FormData();
-      formData.append("file", imageFile);
+      formData.append("file", compressedFile);
+
       const { url } = await uploadImage(formData);
       setImageUrl(url);
       setSaved(false);
     } catch (err: unknown) {
       console.error("Erreur upload:", err);
-      alert("Erreur lors du traitement de l'image.");
+      const message = err instanceof Error ? err.message : "Erreur inconnue";
+      setError(`Échec de l'upload : ${message}`);
+      alert(`Erreur : ${message}`);
     } finally {
       setSaving(false);
     }

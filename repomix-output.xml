@@ -67,6 +67,10 @@ app/
   auth/
     callback/
       route.ts
+  conditions/
+    page.tsx
+  confidentialite/
+    page.tsx
   connexion/
     layout.tsx
     page.tsx
@@ -169,14 +173,16 @@ hooks/
   useTheme.ts
   useWakeLock.ts
 images-recettes/
-  confit-canard-cookexpert.jpg
-  couscous-royal-cookexpert.jpg
-  fondant-chocolat-cookexpert.jpg
-  fondue-chocolat-cookexpert.jpg
-  lasagnes-bolognaise-cookexpert.jpg
-  soupe-butternut-cookexpert.jpg
-  taboulé-libanais-cookexpert.jpg
-  tajine-agneau-pruneaux-cookexpert.jpg
+  blanquette-veau-thermomix.png
+  boeuf-bourguignon-thermomix.png
+  cake-citron-pavot-thermomix.png
+  crepes-bretonnes-thermomix.png
+  dahl-lentilles-corail-thermomix.png
+  gaspacho-andalou-thermomix.jpg
+  gratin-dauphinois-thermomix.png
+  mousse-chocolat-cook-expert.png
+  pain-complet-thermomix.png
+  pates-carbonara-thermomix.jpg
 lib/
   supabase/
     client.ts
@@ -1267,6 +1273,406 @@ export async function GET(request: Request) {
   // En cas d'absence de code et d'erreur (annulation)
   return NextResponse.redirect(
     `${origin}/connexion?error=${encodeURIComponent("Authentification annulée.")}`,
+  );
+}
+</file>
+
+<file path="app/conditions/page.tsx">
+export const metadata = {
+  title: "Conditions d'utilisation | Kitchenmix",
+  description:
+    "Règles et conditions d'utilisation de la plateforme Kitchenmix.",
+};
+
+export default function ConditionsPage() {
+  return (
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-12 sm:py-16 space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      {/* En-tête */}
+      <div className="border-b border-border pb-6">
+        <h1 className="font-display font-bold text-4xl sm:text-5xl italic text-foreground uppercase tracking-tight">
+          Conditions d'utilisation
+        </h1>
+        <p className="text-sm text-muted-foreground mt-2">
+          Dernière mise à jour : {new Date().toLocaleDateString("fr-FR")}
+        </p>
+      </div>
+
+      {/* Contenu */}
+      <div className="prose prose-sm sm:prose prose-invert max-w-none space-y-6 text-foreground/90">
+        <section className="glass-card p-6 sm:p-8 rounded-[2rem] border border-border space-y-4">
+          <h2 className="font-display text-xl font-bold text-accent">
+            1. Acceptation des conditions
+          </h2>
+          <p>
+            En accédant ou en utilisant le site Kitchenmix (ci-après "le
+            Service"), vous acceptez d'être lié par les présentes Conditions
+            d'utilisation. Si vous n'acceptez pas ces conditions, veuillez ne
+            pas utiliser le Service.
+          </p>
+        </section>
+
+        <section className="glass-card p-6 sm:p-8 rounded-[2rem] border border-border space-y-4">
+          <h2 className="font-display text-xl font-bold text-accent">
+            2. Description du Service
+          </h2>
+          <p>Kitchenmix est une plateforme communautaire permettant de :</p>
+          <ul className="list-disc pl-5 space-y-1">
+            <li>Partager et découvrir des recettes compatibles Thermomix®.</li>
+            <li>Planifier des menus hebdomadaires.</li>
+            <li>Interagir avec d'autres passionnés de cuisine.</li>
+          </ul>
+          <p className="text-sm text-muted-foreground">
+            Thermomix® est une marque déposée de Vorwerk. Kitchenmix n'est ni
+            affilié, ni sponsorisé par Vorwerk.
+          </p>
+        </section>
+
+        <section className="glass-card p-6 sm:p-8 rounded-[2rem] border border-border space-y-4">
+          <h2 className="font-display text-xl font-bold text-accent">
+            3. Compte utilisateur
+          </h2>
+          <p>
+            Pour accéder à certaines fonctionnalités (soumettre une recette,
+            commenter, sauvegarder des plannings), vous devez créer un compte.
+            Vous êtes responsable de la confidentialité de vos identifiants et
+            de toutes les activités effectuées via votre compte.
+          </p>
+          <p>
+            Vous devez être âgé d'au moins 16 ans pour créer un compte. En
+            créant un compte, vous certifiez que vous avez l'âge requis.
+          </p>
+        </section>
+
+        <section className="glass-card p-6 sm:p-8 rounded-[2rem] border border-border space-y-4">
+          <h2 className="font-display text-xl font-bold text-accent">
+            4. Contenu utilisateur
+          </h2>
+          <p>
+            En soumettant du contenu (recettes, commentaires, photos) sur
+            Kitchenmix, vous conservez vos droits de propriété intellectuelle.
+            Cependant, vous nous accordez une licence mondiale, non exclusive et
+            gratuite pour utiliser, reproduire, modifier et afficher ce contenu
+            dans le cadre du Service.
+          </p>
+          <p>Vous vous engagez à ne pas publier de contenu :</p>
+          <ul className="list-disc pl-5 space-y-1">
+            <li>Illégal, diffamatoire, haineux ou pornographique.</li>
+            <li>
+              Portant atteinte aux droits de propriété intellectuelle d'autrui.
+            </li>
+            <li>Contenant des virus ou du code malveillant.</li>
+          </ul>
+          <p>
+            Nous nous réservons le droit de supprimer tout contenu qui enfreint
+            ces règles, sans préavis.
+          </p>
+        </section>
+
+        <section className="glass-card p-6 sm:p-8 rounded-[2rem] border border-border space-y-4">
+          <h2 className="font-display text-xl font-bold text-accent">
+            5. Règles de conduite
+          </h2>
+          <p>En utilisant le Service, vous acceptez de :</p>
+          <ul className="list-disc pl-5 space-y-1">
+            <li>
+              Respecter les autres utilisateurs (pas d'insultes, harcèlement).
+            </li>
+            <li>Ne pas usurper l'identité d'une autre personne.</li>
+            <li>Ne pas tenter de contourner les mesures de sécurité.</li>
+            <li>
+              Ne pas collecter les données des autres utilisateurs sans
+              consentement.
+            </li>
+          </ul>
+        </section>
+
+        <section className="glass-card p-6 sm:p-8 rounded-[2rem] border border-border space-y-4">
+          <h2 className="font-display text-xl font-bold text-accent">
+            6. Modération
+          </h2>
+          <p>
+            Les recettes soumises sont soumises à une validation par notre
+            équipe avant publication. Nous nous efforçons de traiter les
+            soumissions dans les meilleurs délais. Vous serez notifié de la
+            validation ou du refus de votre recette par e-mail (si activé).
+          </p>
+        </section>
+
+        <section className="glass-card p-6 sm:p-8 rounded-[2rem] border border-border space-y-4">
+          <h2 className="font-display text-xl font-bold text-accent">
+            7. Résiliation
+          </h2>
+          <p>
+            Vous pouvez supprimer votre compte à tout moment depuis la page
+            Paramètres. Nous pouvons suspendre ou supprimer votre compte en cas
+            de violation grave ou répétée des présentes conditions.
+          </p>
+        </section>
+
+        <section className="glass-card p-6 sm:p-8 rounded-[2rem] border border-border space-y-4">
+          <h2 className="font-display text-xl font-bold text-accent">
+            8. Limitation de responsabilité
+          </h2>
+          <p>
+            Kitchenmix est fourni "tel quel". Nous ne garantissons pas que le
+            Service sera ininterrompu ou exempt d'erreurs. Nous ne sommes pas
+            responsables des dommages indirects résultant de l'utilisation du
+            Service.
+          </p>
+          <p>
+            Les recettes partagées le sont à titre informatif. Vérifiez toujours
+            les ingrédients et les instructions avant de cuisiner, en tenant
+            compte de vos allergies et restrictions alimentaires.
+          </p>
+        </section>
+
+        <section className="glass-card p-6 sm:p-8 rounded-[2rem] border border-border space-y-4">
+          <h2 className="font-display text-xl font-bold text-accent">
+            9. Propriété intellectuelle
+          </h2>
+          <p>
+            Le code source, le design, le logo et les éléments graphiques de
+            Kitchenmix sont notre propriété exclusive ou sont utilisés sous
+            licence. Vous ne pouvez pas les reproduire sans autorisation.
+          </p>
+        </section>
+
+        <section className="glass-card p-6 sm:p-8 rounded-[2rem] border border-border space-y-4">
+          <h2 className="font-display text-xl font-bold text-accent">
+            10. Loi applicable
+          </h2>
+          <p>
+            Les présentes conditions sont régies par le droit français. Tout
+            litige sera soumis à la compétence exclusive des tribunaux français.
+          </p>
+        </section>
+
+        <section className="glass-card p-6 sm:p-8 rounded-[2rem] border border-border space-y-4">
+          <h2 className="font-display text-xl font-bold text-accent">
+            11. Contact
+          </h2>
+          <p>
+            Pour toute question relative à ces conditions, contactez-nous à :{" "}
+            <a
+              href="mailto:contact@kitchenmix.com"
+              className="text-accent hover:underline"
+            >
+              contact@kitchenmix.com
+            </a>
+          </p>
+        </section>
+      </div>
+    </div>
+  );
+}
+</file>
+
+<file path="app/confidentialite/page.tsx">
+export const metadata = {
+  title: "Politique de confidentialité | Kitchenmix",
+  description:
+    "Comment Kitchenmix collecte, utilise et protège vos données personnelles.",
+};
+
+export default function ConfidentialitePage() {
+  return (
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-12 sm:py-16 space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      {/* En-tête */}
+      <div className="border-b border-border pb-6">
+        <h1 className="font-display font-bold text-4xl sm:text-5xl italic text-foreground uppercase tracking-tight">
+          Politique de confidentialité
+        </h1>
+        <p className="text-sm text-muted-foreground mt-2">
+          Dernière mise à jour : {new Date().toLocaleDateString("fr-FR")}
+        </p>
+      </div>
+
+      {/* Contenu */}
+      <div className="prose prose-sm sm:prose prose-invert max-w-none space-y-6 text-foreground/90">
+        <section className="glass-card p-6 sm:p-8 rounded-[2rem] border border-border space-y-4">
+          <h2 className="font-display text-xl font-bold text-accent">
+            1. Introduction
+          </h2>
+          <p>
+            Kitchenmix (ci-après "nous", "notre", "le Site") s'engage à protéger
+            la vie privée de ses utilisateurs. Cette politique explique comment
+            nous collectons, utilisons et protégeons vos données personnelles
+            lorsque vous utilisez notre plateforme de partage de recettes et de
+            planification de repas.
+          </p>
+          <p>
+            En utilisant Kitchenmix, vous acceptez les pratiques décrites dans
+            cette politique. Si vous n'acceptez pas ces conditions, veuillez ne
+            pas utiliser nos services.
+          </p>
+        </section>
+
+        <section className="glass-card p-6 sm:p-8 rounded-[2rem] border border-border space-y-4">
+          <h2 className="font-display text-xl font-bold text-accent">
+            2. Données collectées
+          </h2>
+          <p>Nous collectons les informations suivantes :</p>
+          <ul className="list-disc pl-5 space-y-1">
+            <li>
+              <strong>Informations de compte :</strong> adresse e-mail,
+              pseudonyme, avatar (optionnel), préférences de thème.
+            </li>
+            <li>
+              <strong>Contenu généré :</strong> recettes que vous soumettez,
+              commentaires, plannings sauvegardés.
+            </li>
+            <li>
+              <strong>Données d'utilisation :</strong> pages visitées, actions
+              effectuées, interactions avec les recettes (favoris, likes).
+            </li>
+            <li>
+              <strong>Données techniques :</strong> adresse IP, type de
+              navigateur, système d'exploitation, identifiants de session.
+            </li>
+          </ul>
+          <p className="text-sm text-muted-foreground mt-2">
+            Nous utilisons Supabase pour l'authentification et le stockage
+            sécurisé des données.
+          </p>
+        </section>
+
+        <section className="glass-card p-6 sm:p-8 rounded-[2rem] border border-border space-y-4">
+          <h2 className="font-display text-xl font-bold text-accent">
+            3. Utilisation des données
+          </h2>
+          <p>Vos données sont utilisées pour :</p>
+          <ul className="list-disc pl-5 space-y-1">
+            <li>
+              Fournir et améliorer nos services (affichage des recettes,
+              planificateur).
+            </li>
+            <li>Personnaliser votre expérience (thème, suggestions).</li>
+            <li>
+              Communiquer avec vous (notifications de modération, réponses aux
+              commentaires).
+            </li>
+            <li>Assurer la sécurité et prévenir les abus.</li>
+            <li>Respecter nos obligations légales.</li>
+          </ul>
+        </section>
+
+        <section className="glass-card p-6 sm:p-8 rounded-[2rem] border border-border space-y-4">
+          <h2 className="font-display text-xl font-bold text-accent">
+            4. Partage des données
+          </h2>
+          <p>
+            Nous ne vendons jamais vos données personnelles. Nous pouvons les
+            partager dans les cas limités suivants :
+          </p>
+          <ul className="list-disc pl-5 space-y-1">
+            <li>
+              <strong>Fournisseurs de services :</strong> Supabase
+              (hébergement/base de données), Google (authentification OAuth).
+            </li>
+            <li>
+              <strong>Obligations légales :</strong> si la loi l'exige ou pour
+              protéger nos droits.
+            </li>
+            <li>
+              <strong>Contenu public :</strong> les recettes que vous publiez,
+              votre pseudonyme et votre avatar sont visibles par tous les
+              utilisateurs.
+            </li>
+          </ul>
+        </section>
+
+        <section className="glass-card p-6 sm:p-8 rounded-[2rem] border border-border space-y-4">
+          <h2 className="font-display text-xl font-bold text-accent">
+            5. Cookies et technologies similaires
+          </h2>
+          <p>
+            Kitchenmix utilise des cookies essentiels pour maintenir votre
+            session connectée et mémoriser vos préférences (thème). Nous
+            n'utilisons pas de cookies publicitaires ou de traçage tiers.
+          </p>
+          <p>
+            Vous pouvez configurer votre navigateur pour refuser les cookies,
+            mais cela peut affecter le fonctionnement du Site.
+          </p>
+        </section>
+
+        <section className="glass-card p-6 sm:p-8 rounded-[2rem] border border-border space-y-4">
+          <h2 className="font-display text-xl font-bold text-accent">
+            6. Sécurité des données
+          </h2>
+          <p>
+            Nous mettons en œuvre des mesures techniques et organisationnelles
+            pour protéger vos données contre tout accès non autorisé,
+            modification ou destruction. L'authentification est gérée par
+            Supabase avec des protocoles sécurisés (OAuth 2.0, JWT).
+          </p>
+        </section>
+
+        <section className="glass-card p-6 sm:p-8 rounded-[2rem] border border-border space-y-4">
+          <h2 className="font-display text-xl font-bold text-accent">
+            7. Vos droits
+          </h2>
+          <p>Conformément au RGPD, vous disposez des droits suivants :</p>
+          <ul className="list-disc pl-5 space-y-1">
+            <li>Accéder à vos données personnelles.</li>
+            <li>Rectifier ou supprimer vos données.</li>
+            <li>Vous opposer au traitement ou le limiter.</li>
+            <li>
+              Récupérer vos données dans un format structuré (portabilité).
+            </li>
+          </ul>
+          <p>
+            Pour exercer ces droits, contactez-nous à :{" "}
+            <a
+              href="mailto:contact@kitchenmix.com"
+              className="text-accent hover:underline"
+            >
+              contact@kitchenmix.com
+            </a>
+            . Vous pouvez également supprimer votre compte directement depuis
+            les paramètres de votre profil.
+          </p>
+        </section>
+
+        <section className="glass-card p-6 sm:p-8 rounded-[2rem] border border-border space-y-4">
+          <h2 className="font-display text-xl font-bold text-accent">
+            8. Conservation des données
+          </h2>
+          <p>
+            Nous conservons vos données tant que votre compte est actif. En cas
+            de suppression de compte, toutes vos données personnelles sont
+            supprimées de nos systèmes dans un délai de 30 jours, à l'exception
+            des informations nécessaires au respect d'obligations légales.
+          </p>
+        </section>
+
+        <section className="glass-card p-6 sm:p-8 rounded-[2rem] border border-border space-y-4">
+          <h2 className="font-display text-xl font-bold text-accent">
+            9. Modifications
+          </h2>
+          <p>
+            Nous pouvons mettre à jour cette politique occasionnellement. Nous
+            vous informerons de tout changement significatif par e-mail ou via
+            une notification sur le Site.
+          </p>
+        </section>
+
+        <section className="glass-card p-6 sm:p-8 rounded-[2rem] border border-border space-y-4">
+          <h2 className="font-display text-xl font-bold text-accent">
+            10. Contact
+          </h2>
+          <p>
+            Pour toute question relative à cette politique, écrivez-nous à :{" "}
+            <a
+              href="mailto:contact@kitchenmix.com"
+              className="text-accent hover:underline"
+            >
+              contact@kitchenmix.com
+            </a>
+          </p>
+        </section>
+      </div>
+    </div>
   );
 }
 </file>
@@ -7680,35 +8086,6 @@ export const SEED_COMPANION: SeedRecette[] = [
 ];
 </file>
 
-<file path="lib/seed-mega-cookexpert.ts">
-import type { SeedRecette } from "./seed-data";
-
-export const SEED_COOK_EXPERT: SeedRecette[] = [
-  // ── EXPRESS ⚡ ──
-  { slug: "veloute-courgettes-cookexpert", titre: "Velouté de courgettes menthe", description: "Un velouté léger et parfumé à la menthe fraîche. Le Cook Expert cuit et mixe en un programme.", image_url: null, video_youtube_id: null, temps_preparation: 10, temps_cuisson: 10, difficulte: "facile", nombre_portions: 4, modele_thermomix: ["COOK_EXPERT"], categories: ["soupe", "entree"], regime: ["vegetarien", "sans-gluten"], tags: ["courgette", "menthe", "léger", "express"], calories_par_portion: 120, nutriscore: "A", nutriscore_note: "Estimation indicative", ingredients: [{ nom: "Courgettes", quantite: 500, unite: "g", categorie: "Fruits & Légumes" }, { nom: "Oignon", quantite: 1, unite: "pièce", categorie: "Fruits & Légumes" }, { nom: "Bouillon de légumes", quantite: 400, unite: "ml", categorie: "Épicerie" }, { nom: "Crème légère", quantite: 50, unite: "ml", categorie: "Produits laitiers" }, { nom: "Menthe fraîche", quantite: 10, unite: "g", categorie: "Fruits & Légumes" }, { nom: "Sel", quantite: 1, unite: "pincée", categorie: "Condiments" }, { nom: "Poivre", quantite: 1, unite: "pincée", categorie: "Condiments" }], etapes: [{ numero: 1, instruction: "Hacher l'oignon dans le bol du Cook Expert.", vitesse: 8, duree: 5 }, { numero: 2, instruction: "Ajouter les courgettes en morceaux et le bouillon. Cuire au programme Soupe.", vitesse: 1, temperature: 100, duree: 480 }, { numero: 3, instruction: "Ajouter la crème et la menthe. Mixer.", vitesse: 10, duree: 30 }], faq: null, approuve: true, publie: true, vues: 0 },
-  { slug: "guacamole-cookexpert", titre: "Guacamole frais", description: "Un guacamole crémeux aux saveurs mexicaines. Le Cook Expert hache parfaitement sans sur-mixer.", image_url: null, video_youtube_id: null, temps_preparation: 10, temps_cuisson: 0, difficulte: "facile", nombre_portions: 4, modele_thermomix: ["COOK_EXPERT"], categories: ["aperitif", "entree"], regime: ["vegan", "sans-gluten", "sans-lactose"], tags: ["guacamole", "avocat", "mexicain", "express"], calories_par_portion: 165, nutriscore: "A", nutriscore_note: "Estimation indicative", ingredients: [{ nom: "Avocats mûrs", quantite: 3, unite: "pièce", categorie: "Fruits & Légumes" }, { nom: "Tomate", quantite: 1, unite: "pièce", categorie: "Fruits & Légumes" }, { nom: "Oignon rouge", quantite: 0.5, unite: "pièce", categorie: "Fruits & Légumes" }, { nom: "Coriandre fraîche", quantite: 10, unite: "g", categorie: "Fruits & Légumes" }, { nom: "Jus de citron vert", quantite: 20, unite: "ml", categorie: "Fruits & Légumes" }, { nom: "Piment jalapeño", quantite: 0.5, unite: "pièce", categorie: "Fruits & Légumes" }, { nom: "Sel", quantite: 1, unite: "pincée", categorie: "Condiments" }], etapes: [{ numero: 1, instruction: "Mettre l'oignon et le piment dans le bol. Hacher grossièrement.", vitesse: 5, duree: 3 }, { numero: 2, instruction: "Ajouter la chair des avocats, la tomate coupée, le citron vert et le sel. Mixer brièvement.", vitesse: 4, duree: 5, conseil: "Garder une texture avec morceaux." }], faq: null, approuve: true, publie: true, vues: 0 },
-  { slug: "milkshake-fraise-cookexpert", titre: "Milkshake fraise-vanille", description: "Un milkshake gourmand aux fraises fraîches et glace vanille. Prêt en 3 minutes.", image_url: null, video_youtube_id: null, temps_preparation: 5, temps_cuisson: 0, difficulte: "facile", nombre_portions: 4, modele_thermomix: ["COOK_EXPERT"], categories: ["boisson", "dessert"], regime: ["vegetarien", "sans-gluten"], tags: ["milkshake", "fraise", "vanille", "express"], calories_par_portion: 220, nutriscore: "C", nutriscore_note: "Estimation indicative", ingredients: [{ nom: "Fraises fraîches", quantite: 300, unite: "g", categorie: "Fruits & Légumes" }, { nom: "Glace vanille", quantite: 200, unite: "g", categorie: "Surgelés" }, { nom: "Lait entier", quantite: 300, unite: "ml", categorie: "Produits laitiers" }, { nom: "Sucre", quantite: 15, unite: "g", categorie: "Épicerie" }], etapes: [{ numero: 1, instruction: "Mettre tous les ingrédients dans le bol du Cook Expert.", vitesse: 8, duree: 15 }, { numero: 2, instruction: "Mixer à vitesse maximale.", vitesse: 12, duree: 30 }], faq: null, approuve: true, publie: true, vues: 0 },
-  { slug: "beurre-noisette-cookexpert", titre: "Beurre noisette parfumé", description: "Un beurre noisette doré au Cook Expert, pour sublimer pâtes, poissons ou légumes.", image_url: null, video_youtube_id: null, temps_preparation: 2, temps_cuisson: 8, difficulte: "facile", nombre_portions: 4, modele_thermomix: ["COOK_EXPERT"], categories: ["sauce"], regime: ["sans-gluten"], tags: ["beurre", "noisette", "sauce", "express"], calories_par_portion: 180, nutriscore: "D", nutriscore_note: "Riche en lipides", ingredients: [{ nom: "Beurre doux", quantite: 100, unite: "g", categorie: "Produits laitiers" }, { nom: "Jus de citron", quantite: 5, unite: "ml", categorie: "Fruits & Légumes" }], etapes: [{ numero: 1, instruction: "Mettre le beurre dans le bol. Chauffer en surveillant.", vitesse: 1, temperature: 120, duree: 480, conseil: "Le beurre doit devenir ambré, pas noir." }, { numero: 2, instruction: "Ajouter le jus de citron pour stopper la cuisson.", vitesse: 1, duree: 5 }], faq: null, approuve: true, publie: true, vues: 0 },
-  { slug: "soupe-miso-express-cookexpert", titre: "Soupe miso express", description: "Une soupe miso japonaise authentique prête en 15 minutes. Réconfortante et légère.", image_url: null, video_youtube_id: null, temps_preparation: 5, temps_cuisson: 10, difficulte: "facile", nombre_portions: 4, modele_thermomix: ["COOK_EXPERT"], categories: ["soupe", "entree"], regime: ["vegan", "sans-lactose"], tags: ["miso", "japonais", "soupe", "express"], calories_par_portion: 65, nutriscore: "A", nutriscore_note: "Estimation indicative", ingredients: [{ nom: "Pâte miso", quantite: 50, unite: "g", categorie: "Épicerie" }, { nom: "Tofu soyeux", quantite: 150, unite: "g", categorie: "Épicerie" }, { nom: "Algue wakame séchée", quantite: 5, unite: "g", categorie: "Épicerie" }, { nom: "Oignons verts", quantite: 2, unite: "pièce", categorie: "Fruits & Légumes" }, { nom: "Eau", quantite: 800, unite: "ml", categorie: "Autre" }, { nom: "Sauce soja", quantite: 10, unite: "ml", categorie: "Condiments" }], etapes: [{ numero: 1, instruction: "Chauffer l'eau dans le bol.", vitesse: 1, temperature: 90, duree: 360 }, { numero: 2, instruction: "Diluer la pâte miso dans un peu d'eau tiède puis ajouter au bol avec le tofu coupé en dés, le wakame et la sauce soja.", vitesse: 1, temperature: 70, duree: 120, conseil: "Ne pas faire bouillir le miso, il perd ses probiotiques." }, { numero: 3, instruction: "Servir parsemé d'oignons verts émincés." }], faq: null, approuve: true, publie: true, vues: 0 },
-  { slug: "chutney-mangue-cookexpert", titre: "Chutney de mangue épicé", description: "Un chutney sucré-salé pour accompagner vos currys, fromages ou grillades.", image_url: null, video_youtube_id: null, temps_preparation: 10, temps_cuisson: 10, difficulte: "facile", nombre_portions: 4, modele_thermomix: ["COOK_EXPERT"], categories: ["sauce", "accompagnement"], regime: ["vegan", "sans-gluten", "sans-lactose"], tags: ["chutney", "mangue", "épicé", "express"], calories_par_portion: 95, nutriscore: "B", nutriscore_note: "Estimation indicative", ingredients: [{ nom: "Mangue mûre", quantite: 300, unite: "g", categorie: "Fruits & Légumes" }, { nom: "Vinaigre de cidre", quantite: 40, unite: "ml", categorie: "Condiments" }, { nom: "Sucre roux", quantite: 50, unite: "g", categorie: "Épicerie" }, { nom: "Gingembre frais", quantite: 10, unite: "g", categorie: "Fruits & Légumes" }, { nom: "Piment", quantite: 0.5, unite: "pièce", categorie: "Fruits & Légumes" }, { nom: "Sel", quantite: 1, unite: "pincée", categorie: "Condiments" }], etapes: [{ numero: 1, instruction: "Hacher le gingembre et le piment.", vitesse: 7, duree: 5 }, { numero: 2, instruction: "Ajouter la mangue en morceaux, le vinaigre, le sucre et le sel. Cuire.", vitesse: 2, temperature: 100, duree: 600, conseil: "Laisser quelques morceaux pour la texture." }], faq: null, approuve: true, publie: true, vues: 0 },
-  // ── RAPIDE 🕒 ──
-  { slug: "poulet-tikka-masala-cookexpert", titre: "Poulet tikka masala", description: "Le classique indien : poulet tendre dans une sauce tomate épicée et crémeuse.", image_url: null, video_youtube_id: null, temps_preparation: 15, temps_cuisson: 25, difficulte: "facile", nombre_portions: 4, modele_thermomix: ["COOK_EXPERT"], categories: ["plat"], regime: ["sans-gluten", "halal"], tags: ["poulet", "tikka", "indien", "rapide"], calories_par_portion: 390, nutriscore: "B", nutriscore_note: "Estimation indicative", ingredients: [{ nom: "Blancs de poulet", quantite: 500, unite: "g", categorie: "Viandes & Poissons" }, { nom: "Tomates concassées", quantite: 400, unite: "g", categorie: "Épicerie" }, { nom: "Crème de coco", quantite: 150, unite: "ml", categorie: "Épicerie" }, { nom: "Oignon", quantite: 1, unite: "pièce", categorie: "Fruits & Légumes" }, { nom: "Ail", quantite: 2, unite: "pièce", categorie: "Fruits & Légumes" }, { nom: "Garam masala", quantite: 10, unite: "g", categorie: "Condiments" }, { nom: "Curcuma", quantite: 3, unite: "g", categorie: "Condiments" }, { nom: "Paprika", quantite: 5, unite: "g", categorie: "Condiments" }, { nom: "Huile", quantite: 15, unite: "ml", categorie: "Épicerie" }, { nom: "Sel", quantite: 1, unite: "pincée", categorie: "Condiments" }], etapes: [{ numero: 1, instruction: "Hacher l'oignon et l'ail.", vitesse: 5, duree: 5 }, { numero: 2, instruction: "Ajouter l'huile et les épices. Faire revenir.", vitesse: 1, temperature: 120, duree: 180 }, { numero: 3, instruction: "Ajouter le poulet en morceaux, les tomates et la crème de coco. Cuire.", vitesse: 1, temperature: 100, duree: 1200 }], faq: null, approuve: true, publie: true, vues: 0 },
-  { slug: "ratatouille-provencale-cookexpert", titre: "Ratatouille provençale", description: "La ratatouille du sud, mijotée doucement avec les légumes du soleil.", image_url: null, video_youtube_id: null, temps_preparation: 15, temps_cuisson: 25, difficulte: "facile", nombre_portions: 4, modele_thermomix: ["COOK_EXPERT"], categories: ["plat", "accompagnement"], regime: ["vegan", "sans-gluten", "sans-lactose"], tags: ["ratatouille", "provençal", "été", "rapide"], calories_par_portion: 130, nutriscore: "A", nutriscore_note: "Estimation indicative", ingredients: [{ nom: "Aubergine", quantite: 1, unite: "pièce", categorie: "Fruits & Légumes" }, { nom: "Courgettes", quantite: 2, unite: "pièce", categorie: "Fruits & Légumes" }, { nom: "Poivron rouge", quantite: 1, unite: "pièce", categorie: "Fruits & Légumes" }, { nom: "Poivron jaune", quantite: 1, unite: "pièce", categorie: "Fruits & Légumes" }, { nom: "Tomates", quantite: 400, unite: "g", categorie: "Fruits & Légumes" }, { nom: "Oignon", quantite: 1, unite: "pièce", categorie: "Fruits & Légumes" }, { nom: "Ail", quantite: 2, unite: "pièce", categorie: "Fruits & Légumes" }, { nom: "Huile d'olive", quantite: 30, unite: "ml", categorie: "Condiments" }, { nom: "Herbes de Provence", quantite: 5, unite: "g", categorie: "Condiments" }, { nom: "Sel", quantite: 1, unite: "pincée", categorie: "Condiments" }], etapes: [{ numero: 1, instruction: "Couper tous les légumes en dés. Hacher l'oignon et l'ail.", vitesse: 4, duree: 5 }, { numero: 2, instruction: "Faire revenir l'oignon et l'ail avec l'huile d'olive.", vitesse: 1, temperature: 120, duree: 180 }, { numero: 3, instruction: "Ajouter tous les légumes et les herbes. Cuire.", vitesse: 1, temperature: 100, duree: 1200, accessoire: "spatule" }], faq: null, approuve: true, publie: true, vues: 0 },
-  { slug: "quiche-lorraine-cookexpert", titre: "Quiche lorraine", description: "La quiche lorraine traditionnelle avec sa pâte brisée maison. Le Cook Expert pétrit la pâte.", image_url: null, video_youtube_id: null, temps_preparation: 15, temps_cuisson: 25, difficulte: "moyen", nombre_portions: 4, modele_thermomix: ["COOK_EXPERT"], categories: ["plat", "entree"], regime: [], tags: ["quiche", "lorraine", "pâte brisée", "rapide"], calories_par_portion: 420, nutriscore: "C", nutriscore_note: "Estimation indicative", ingredients: [{ nom: "Farine", quantite: 250, unite: "g", categorie: "Épicerie" }, { nom: "Beurre froid", quantite: 125, unite: "g", categorie: "Produits laitiers" }, { nom: "Eau froide", quantite: 50, unite: "ml", categorie: "Autre" }, { nom: "Lardons", quantite: 200, unite: "g", categorie: "Viandes & Poissons" }, { nom: "Œufs", quantite: 3, unite: "pièce", categorie: "Produits laitiers" }, { nom: "Crème fraîche", quantite: 200, unite: "ml", categorie: "Produits laitiers" }, { nom: "Gruyère râpé", quantite: 80, unite: "g", categorie: "Produits laitiers" }, { nom: "Muscade", quantite: 1, unite: "pincée", categorie: "Condiments" }, { nom: "Sel", quantite: 1, unite: "pincée", categorie: "Condiments" }], etapes: [{ numero: 1, instruction: "Mettre la farine et le beurre froid en cubes. Sabler.", vitesse: 6, duree: 10 }, { numero: 2, instruction: "Ajouter l'eau et le sel. Pétrir brièvement.", vitesse: 4, duree: 20, conseil: "La pâte doit être homogène mais pas trop travaillée." }, { numero: 3, instruction: "Étaler la pâte, foncer un moule. Mélanger œufs, crème, muscade. Disposer lardons et verser l'appareil. Saupoudrer de gruyère." }, { numero: 4, instruction: "Enfourner 25 minutes à 200°C.", conseil: "Précuire la pâte à blanc 10 min si vous aimez un fond croustillant." }], faq: null, approuve: true, publie: true, vues: 0 },
-  { slug: "wok-legumes-nouilles-cookexpert", titre: "Wok de légumes et nouilles sautées", description: "Un wok coloré aux légumes croquants et nouilles de riz, façon street food asiatique.", image_url: null, video_youtube_id: null, temps_preparation: 15, temps_cuisson: 15, difficulte: "facile", nombre_portions: 4, modele_thermomix: ["COOK_EXPERT"], categories: ["plat"], regime: ["vegan", "sans-lactose"], tags: ["wok", "asiatique", "nouilles", "rapide"], calories_par_portion: 280, nutriscore: "A", nutriscore_note: "Estimation indicative", ingredients: [{ nom: "Nouilles de riz", quantite: 200, unite: "g", categorie: "Épicerie" }, { nom: "Brocoli", quantite: 150, unite: "g", categorie: "Fruits & Légumes" }, { nom: "Carotte", quantite: 1, unite: "pièce", categorie: "Fruits & Légumes" }, { nom: "Poivron rouge", quantite: 1, unite: "pièce", categorie: "Fruits & Légumes" }, { nom: "Sauce soja", quantite: 30, unite: "ml", categorie: "Condiments" }, { nom: "Huile de sésame", quantite: 10, unite: "ml", categorie: "Condiments" }, { nom: "Gingembre frais", quantite: 5, unite: "g", categorie: "Fruits & Légumes" }, { nom: "Ail", quantite: 1, unite: "pièce", categorie: "Fruits & Légumes" }, { nom: "Graines de sésame", quantite: 5, unite: "g", categorie: "Épicerie" }], etapes: [{ numero: 1, instruction: "Hacher l'ail et le gingembre.", vitesse: 5, duree: 3 }, { numero: 2, instruction: "Ajouter l'huile de sésame et faire revenir.", vitesse: 1, temperature: 130, duree: 60 }, { numero: 3, instruction: "Ajouter les légumes coupés. Sauter.", vitesse: 1, temperature: 120, duree: 420, accessoire: "spatule" }, { numero: 4, instruction: "Ajouter les nouilles réhydratées et la sauce soja. Mélanger.", vitesse: 1, temperature: 100, duree: 180, conseil: "Parsemer de graines de sésame." }], faq: null, approuve: true, publie: true, vues: 0 },
-  { slug: "fondue-chocolat-cookexpert", titre: "Fondue au chocolat", description: "Une fondue au chocolat veloutée pour tremper fruits et marshmallows. Le Cook Expert maintient la température parfaite.", image_url: null, video_youtube_id: null, temps_preparation: 5, temps_cuisson: 15, difficulte: "facile", nombre_portions: 4, modele_thermomix: ["COOK_EXPERT"], categories: ["dessert"], regime: ["vegetarien", "sans-gluten"], tags: ["chocolat", "fondue", "gourmand", "rapide"], calories_par_portion: 380, nutriscore: "D", nutriscore_note: "Riche en sucre et lipides", ingredients: [{ nom: "Chocolat noir 70%", quantite: 200, unite: "g", categorie: "Épicerie" }, { nom: "Crème liquide", quantite: 150, unite: "ml", categorie: "Produits laitiers" }, { nom: "Beurre", quantite: 20, unite: "g", categorie: "Produits laitiers" }, { nom: "Fruits de saison pour tremper", quantite: 400, unite: "g", categorie: "Fruits & Légumes" }], etapes: [{ numero: 1, instruction: "Casser le chocolat en morceaux dans le bol. Ajouter la crème et le beurre.", vitesse: 2, temperature: 50, duree: 420 }, { numero: 2, instruction: "Mélanger jusqu'à obtenir une texture lisse.", vitesse: 4, duree: 30, conseil: "Servir avec fraises, bananes, ananas et marshmallows." }], faq: null, approuve: true, publie: true, vues: 0 },
-  { slug: "taboulé-libanais-cookexpert", titre: "Taboulé libanais au persil", description: "Le vrai taboulé libanais, dominé par le persil frais et la menthe. Léger et parfumé.", image_url: null, video_youtube_id: null, temps_preparation: 20, temps_cuisson: 0, difficulte: "facile", nombre_portions: 4, modele_thermomix: ["COOK_EXPERT"], categories: ["entree", "accompagnement"], regime: ["vegan", "sans-lactose"], tags: ["taboulé", "libanais", "persil", "rapide"], calories_par_portion: 180, nutriscore: "A", nutriscore_note: "Estimation indicative", ingredients: [{ nom: "Boulgour fin", quantite: 60, unite: "g", categorie: "Épicerie" }, { nom: "Persil plat frais", quantite: 100, unite: "g", categorie: "Fruits & Légumes" }, { nom: "Menthe fraîche", quantite: 30, unite: "g", categorie: "Fruits & Légumes" }, { nom: "Tomates", quantite: 200, unite: "g", categorie: "Fruits & Légumes" }, { nom: "Oignon nouveau", quantite: 3, unite: "pièce", categorie: "Fruits & Légumes" }, { nom: "Jus de citron", quantite: 60, unite: "ml", categorie: "Fruits & Légumes" }, { nom: "Huile d'olive", quantite: 40, unite: "ml", categorie: "Condiments" }, { nom: "Sel", quantite: 1, unite: "pincée", categorie: "Condiments" }], etapes: [{ numero: 1, instruction: "Tremper le boulgour 15 min dans l'eau chaude, puis égoutter." }, { numero: 2, instruction: "Hacher le persil et la menthe grossièrement au Cook Expert.", vitesse: 4, duree: 3, conseil: "Ne pas mixer fin, hacher par pulsions." }, { numero: 3, instruction: "Mélanger dans un saladier avec les tomates en dés, les oignons émincés, le boulgour, le citron, l'huile et le sel.", conseil: "Réfrigérer 30 min avant de servir." }], faq: null, approuve: true, publie: true, vues: 0 },
-  { slug: "soupe-butternut-cookexpert", titre: "Soupe veloutée butternut-curry", description: "Un velouté automnal au butternut rôti et curry doux. Onctueux et réconfortant.", image_url: null, video_youtube_id: null, temps_preparation: 10, temps_cuisson: 25, difficulte: "facile", nombre_portions: 4, modele_thermomix: ["COOK_EXPERT"], categories: ["soupe"], regime: ["vegan", "sans-gluten", "sans-lactose"], tags: ["butternut", "curry", "automne", "rapide"], calories_par_portion: 140, nutriscore: "A", nutriscore_note: "Estimation indicative", ingredients: [{ nom: "Butternut", quantite: 600, unite: "g", categorie: "Fruits & Légumes" }, { nom: "Oignon", quantite: 1, unite: "pièce", categorie: "Fruits & Légumes" }, { nom: "Lait de coco", quantite: 200, unite: "ml", categorie: "Épicerie" }, { nom: "Bouillon de légumes", quantite: 400, unite: "ml", categorie: "Épicerie" }, { nom: "Curry en poudre", quantite: 5, unite: "g", categorie: "Condiments" }, { nom: "Huile d'olive", quantite: 10, unite: "ml", categorie: "Condiments" }, { nom: "Sel", quantite: 1, unite: "pincée", categorie: "Condiments" }], etapes: [{ numero: 1, instruction: "Hacher l'oignon. Faire revenir avec l'huile et le curry.", vitesse: 1, temperature: 120, duree: 180 }, { numero: 2, instruction: "Ajouter le butternut en cubes et le bouillon. Cuire.", vitesse: 1, temperature: 100, duree: 1200 }, { numero: 3, instruction: "Ajouter le lait de coco. Mixer.", vitesse: 10, duree: 60 }], faq: null, approuve: true, publie: true, vues: 0 },
-  // ── ÉQUILIBRÉE 🍲 ──
-  { slug: "tajine-agneau-pruneaux-cookexpert", titre: "Tajine d'agneau aux pruneaux", description: "Un tajine sucré-salé parfumé aux épices marocaines. L'agneau fond dans la bouche après une cuisson douce.", image_url: null, video_youtube_id: null, temps_preparation: 15, temps_cuisson: 50, difficulte: "moyen", nombre_portions: 4, modele_thermomix: ["COOK_EXPERT"], categories: ["plat"], regime: ["sans-gluten", "sans-lactose", "halal"], tags: ["tajine", "agneau", "pruneaux", "marocain"], calories_par_portion: 480, nutriscore: "B", nutriscore_note: "Estimation indicative", ingredients: [{ nom: "Épaule d'agneau", quantite: 600, unite: "g", categorie: "Viandes & Poissons" }, { nom: "Pruneaux dénoyautés", quantite: 150, unite: "g", categorie: "Fruits & Légumes" }, { nom: "Oignon", quantite: 2, unite: "pièce", categorie: "Fruits & Légumes" }, { nom: "Miel", quantite: 30, unite: "g", categorie: "Épicerie" }, { nom: "Cannelle", quantite: 5, unite: "g", categorie: "Condiments" }, { nom: "Gingembre moulu", quantite: 3, unite: "g", categorie: "Condiments" }, { nom: "Safran", quantite: 1, unite: "pincée", categorie: "Condiments" }, { nom: "Amandes effilées", quantite: 30, unite: "g", categorie: "Épicerie" }, { nom: "Huile d'olive", quantite: 20, unite: "ml", categorie: "Condiments" }, { nom: "Sel", quantite: 1, unite: "pincée", categorie: "Condiments" }, { nom: "Eau", quantite: 200, unite: "ml", categorie: "Autre" }], etapes: [{ numero: 1, instruction: "Hacher les oignons.", vitesse: 5, duree: 5 }, { numero: 2, instruction: "Faire revenir avec l'huile et les épices.", vitesse: 1, temperature: 120, duree: 180 }, { numero: 3, instruction: "Ajouter l'agneau en morceaux et l'eau. Mijoter.", vitesse: 1, temperature: 100, duree: 2400 }, { numero: 4, instruction: "Ajouter les pruneaux et le miel. Poursuivre 15 min.", vitesse: 1, temperature: 100, duree: 900, conseil: "Servir avec de la semoule et des amandes grillées." }], faq: null, approuve: true, publie: true, vues: 0 },
-  { slug: "lasagnes-bolognaise-cookexpert", titre: "Lasagnes à la bolognaise", description: "Des lasagnes généreuses avec une bolognaise maison et une béchamel onctueuse. Le Cook Expert prépare les deux sauces.", image_url: null, video_youtube_id: null, temps_preparation: 20, temps_cuisson: 40, difficulte: "moyen", nombre_portions: 4, modele_thermomix: ["COOK_EXPERT"], categories: ["plat"], regime: [], tags: ["lasagnes", "bolognaise", "italien", "gratin"], calories_par_portion: 550, nutriscore: "C", nutriscore_note: "Estimation indicative", ingredients: [{ nom: "Viande hachée", quantite: 400, unite: "g", categorie: "Viandes & Poissons" }, { nom: "Tomates concassées", quantite: 400, unite: "g", categorie: "Épicerie" }, { nom: "Oignon", quantite: 1, unite: "pièce", categorie: "Fruits & Légumes" }, { nom: "Ail", quantite: 2, unite: "pièce", categorie: "Fruits & Légumes" }, { nom: "Carotte", quantite: 1, unite: "pièce", categorie: "Fruits & Légumes" }, { nom: "Lait", quantite: 500, unite: "ml", categorie: "Produits laitiers" }, { nom: "Beurre", quantite: 40, unite: "g", categorie: "Produits laitiers" }, { nom: "Farine", quantite: 40, unite: "g", categorie: "Épicerie" }, { nom: "Feuilles de lasagnes", quantite: 250, unite: "g", categorie: "Épicerie" }, { nom: "Gruyère râpé", quantite: 100, unite: "g", categorie: "Produits laitiers" }, { nom: "Huile d'olive", quantite: 10, unite: "ml", categorie: "Condiments" }, { nom: "Sel", quantite: 1, unite: "pincée", categorie: "Condiments" }, { nom: "Muscade", quantite: 1, unite: "pincée", categorie: "Condiments" }], etapes: [{ numero: 1, instruction: "Hacher l'oignon, l'ail et la carotte.", vitesse: 5, duree: 5 }, { numero: 2, instruction: "Ajouter l'huile et faire revenir.", vitesse: 1, temperature: 120, duree: 180 }, { numero: 3, instruction: "Ajouter la viande hachée et les tomates. Cuire la bolognaise.", vitesse: 1, temperature: 100, duree: 1200 }, { numero: 4, instruction: "Vider, nettoyer le bol. Préparer la béchamel : beurre, farine, lait, muscade.", vitesse: 4, temperature: 90, duree: 420 }, { numero: 5, instruction: "Monter les lasagnes en alternant pâtes, bolognaise, béchamel. Terminer par du gruyère." }, { numero: 6, instruction: "Enfourner 35 minutes à 190°C.", conseil: "Laisser reposer 10 min avant de servir." }], faq: null, approuve: true, publie: true, vues: 0 },
-  { slug: "fondant-chocolat-cookexpert", titre: "Fondant au chocolat intense", description: "Un fondant au cœur coulant, intense en chocolat. Le Cook Expert mélange la pâte à la perfection.", image_url: null, video_youtube_id: null, temps_preparation: 15, temps_cuisson: 30, difficulte: "facile", nombre_portions: 4, modele_thermomix: ["COOK_EXPERT"], categories: ["dessert"], regime: ["vegetarien", "sans-gluten"], tags: ["chocolat", "fondant", "dessert", "gourmand"], calories_par_portion: 420, nutriscore: "D", nutriscore_note: "Riche en sucre et lipides", ingredients: [{ nom: "Chocolat noir 70%", quantite: 200, unite: "g", categorie: "Épicerie" }, { nom: "Beurre", quantite: 100, unite: "g", categorie: "Produits laitiers" }, { nom: "Œufs", quantite: 3, unite: "pièce", categorie: "Produits laitiers" }, { nom: "Sucre", quantite: 80, unite: "g", categorie: "Épicerie" }, { nom: "Maïzena", quantite: 20, unite: "g", categorie: "Épicerie" }], etapes: [{ numero: 1, instruction: "Faire fondre le chocolat et le beurre dans le bol.", vitesse: 2, temperature: 50, duree: 300 }, { numero: 2, instruction: "Ajouter les œufs et le sucre. Mélanger.", vitesse: 4, duree: 20 }, { numero: 3, instruction: "Ajouter la maïzena. Mélanger brièvement.", vitesse: 3, duree: 10 }, { numero: 4, instruction: "Verser dans des ramequins beurrés. Enfourner 12 minutes à 200°C.", conseil: "Le centre doit être encore tremblotant." }], faq: null, approuve: true, publie: true, vues: 0 },
-  // ── MIJOTÉE 🔥 ──
-  { slug: "couscous-royal-cookexpert", titre: "Couscous royal complet", description: "Le couscous traditionnel avec merguez, poulet et légumes. Le Cook Expert prépare le bouillon pendant que la semoule gonfle.", image_url: null, video_youtube_id: null, temps_preparation: 25, temps_cuisson: 60, difficulte: "moyen", nombre_portions: 4, modele_thermomix: ["COOK_EXPERT"], categories: ["plat"], regime: ["halal"], tags: ["couscous", "royal", "maghrébin", "mijoté"], calories_par_portion: 580, nutriscore: "B", nutriscore_note: "Estimation indicative", ingredients: [{ nom: "Cuisses de poulet", quantite: 4, unite: "pièce", categorie: "Viandes & Poissons" }, { nom: "Merguez", quantite: 4, unite: "pièce", categorie: "Viandes & Poissons" }, { nom: "Courgettes", quantite: 2, unite: "pièce", categorie: "Fruits & Légumes" }, { nom: "Carottes", quantite: 2, unite: "pièce", categorie: "Fruits & Légumes" }, { nom: "Navet", quantite: 1, unite: "pièce", categorie: "Fruits & Légumes" }, { nom: "Pois chiches en boîte", quantite: 200, unite: "g", categorie: "Épicerie" }, { nom: "Tomates concassées", quantite: 200, unite: "g", categorie: "Épicerie" }, { nom: "Oignon", quantite: 1, unite: "pièce", categorie: "Fruits & Légumes" }, { nom: "Ras el hanout", quantite: 10, unite: "g", categorie: "Condiments" }, { nom: "Semoule moyenne", quantite: 300, unite: "g", categorie: "Épicerie" }, { nom: "Huile d'olive", quantite: 20, unite: "ml", categorie: "Condiments" }, { nom: "Sel", quantite: 1, unite: "pincée", categorie: "Condiments" }, { nom: "Eau", quantite: 800, unite: "ml", categorie: "Autre" }], etapes: [{ numero: 1, instruction: "Hacher l'oignon. Faire revenir avec l'huile et le ras el hanout.", vitesse: 1, temperature: 120, duree: 180 }, { numero: 2, instruction: "Ajouter le poulet, les légumes coupés en gros morceaux, les tomates et l'eau. Cuire.", vitesse: 1, temperature: 100, duree: 2700 }, { numero: 3, instruction: "Ajouter les pois chiches et les merguez 15 min avant la fin.", vitesse: 1, temperature: 100, duree: 900 }, { numero: 4, instruction: "Préparer la semoule à part : verser de l'eau bouillante salée, couvrir 5 min, égrener à la fourchette avec un filet d'huile." }], faq: null, approuve: true, publie: true, vues: 0 },
-  { slug: "confit-canard-cookexpert", titre: "Confit de canard maison", description: "Un confit de canard fondant, cuit lentement dans sa graisse. Le Cook Expert maintient la température basse idéale.", image_url: null, video_youtube_id: null, temps_preparation: 15, temps_cuisson: 120, difficulte: "difficile", nombre_portions: 4, modele_thermomix: ["COOK_EXPERT"], categories: ["plat"], regime: ["sans-gluten", "sans-lactose"], tags: ["canard", "confit", "sud-ouest", "mijoté"], calories_par_portion: 620, nutriscore: "C", nutriscore_note: "Riche en lipides", ingredients: [{ nom: "Cuisses de canard confites", quantite: 4, unite: "pièce", categorie: "Viandes & Poissons" }, { nom: "Graisse de canard", quantite: 300, unite: "g", categorie: "Viandes & Poissons" }, { nom: "Pommes de terre", quantite: 600, unite: "g", categorie: "Fruits & Légumes" }, { nom: "Ail", quantite: 4, unite: "pièce", categorie: "Fruits & Légumes" }, { nom: "Persil", quantite: 10, unite: "g", categorie: "Fruits & Légumes" }, { nom: "Sel", quantite: 1, unite: "pincée", categorie: "Condiments" }], etapes: [{ numero: 1, instruction: "Mettre la graisse de canard dans le bol. Chauffer doucement.", vitesse: 1, temperature: 80, duree: 300 }, { numero: 2, instruction: "Immerger les cuisses de canard dans la graisse. Confire à basse température.", vitesse: 1, temperature: 80, duree: 5400, conseil: "Cuisson lente de 90 minutes minimum." }, { numero: 3, instruction: "Retirer les cuisses. Faire dorer les pommes de terre sarladaises avec l'ail et le persil dans la graisse.", vitesse: 1, temperature: 120, duree: 1200 }, { numero: 4, instruction: "Passer les cuisses au four 10 min à 220°C pour les croustiller.", conseil: "La peau doit être dorée et craquante." }], faq: null, approuve: true, publie: true, vues: 0 },
-];
-</file>
-
 <file path="lib/seed-mega-thermomix.ts">
 import type { SeedRecette } from "./seed-data";
 
@@ -9833,317 +10210,6 @@ async function seed() {
 }
 
 seed().catch(console.error);
-</file>
-
-<file path="scripts/upload-images.ts">
-/* =============================================================
-   Kitchen Mix — Upload automatique d'images de recettes
-   
-   Usage : npm run images
-   
-   1. Place tes images dans le dossier ./images-recettes/
-      Nommage libre : "soupe-carotte.jpg", "risotto.png", etc.
-      Le script fait un fuzzy match avec les slugs en BDD.
-   
-   2. Le script :
-      - Compresse chaque image en WebP (max 400KB, 1200px)
-      - L'uploade dans le bucket Supabase "recettes-images"
-      - Met à jour la colonne image_url de la recette matchée
-   
-   3. À la fin, il affiche un résumé des matchs et erreurs.
-   
-   Prérequis :
-   - npm install sharp (si pas déjà installé)
-   - .env.local avec SUPABASE_SERVICE_ROLE_KEY
-   - Bucket "recettes-images" créé dans Supabase Storage (public)
-   ============================================================= */
-
-import { readFileSync, readdirSync, statSync } from "fs";
-import { resolve, basename, extname } from "path";
-import { createClient } from "@supabase/supabase-js";
-import sharp from "sharp";
-
-// ─── Config ──────────────────────────────────────────────────
-
-const IMAGES_DIR = resolve(process.cwd(), "images-recettes");
-const BUCKET = "recettes-images";
-const MAX_WIDTH = 1200;
-const MAX_HEIGHT = 800;
-const QUALITY = 80; // WebP quality (1-100)
-const IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".tiff"];
-
-// ─── Charger .env.local ──────────────────────────────────────
-
-try {
-  const envPath = resolve(process.cwd(), ".env.local");
-  const envFile = readFileSync(envPath, "utf-8");
-  for (const line of envFile.split("\n")) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-    const eqIndex = trimmed.indexOf("=");
-    if (eqIndex === -1) continue;
-    const key = trimmed.slice(0, eqIndex).trim();
-    const value = trimmed.slice(eqIndex + 1).trim();
-    if (!process.env[key]) process.env[key] = value;
-  }
-} catch {
-  console.error("⚠️  .env.local introuvable.");
-}
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-if (!supabaseUrl || !serviceRoleKey) {
-  console.error("❌ Variables manquantes dans .env.local");
-  process.exit(1);
-}
-
-const supabase = createClient(supabaseUrl, serviceRoleKey);
-
-// ─── Fuzzy matching ──────────────────────────────────────────
-
-/**
- * Normalise un nom de fichier en tokens comparables
- * "Soupe-Carotte_Gingembre (2).jpg" → ["soupe", "carotte", "gingembre"]
- */
-function tokenize(str: string): string[] {
-  return str
-    .toLowerCase()
-    .replace(/\.[^.]+$/, "") // retirer extension
-    .replace(/[^a-zàâäéèêëïîôùûüÿçœæ0-9]/g, " ") // caractères spéciaux → espaces
-    .split(/\s+/)
-    .filter((t) => t.length > 2); // ignorer les mots courts (le, de, au...)
-}
-
-/**
- * Score de similarité entre un nom de fichier et un slug
- * Retourne un nombre entre 0 (aucun match) et 1 (parfait)
- */
-function matchScore(fileTokens: string[], slug: string): number {
-  const slugTokens = slug.split("-").filter((t) => t.length > 2);
-  if (slugTokens.length === 0) return 0;
-
-  let matches = 0;
-  for (const ft of fileTokens) {
-    for (const st of slugTokens) {
-      // Match exact
-      if (ft === st) {
-        matches += 1;
-        break;
-      }
-      // Match partiel (le token du fichier contient le token du slug ou vice versa)
-      if (ft.length >= 4 && st.length >= 4 && (ft.includes(st) || st.includes(ft))) {
-        matches += 0.7;
-        break;
-      }
-      // Match début commun (≥4 chars)
-      if (ft.length >= 4 && st.length >= 4 && ft.slice(0, 4) === st.slice(0, 4)) {
-        matches += 0.5;
-        break;
-      }
-    }
-  }
-
-  // Score = proportion de tokens du slug qui ont matché, pondéré par le nombre de tokens fichier
-  const coverage = matches / slugTokens.length;
-  // Bonus si le nombre de tokens est similaire (pénalise les noms trop courts)
-  const lengthBonus = Math.min(fileTokens.length, slugTokens.length) / Math.max(fileTokens.length, slugTokens.length);
-
-  return coverage * 0.8 + lengthBonus * 0.2;
-}
-
-/**
- * Trouve le meilleur slug pour un nom de fichier
- */
-function findBestMatch(
-  filename: string,
-  slugs: string[],
-): { slug: string; score: number } | null {
-  const tokens = tokenize(filename);
-  if (tokens.length === 0) return null;
-
-  let bestSlug = "";
-  let bestScore = 0;
-
-  for (const slug of slugs) {
-    const score = matchScore(tokens, slug);
-    if (score > bestScore) {
-      bestScore = score;
-      bestSlug = slug;
-    }
-  }
-
-  // Seuil minimum : au moins 30% de match
-  if (bestScore < 0.3) return null;
-  return { slug: bestSlug, score: bestScore };
-}
-
-// ─── Compression ─────────────────────────────────────────────
-
-async function compressImage(filePath: string): Promise<Buffer> {
-  const buffer = await sharp(filePath)
-    .resize(MAX_WIDTH, MAX_HEIGHT, {
-      fit: "inside",
-      withoutEnlargement: true,
-    })
-    .webp({ quality: QUALITY })
-    .toBuffer();
-
-  return buffer;
-}
-
-// ─── Main ────────────────────────────────────────────────────
-
-async function main() {
-  console.log("\n🖼️  Upload automatique d'images de recettes\n");
-
-  // 1. Lister les images du dossier
-  let files: string[];
-  try {
-    files = readdirSync(IMAGES_DIR).filter((f) => {
-      const ext = extname(f).toLowerCase();
-      return IMAGE_EXTENSIONS.includes(ext);
-    });
-  } catch {
-    console.error(`❌ Dossier "${IMAGES_DIR}" introuvable.`);
-    console.error(`   Créez-le et placez-y vos images :`);
-    console.error(`   mkdir images-recettes`);
-    process.exit(1);
-  }
-
-  if (files.length === 0) {
-    console.error(`❌ Aucune image trouvée dans ${IMAGES_DIR}`);
-    process.exit(1);
-  }
-
-  console.log(`📁 ${files.length} images trouvées dans images-recettes/\n`);
-
-  // 2. Récupérer tous les slugs de recettes sans image
-  const { data: recettes, error: dbError } = await supabase
-    .from("recettes")
-    .select("slug, image_url")
-    .order("slug");
-
-  if (dbError || !recettes) {
-    console.error("❌ Erreur BDD:", dbError?.message);
-    process.exit(1);
-  }
-
-  // Slugs sans image en priorité, mais permettre l'écrasement
-  const allSlugs = recettes.map((r) => r.slug);
-  const slugsWithoutImage = recettes
-    .filter((r) => !r.image_url)
-    .map((r) => r.slug);
-
-  console.log(`🍽️  ${allSlugs.length} recettes en BDD (${slugsWithoutImage.length} sans image)\n`);
-
-  // 3. Matcher, compresser, uploader
-  const results: { file: string; slug: string; score: number; status: string }[] = [];
-  const usedSlugs = new Set<string>();
-
-  // D'abord, construire tous les matchs
-  const matches: { file: string; slug: string; score: number }[] = [];
-
-  for (const file of files) {
-    const match = findBestMatch(file, allSlugs);
-    if (match && !usedSlugs.has(match.slug)) {
-      matches.push({ file, ...match });
-      usedSlugs.add(match.slug);
-    } else {
-      results.push({
-        file,
-        slug: "",
-        score: 0,
-        status: match ? "⚠️  Slug déjà utilisé" : "❌ Pas de match",
-      });
-    }
-  }
-
-  // Trier par score descendant pour traiter les meilleurs matchs en premier
-  matches.sort((a, b) => b.score - a.score);
-
-  // Afficher les matchs pour confirmation
-  console.log("═══ Matching ═══\n");
-  for (const m of matches) {
-    const confidence =
-      m.score >= 0.7 ? "🟢" : m.score >= 0.5 ? "🟡" : "🔴";
-    console.log(
-      `  ${confidence} ${m.file.padEnd(45)} → ${m.slug} (${(m.score * 100).toFixed(0)}%)`,
-    );
-  }
-
-  if (results.filter((r) => r.status.includes("❌")).length > 0) {
-    console.log("\n  Non matchées :");
-    for (const r of results.filter((r) => r.status.includes("❌"))) {
-      console.log(`  ${r.status} ${r.file}`);
-    }
-  }
-
-  console.log(`\n📊 ${matches.length} matchées, ${results.filter((r) => !r.slug).length} non matchées\n`);
-
-  // Demander confirmation
-  const readline = await import("readline");
-  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-  const answer = await new Promise<string>((resolve) => {
-    rl.question("🚀 Lancer la compression et l'upload ? (o/N) ", resolve);
-  });
-  rl.close();
-
-  if (answer.toLowerCase() !== "o" && answer.toLowerCase() !== "oui") {
-    console.log("Annulé.");
-    process.exit(0);
-  }
-
-  console.log("\n═══ Upload ═══\n");
-
-  let uploaded = 0;
-  let failed = 0;
-
-  for (const m of matches) {
-    const filePath = resolve(IMAGES_DIR, m.file);
-    process.stdout.write(`  → ${m.slug}...`);
-
-    try {
-      // Compresser
-      const compressed = await compressImage(filePath);
-      const sizeKB = (compressed.length / 1024).toFixed(0);
-
-      // Upload vers Supabase Storage
-      const storagePath = `${m.slug}.webp`;
-      const { error: uploadError } = await supabase.storage
-        .from(BUCKET)
-        .upload(storagePath, compressed, {
-          contentType: "image/webp",
-          upsert: true, // écraser si existe
-        });
-
-      if (uploadError) throw new Error(uploadError.message);
-
-      // Récupérer l'URL publique
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from(BUCKET).getPublicUrl(storagePath);
-
-      // Mettre à jour la BDD
-      const { error: updateError } = await supabase
-        .from("recettes")
-        .update({ image_url: publicUrl })
-        .eq("slug", m.slug);
-
-      if (updateError) throw new Error(updateError.message);
-
-      console.log(` ✅ (${sizeKB}KB)`);
-      uploaded++;
-    } catch (err) {
-      console.log(` ❌ ${err instanceof Error ? err.message : "Erreur"}`);
-      failed++;
-    }
-  }
-
-  console.log(`\n🎉 Terminé ! ${uploaded} uploadées, ${failed} erreurs.\n`);
-}
-
-main().catch(console.error);
 </file>
 
 <file path="supabase/.temp/cli-latest">
@@ -21561,161 +21627,6 @@ export default async function sitemap({
 }
 </file>
 
-<file path="components/layout/Footer.tsx">
-import Link from "next/link";
-import Logo from "@/components/ui/Logo";
-import { SITE_NAME } from "@/lib/constants";
-import NewsletterForm from "@/components/ui/NewsletterForm";
-
-export default function Footer() {
-  const year = new Date().getFullYear();
-
-  return (
-    <footer className="border-t border-border mt-16 pb-20 md:pb-0 no-print">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
-          {" "}
-          {/* Brand */}
-          <div className="md:col-span-1">
-            <Link
-              href="/"
-              className="flex items-center gap-2 text-accent font-display font-bold text-lg"
-            >
-              <Logo className="w-10 h-auto" />
-              {SITE_NAME}
-            </Link>
-            <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
-              Recettes au robot cuiseur multifonction, originales et gourmandes.
-              Simulateur intégré, planificateur de repas.
-            </p>
-          </div>
-          {/* Recettes */}
-          <div>
-            <h3 className="font-display font-semibold text-sm uppercase tracking-wider mb-4 text-muted-foreground">
-              Recettes
-            </h3>
-            <ul className="space-y-2">
-              {[
-                { href: "/recettes?categorie=plat", label: "Plats" },
-                { href: "/recettes?categorie=dessert", label: "Desserts" },
-                { href: "/recettes?categorie=soupe", label: "Soupes" },
-                {
-                  href: "/recettes?categorie=boulangerie",
-                  label: "Boulangerie",
-                },
-              ].map((link) => (
-                <li key={link.href}>
-                  <Link
-                    href={link.href}
-                    className="text-sm text-muted-foreground hover:text-accent transition-colors"
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-          {/* Navigation */}
-          <div>
-            <h3 className="font-display font-semibold text-sm uppercase tracking-wider mb-4 text-muted-foreground">
-              Navigation
-            </h3>
-            <ul className="space-y-2">
-              {[
-                { href: "/recherche", label: "Recherche" },
-                { href: "/planificateur", label: "Planificateur" },
-                { href: "/favoris", label: "Mes Favoris" },
-                { href: "/profil", label: "Mon Profil" },
-              ].map((link) => (
-                <li key={link.href}>
-                  <Link
-                    href={link.href}
-                    className="text-sm text-muted-foreground hover:text-accent transition-colors"
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-          {/* Informations légales */}
-          <div>
-            <h3 className="font-display font-semibold text-sm uppercase tracking-wider mb-4 text-muted-foreground">
-              Informations
-            </h3>
-            <ul className="space-y-2">
-              <li>
-                <Link
-                  href="/a-propos"
-                  className="text-sm text-muted-foreground hover:text-accent transition-colors"
-                >
-                  À propos
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/mentions-legales"
-                  className="text-sm text-muted-foreground hover:text-accent transition-colors"
-                >
-                  Mentions légales / CGU
-                </Link>
-              </li>
-            </ul>
-          </div>
-          {/* Modèles */}
-          <div>
-            <h3 className="font-display font-semibold text-sm uppercase tracking-wider mb-4 text-muted-foreground">
-              Par appareil
-            </h3>
-            <ul className="space-y-2">
-              {[
-                { modele: "TM6", label: "Thermomix TM6" },
-                { modele: "COMPANION", label: "Moulinex Companion" },
-                { modele: "COOK_EXPERT", label: "Magimix Cook Expert" },
-              ].map((item) => (
-                <li key={item.modele}>
-                  <Link
-                    href={`/recettes?modele=${item.modele}`}
-                    className="text-sm text-muted-foreground hover:text-accent transition-colors"
-                  >
-                    {item.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-
-        {/* Newsletter */}
-        <div className="mt-10 pt-8 border-t border-border">
-          <div className="max-w-md">
-            <h3 className="font-display font-semibold text-sm uppercase tracking-wider mb-3 text-muted-foreground">
-              Newsletter
-            </h3>
-            <p className="text-sm text-muted-foreground mb-3">
-              Recevez nos nouvelles recettes chaque semaine.
-            </p>
-            <NewsletterForm source="footer" compact />
-          </div>
-        </div>
-
-        {/* Bottom */}
-        <div className="mt-12 pt-8 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-muted-foreground">
-            © {year} {SITE_NAME}. Tous droits réservés.
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Kitchen Mix est un site indépendant, non affilié à Vorwerk,
-            Thermomix®, Magimix, Moulinex ou toute autre marque. Les noms de
-            marques sont utilisés uniquement à titre informatif.
-          </p>
-        </div>
-      </div>
-    </footer>
-  );
-}
-</file>
-
 <file path="components/planificateur/RecipePreviewModal.tsx">
 "use client";
 
@@ -22826,6 +22737,1877 @@ export const INGREDIENT_CATEGORIES = [
   "Condiments",
   "Autre",
 ] as const;
+</file>
+
+<file path="lib/seed-mega-cookexpert.ts">
+import type { SeedRecette } from "./seed-data";
+
+export const SEED_COOK_EXPERT: SeedRecette[] = [
+  // ── EXPRESS ⚡ ──
+  {
+    slug: "veloute-courgettes-cookexpert",
+    titre: "Velouté de courgettes menthe",
+    description:
+      "Un velouté léger et parfumé à la menthe fraîche. Le Cook Expert cuit et mixe en un programme.",
+    image_url: null,
+    video_youtube_id: null,
+    temps_preparation: 10,
+    temps_cuisson: 10,
+    difficulte: "facile",
+    nombre_portions: 4,
+    modele_thermomix: ["COOK_EXPERT"],
+    categories: ["soupe", "entree"],
+    regime: ["vegetarien", "sans-gluten"],
+    tags: ["courgette", "menthe", "léger", "express"],
+    calories_par_portion: 120,
+    nutriscore: "A",
+    nutriscore_note: "Estimation indicative",
+    ingredients: [
+      {
+        nom: "Courgettes",
+        quantite: 500,
+        unite: "g",
+        categorie: "Fruits & Légumes",
+      },
+      {
+        nom: "Oignon",
+        quantite: 1,
+        unite: "pièce",
+        categorie: "Fruits & Légumes",
+      },
+      {
+        nom: "Bouillon de légumes",
+        quantite: 400,
+        unite: "ml",
+        categorie: "Épicerie",
+      },
+      {
+        nom: "Crème légère",
+        quantite: 50,
+        unite: "ml",
+        categorie: "Produits laitiers",
+      },
+      {
+        nom: "Menthe fraîche",
+        quantite: 10,
+        unite: "g",
+        categorie: "Fruits & Légumes",
+      },
+      { nom: "Sel", quantite: 1, unite: "pincée", categorie: "Condiments" },
+      { nom: "Poivre", quantite: 1, unite: "pincée", categorie: "Condiments" },
+    ],
+    etapes: [
+      {
+        numero: 1,
+        instruction: "Hacher l'oignon dans le bol du Cook Expert.",
+        vitesse: 8,
+        duree: 5,
+      },
+      {
+        numero: 2,
+        instruction:
+          "Ajouter les courgettes en morceaux et le bouillon. Cuire au programme Soupe.",
+        vitesse: 1,
+        temperature: 100,
+        duree: 480,
+      },
+      {
+        numero: 3,
+        instruction: "Ajouter la crème et la menthe. Mixer.",
+        vitesse: 10,
+        duree: 30,
+      },
+    ],
+    faq: null,
+    approuve: true,
+    publie: true,
+    vues: 0,
+  },
+  {
+    slug: "guacamole-cookexpert",
+    titre: "Guacamole frais",
+    description:
+      "Un guacamole crémeux aux saveurs mexicaines. Le Cook Expert hache parfaitement sans sur-mixer.",
+    image_url: null,
+    video_youtube_id: null,
+    temps_preparation: 10,
+    temps_cuisson: 0,
+    difficulte: "facile",
+    nombre_portions: 4,
+    modele_thermomix: ["COOK_EXPERT"],
+    categories: ["aperitif", "entree"],
+    regime: ["vegan", "sans-gluten", "sans-lactose"],
+    tags: ["guacamole", "avocat", "mexicain", "express"],
+    calories_par_portion: 165,
+    nutriscore: "A",
+    nutriscore_note: "Estimation indicative",
+    ingredients: [
+      {
+        nom: "Avocats mûrs",
+        quantite: 3,
+        unite: "pièce",
+        categorie: "Fruits & Légumes",
+      },
+      {
+        nom: "Tomate",
+        quantite: 1,
+        unite: "pièce",
+        categorie: "Fruits & Légumes",
+      },
+      {
+        nom: "Oignon rouge",
+        quantite: 0.5,
+        unite: "pièce",
+        categorie: "Fruits & Légumes",
+      },
+      {
+        nom: "Coriandre fraîche",
+        quantite: 10,
+        unite: "g",
+        categorie: "Fruits & Légumes",
+      },
+      {
+        nom: "Jus de citron vert",
+        quantite: 20,
+        unite: "ml",
+        categorie: "Fruits & Légumes",
+      },
+      {
+        nom: "Piment jalapeño",
+        quantite: 0.5,
+        unite: "pièce",
+        categorie: "Fruits & Légumes",
+      },
+      { nom: "Sel", quantite: 1, unite: "pincée", categorie: "Condiments" },
+    ],
+    etapes: [
+      {
+        numero: 1,
+        instruction:
+          "Mettre l'oignon et le piment dans le bol. Hacher grossièrement.",
+        vitesse: 5,
+        duree: 3,
+      },
+      {
+        numero: 2,
+        instruction:
+          "Ajouter la chair des avocats, la tomate coupée, le citron vert et le sel. Mixer brièvement.",
+        vitesse: 4,
+        duree: 5,
+        conseil: "Garder une texture avec morceaux.",
+      },
+    ],
+    faq: null,
+    approuve: true,
+    publie: true,
+    vues: 0,
+  },
+  {
+    slug: "milkshake-fraise-cookexpert",
+    titre: "Milkshake fraise-vanille",
+    description:
+      "Un milkshake gourmand aux fraises fraîches et glace vanille. Prêt en 3 minutes.",
+    image_url: null,
+    video_youtube_id: null,
+    temps_preparation: 5,
+    temps_cuisson: 0,
+    difficulte: "facile",
+    nombre_portions: 4,
+    modele_thermomix: ["COOK_EXPERT"],
+    categories: ["boisson", "dessert"],
+    regime: ["vegetarien", "sans-gluten"],
+    tags: ["milkshake", "fraise", "vanille", "express"],
+    calories_par_portion: 220,
+    nutriscore: "C",
+    nutriscore_note: "Estimation indicative",
+    ingredients: [
+      {
+        nom: "Fraises fraîches",
+        quantite: 300,
+        unite: "g",
+        categorie: "Fruits & Légumes",
+      },
+      {
+        nom: "Glace vanille",
+        quantite: 200,
+        unite: "g",
+        categorie: "Surgelés",
+      },
+      {
+        nom: "Lait entier",
+        quantite: 300,
+        unite: "ml",
+        categorie: "Produits laitiers",
+      },
+      { nom: "Sucre", quantite: 15, unite: "g", categorie: "Épicerie" },
+    ],
+    etapes: [
+      {
+        numero: 1,
+        instruction: "Mettre tous les ingrédients dans le bol du Cook Expert.",
+        vitesse: 8,
+        duree: 15,
+      },
+      {
+        numero: 2,
+        instruction: "Mixer à vitesse maximale.",
+        vitesse: 12,
+        duree: 30,
+      },
+    ],
+    faq: null,
+    approuve: true,
+    publie: true,
+    vues: 0,
+  },
+  {
+    slug: "beurre-noisette-cookexpert",
+    titre: "Beurre noisette parfumé",
+    description:
+      "Un beurre noisette doré au Cook Expert, pour sublimer pâtes, poissons ou légumes.",
+    image_url: null,
+    video_youtube_id: null,
+    temps_preparation: 2,
+    temps_cuisson: 8,
+    difficulte: "facile",
+    nombre_portions: 4,
+    modele_thermomix: ["COOK_EXPERT"],
+    categories: ["sauce"],
+    regime: ["sans-gluten"],
+    tags: ["beurre", "noisette", "sauce", "express"],
+    calories_par_portion: 180,
+    nutriscore: "D",
+    nutriscore_note: "Riche en lipides",
+    ingredients: [
+      {
+        nom: "Beurre doux",
+        quantite: 100,
+        unite: "g",
+        categorie: "Produits laitiers",
+      },
+      {
+        nom: "Jus de citron",
+        quantite: 5,
+        unite: "ml",
+        categorie: "Fruits & Légumes",
+      },
+    ],
+    etapes: [
+      {
+        numero: 1,
+        instruction: "Mettre le beurre dans le bol. Chauffer en surveillant.",
+        vitesse: 1,
+        temperature: 120,
+        duree: 480,
+        conseil: "Le beurre doit devenir ambré, pas noir.",
+      },
+      {
+        numero: 2,
+        instruction: "Ajouter le jus de citron pour stopper la cuisson.",
+        vitesse: 1,
+        duree: 5,
+      },
+    ],
+    faq: null,
+    approuve: true,
+    publie: true,
+    vues: 0,
+  },
+  {
+    slug: "soupe-miso-express-cookexpert",
+    titre: "Soupe miso express",
+    description:
+      "Une soupe miso japonaise authentique prête en 15 minutes. Réconfortante et légère.",
+    image_url: null,
+    video_youtube_id: null,
+    temps_preparation: 5,
+    temps_cuisson: 10,
+    difficulte: "facile",
+    nombre_portions: 4,
+    modele_thermomix: ["COOK_EXPERT"],
+    categories: ["soupe", "entree"],
+    regime: ["vegan", "sans-lactose"],
+    tags: ["miso", "japonais", "soupe", "express"],
+    calories_par_portion: 65,
+    nutriscore: "A",
+    nutriscore_note: "Estimation indicative",
+    ingredients: [
+      { nom: "Pâte miso", quantite: 50, unite: "g", categorie: "Épicerie" },
+      { nom: "Tofu soyeux", quantite: 150, unite: "g", categorie: "Épicerie" },
+      {
+        nom: "Algue wakame séchée",
+        quantite: 5,
+        unite: "g",
+        categorie: "Épicerie",
+      },
+      {
+        nom: "Oignons verts",
+        quantite: 2,
+        unite: "pièce",
+        categorie: "Fruits & Légumes",
+      },
+      { nom: "Eau", quantite: 800, unite: "ml", categorie: "Autre" },
+      { nom: "Sauce soja", quantite: 10, unite: "ml", categorie: "Condiments" },
+    ],
+    etapes: [
+      {
+        numero: 1,
+        instruction: "Chauffer l'eau dans le bol.",
+        vitesse: 1,
+        temperature: 90,
+        duree: 360,
+      },
+      {
+        numero: 2,
+        instruction:
+          "Diluer la pâte miso dans un peu d'eau tiède puis ajouter au bol avec le tofu coupé en dés, le wakame et la sauce soja.",
+        vitesse: 1,
+        temperature: 70,
+        duree: 120,
+        conseil: "Ne pas faire bouillir le miso, il perd ses probiotiques.",
+      },
+      { numero: 3, instruction: "Servir parsemé d'oignons verts émincés." },
+    ],
+    faq: null,
+    approuve: true,
+    publie: true,
+    vues: 0,
+  },
+  {
+    slug: "chutney-mangue-cookexpert",
+    titre: "Chutney de mangue épicé",
+    description:
+      "Un chutney sucré-salé pour accompagner vos currys, fromages ou grillades.",
+    image_url: null,
+    video_youtube_id: null,
+    temps_preparation: 10,
+    temps_cuisson: 10,
+    difficulte: "facile",
+    nombre_portions: 4,
+    modele_thermomix: ["COOK_EXPERT"],
+    categories: ["sauce", "accompagnement"],
+    regime: ["vegan", "sans-gluten", "sans-lactose"],
+    tags: ["chutney", "mangue", "épicé", "express"],
+    calories_par_portion: 95,
+    nutriscore: "B",
+    nutriscore_note: "Estimation indicative",
+    ingredients: [
+      {
+        nom: "Mangue mûre",
+        quantite: 300,
+        unite: "g",
+        categorie: "Fruits & Légumes",
+      },
+      {
+        nom: "Vinaigre de cidre",
+        quantite: 40,
+        unite: "ml",
+        categorie: "Condiments",
+      },
+      { nom: "Sucre roux", quantite: 50, unite: "g", categorie: "Épicerie" },
+      {
+        nom: "Gingembre frais",
+        quantite: 10,
+        unite: "g",
+        categorie: "Fruits & Légumes",
+      },
+      {
+        nom: "Piment",
+        quantite: 0.5,
+        unite: "pièce",
+        categorie: "Fruits & Légumes",
+      },
+      { nom: "Sel", quantite: 1, unite: "pincée", categorie: "Condiments" },
+    ],
+    etapes: [
+      {
+        numero: 1,
+        instruction: "Hacher le gingembre et le piment.",
+        vitesse: 7,
+        duree: 5,
+      },
+      {
+        numero: 2,
+        instruction:
+          "Ajouter la mangue en morceaux, le vinaigre, le sucre et le sel. Cuire.",
+        vitesse: 2,
+        temperature: 100,
+        duree: 600,
+        conseil: "Laisser quelques morceaux pour la texture.",
+      },
+    ],
+    faq: null,
+    approuve: true,
+    publie: true,
+    vues: 0,
+  },
+  // ── RAPIDE 🕒 ──
+  {
+    slug: "poulet-tikka-masala-cookexpert",
+    titre: "Poulet tikka masala",
+    description:
+      "Le classique indien : poulet tendre dans une sauce tomate épicée et crémeuse.",
+    image_url: null,
+    video_youtube_id: null,
+    temps_preparation: 15,
+    temps_cuisson: 25,
+    difficulte: "facile",
+    nombre_portions: 4,
+    modele_thermomix: ["COOK_EXPERT"],
+    categories: ["plat"],
+    regime: ["sans-gluten", "halal"],
+    tags: ["poulet", "tikka", "indien", "rapide"],
+    calories_par_portion: 390,
+    nutriscore: "B",
+    nutriscore_note: "Estimation indicative",
+    ingredients: [
+      {
+        nom: "Blancs de poulet",
+        quantite: 500,
+        unite: "g",
+        categorie: "Viandes & Poissons",
+      },
+      {
+        nom: "Tomates concassées",
+        quantite: 400,
+        unite: "g",
+        categorie: "Épicerie",
+      },
+      {
+        nom: "Crème de coco",
+        quantite: 150,
+        unite: "ml",
+        categorie: "Épicerie",
+      },
+      {
+        nom: "Oignon",
+        quantite: 1,
+        unite: "pièce",
+        categorie: "Fruits & Légumes",
+      },
+      {
+        nom: "Ail",
+        quantite: 2,
+        unite: "pièce",
+        categorie: "Fruits & Légumes",
+      },
+      {
+        nom: "Garam masala",
+        quantite: 10,
+        unite: "g",
+        categorie: "Condiments",
+      },
+      { nom: "Curcuma", quantite: 3, unite: "g", categorie: "Condiments" },
+      { nom: "Paprika", quantite: 5, unite: "g", categorie: "Condiments" },
+      { nom: "Huile", quantite: 15, unite: "ml", categorie: "Épicerie" },
+      { nom: "Sel", quantite: 1, unite: "pincée", categorie: "Condiments" },
+    ],
+    etapes: [
+      {
+        numero: 1,
+        instruction: "Hacher l'oignon et l'ail.",
+        vitesse: 5,
+        duree: 5,
+      },
+      {
+        numero: 2,
+        instruction: "Ajouter l'huile et les épices. Faire revenir.",
+        vitesse: 1,
+        temperature: 120,
+        duree: 180,
+      },
+      {
+        numero: 3,
+        instruction:
+          "Ajouter le poulet en morceaux, les tomates et la crème de coco. Cuire.",
+        vitesse: 1,
+        temperature: 100,
+        duree: 1200,
+      },
+    ],
+    faq: null,
+    approuve: true,
+    publie: true,
+    vues: 0,
+  },
+  {
+    slug: "ratatouille-provencale-cookexpert",
+    titre: "Ratatouille provençale",
+    description:
+      "La ratatouille du sud, mijotée doucement avec les légumes du soleil.",
+    image_url: null,
+    video_youtube_id: null,
+    temps_preparation: 15,
+    temps_cuisson: 25,
+    difficulte: "facile",
+    nombre_portions: 4,
+    modele_thermomix: ["COOK_EXPERT"],
+    categories: ["plat", "accompagnement"],
+    regime: ["vegan", "sans-gluten", "sans-lactose"],
+    tags: ["ratatouille", "provençal", "été", "rapide"],
+    calories_par_portion: 130,
+    nutriscore: "A",
+    nutriscore_note: "Estimation indicative",
+    ingredients: [
+      {
+        nom: "Aubergine",
+        quantite: 1,
+        unite: "pièce",
+        categorie: "Fruits & Légumes",
+      },
+      {
+        nom: "Courgettes",
+        quantite: 2,
+        unite: "pièce",
+        categorie: "Fruits & Légumes",
+      },
+      {
+        nom: "Poivron rouge",
+        quantite: 1,
+        unite: "pièce",
+        categorie: "Fruits & Légumes",
+      },
+      {
+        nom: "Poivron jaune",
+        quantite: 1,
+        unite: "pièce",
+        categorie: "Fruits & Légumes",
+      },
+      {
+        nom: "Tomates",
+        quantite: 400,
+        unite: "g",
+        categorie: "Fruits & Légumes",
+      },
+      {
+        nom: "Oignon",
+        quantite: 1,
+        unite: "pièce",
+        categorie: "Fruits & Légumes",
+      },
+      {
+        nom: "Ail",
+        quantite: 2,
+        unite: "pièce",
+        categorie: "Fruits & Légumes",
+      },
+      {
+        nom: "Huile d'olive",
+        quantite: 30,
+        unite: "ml",
+        categorie: "Condiments",
+      },
+      {
+        nom: "Herbes de Provence",
+        quantite: 5,
+        unite: "g",
+        categorie: "Condiments",
+      },
+      { nom: "Sel", quantite: 1, unite: "pincée", categorie: "Condiments" },
+    ],
+    etapes: [
+      {
+        numero: 1,
+        instruction:
+          "Couper tous les légumes en dés. Hacher l'oignon et l'ail.",
+        vitesse: 4,
+        duree: 5,
+      },
+      {
+        numero: 2,
+        instruction: "Faire revenir l'oignon et l'ail avec l'huile d'olive.",
+        vitesse: 1,
+        temperature: 120,
+        duree: 180,
+      },
+      {
+        numero: 3,
+        instruction: "Ajouter tous les légumes et les herbes. Cuire.",
+        vitesse: 1,
+        temperature: 100,
+        duree: 1200,
+        accessoire: "spatule",
+      },
+    ],
+    faq: null,
+    approuve: true,
+    publie: true,
+    vues: 0,
+  },
+  {
+    slug: "quiche-lorraine-cookexpert",
+    titre: "Quiche lorraine",
+    description:
+      "La quiche lorraine traditionnelle avec sa pâte brisée maison. Le Cook Expert pétrit la pâte.",
+    image_url: null,
+    video_youtube_id: null,
+    temps_preparation: 15,
+    temps_cuisson: 25,
+    difficulte: "moyen",
+    nombre_portions: 4,
+    modele_thermomix: ["COOK_EXPERT"],
+    categories: ["plat", "entree"],
+    regime: [],
+    tags: ["quiche", "lorraine", "pâte brisée", "rapide"],
+    calories_par_portion: 420,
+    nutriscore: "C",
+    nutriscore_note: "Estimation indicative",
+    ingredients: [
+      { nom: "Farine", quantite: 250, unite: "g", categorie: "Épicerie" },
+      {
+        nom: "Beurre froid",
+        quantite: 125,
+        unite: "g",
+        categorie: "Produits laitiers",
+      },
+      { nom: "Eau froide", quantite: 50, unite: "ml", categorie: "Autre" },
+      {
+        nom: "Lardons",
+        quantite: 200,
+        unite: "g",
+        categorie: "Viandes & Poissons",
+      },
+      {
+        nom: "Œufs",
+        quantite: 3,
+        unite: "pièce",
+        categorie: "Produits laitiers",
+      },
+      {
+        nom: "Crème fraîche",
+        quantite: 200,
+        unite: "ml",
+        categorie: "Produits laitiers",
+      },
+      {
+        nom: "Gruyère râpé",
+        quantite: 80,
+        unite: "g",
+        categorie: "Produits laitiers",
+      },
+      { nom: "Muscade", quantite: 1, unite: "pincée", categorie: "Condiments" },
+      { nom: "Sel", quantite: 1, unite: "pincée", categorie: "Condiments" },
+    ],
+    etapes: [
+      {
+        numero: 1,
+        instruction: "Mettre la farine et le beurre froid en cubes. Sabler.",
+        vitesse: 6,
+        duree: 10,
+      },
+      {
+        numero: 2,
+        instruction: "Ajouter l'eau et le sel. Pétrir brièvement.",
+        vitesse: 4,
+        duree: 20,
+        conseil: "La pâte doit être homogène mais pas trop travaillée.",
+      },
+      {
+        numero: 3,
+        instruction:
+          "Étaler la pâte, foncer un moule. Mélanger œufs, crème, muscade. Disposer lardons et verser l'appareil. Saupoudrer de gruyère.",
+      },
+      {
+        numero: 4,
+        instruction: "Enfourner 25 minutes à 200°C.",
+        conseil:
+          "Précuire la pâte à blanc 10 min si vous aimez un fond croustillant.",
+      },
+    ],
+    faq: null,
+    approuve: true,
+    publie: true,
+    vues: 0,
+  },
+  {
+    slug: "wok-legumes-nouilles-cookexpert",
+    titre: "Wok de légumes et nouilles sautées",
+    description:
+      "Un wok coloré aux légumes croquants et nouilles de riz, façon street food asiatique.",
+    image_url: null,
+    video_youtube_id: null,
+    temps_preparation: 15,
+    temps_cuisson: 15,
+    difficulte: "facile",
+    nombre_portions: 4,
+    modele_thermomix: ["COOK_EXPERT"],
+    categories: ["plat"],
+    regime: ["vegan", "sans-lactose"],
+    tags: ["wok", "asiatique", "nouilles", "rapide"],
+    calories_par_portion: 280,
+    nutriscore: "A",
+    nutriscore_note: "Estimation indicative",
+    ingredients: [
+      {
+        nom: "Nouilles de riz",
+        quantite: 200,
+        unite: "g",
+        categorie: "Épicerie",
+      },
+      {
+        nom: "Brocoli",
+        quantite: 150,
+        unite: "g",
+        categorie: "Fruits & Légumes",
+      },
+      {
+        nom: "Carotte",
+        quantite: 1,
+        unite: "pièce",
+        categorie: "Fruits & Légumes",
+      },
+      {
+        nom: "Poivron rouge",
+        quantite: 1,
+        unite: "pièce",
+        categorie: "Fruits & Légumes",
+      },
+      { nom: "Sauce soja", quantite: 30, unite: "ml", categorie: "Condiments" },
+      {
+        nom: "Huile de sésame",
+        quantite: 10,
+        unite: "ml",
+        categorie: "Condiments",
+      },
+      {
+        nom: "Gingembre frais",
+        quantite: 5,
+        unite: "g",
+        categorie: "Fruits & Légumes",
+      },
+      {
+        nom: "Ail",
+        quantite: 1,
+        unite: "pièce",
+        categorie: "Fruits & Légumes",
+      },
+      {
+        nom: "Graines de sésame",
+        quantite: 5,
+        unite: "g",
+        categorie: "Épicerie",
+      },
+    ],
+    etapes: [
+      {
+        numero: 1,
+        instruction: "Hacher l'ail et le gingembre.",
+        vitesse: 5,
+        duree: 3,
+      },
+      {
+        numero: 2,
+        instruction: "Ajouter l'huile de sésame et faire revenir.",
+        vitesse: 1,
+        temperature: 130,
+        duree: 60,
+      },
+      {
+        numero: 3,
+        instruction: "Ajouter les légumes coupés. Sauter.",
+        vitesse: 1,
+        temperature: 120,
+        duree: 420,
+        accessoire: "spatule",
+      },
+      {
+        numero: 4,
+        instruction:
+          "Ajouter les nouilles réhydratées et la sauce soja. Mélanger.",
+        vitesse: 1,
+        temperature: 100,
+        duree: 180,
+        conseil: "Parsemer de graines de sésame.",
+      },
+    ],
+    faq: null,
+    approuve: true,
+    publie: true,
+    vues: 0,
+  },
+  {
+    slug: "fondue-chocolat-cookexpert",
+    titre: "Fondue au chocolat",
+    description:
+      "Une fondue au chocolat veloutée pour tremper fruits et marshmallows. Le Cook Expert maintient la température parfaite.",
+    image_url: null,
+    video_youtube_id: null,
+    temps_preparation: 5,
+    temps_cuisson: 15,
+    difficulte: "facile",
+    nombre_portions: 4,
+    modele_thermomix: ["COOK_EXPERT"],
+    categories: ["dessert"],
+    regime: ["vegetarien", "sans-gluten"],
+    tags: ["chocolat", "fondue", "gourmand", "rapide"],
+    calories_par_portion: 380,
+    nutriscore: "D",
+    nutriscore_note: "Riche en sucre et lipides",
+    ingredients: [
+      {
+        nom: "Chocolat noir 70%",
+        quantite: 200,
+        unite: "g",
+        categorie: "Épicerie",
+      },
+      {
+        nom: "Crème liquide",
+        quantite: 150,
+        unite: "ml",
+        categorie: "Produits laitiers",
+      },
+      {
+        nom: "Beurre",
+        quantite: 20,
+        unite: "g",
+        categorie: "Produits laitiers",
+      },
+      {
+        nom: "Fruits de saison pour tremper",
+        quantite: 400,
+        unite: "g",
+        categorie: "Fruits & Légumes",
+      },
+    ],
+    etapes: [
+      {
+        numero: 1,
+        instruction:
+          "Casser le chocolat en morceaux dans le bol. Ajouter la crème et le beurre.",
+        vitesse: 2,
+        temperature: 50,
+        duree: 420,
+      },
+      {
+        numero: 2,
+        instruction: "Mélanger jusqu'à obtenir une texture lisse.",
+        vitesse: 4,
+        duree: 30,
+        conseil: "Servir avec fraises, bananes, ananas et marshmallows.",
+      },
+    ],
+    faq: null,
+    approuve: true,
+    publie: true,
+    vues: 0,
+  },
+  {
+    slug: "taboulé-libanais-cookexpert",
+    titre: "Taboulé libanais au persil",
+    description:
+      "Le vrai taboulé libanais, dominé par le persil frais et la menthe. Léger et parfumé.",
+    image_url: null,
+    video_youtube_id: null,
+    temps_preparation: 20,
+    temps_cuisson: 0,
+    difficulte: "facile",
+    nombre_portions: 4,
+    modele_thermomix: ["COOK_EXPERT"],
+    categories: ["entree", "accompagnement"],
+    regime: ["vegan", "sans-lactose"],
+    tags: ["taboulé", "libanais", "persil", "rapide"],
+    calories_par_portion: 180,
+    nutriscore: "A",
+    nutriscore_note: "Estimation indicative",
+    ingredients: [
+      { nom: "Boulgour fin", quantite: 60, unite: "g", categorie: "Épicerie" },
+      {
+        nom: "Persil plat frais",
+        quantite: 100,
+        unite: "g",
+        categorie: "Fruits & Légumes",
+      },
+      {
+        nom: "Menthe fraîche",
+        quantite: 30,
+        unite: "g",
+        categorie: "Fruits & Légumes",
+      },
+      {
+        nom: "Tomates",
+        quantite: 200,
+        unite: "g",
+        categorie: "Fruits & Légumes",
+      },
+      {
+        nom: "Oignon nouveau",
+        quantite: 3,
+        unite: "pièce",
+        categorie: "Fruits & Légumes",
+      },
+      {
+        nom: "Jus de citron",
+        quantite: 60,
+        unite: "ml",
+        categorie: "Fruits & Légumes",
+      },
+      {
+        nom: "Huile d'olive",
+        quantite: 40,
+        unite: "ml",
+        categorie: "Condiments",
+      },
+      { nom: "Sel", quantite: 1, unite: "pincée", categorie: "Condiments" },
+    ],
+    etapes: [
+      {
+        numero: 1,
+        instruction:
+          "Tremper le boulgour 15 min dans l'eau chaude, puis égoutter.",
+      },
+      {
+        numero: 2,
+        instruction:
+          "Hacher le persil et la menthe grossièrement au Cook Expert.",
+        vitesse: 4,
+        duree: 3,
+        conseil: "Ne pas mixer fin, hacher par pulsions.",
+      },
+      {
+        numero: 3,
+        instruction:
+          "Mélanger dans un saladier avec les tomates en dés, les oignons émincés, le boulgour, le citron, l'huile et le sel.",
+        conseil: "Réfrigérer 30 min avant de servir.",
+      },
+    ],
+    faq: null,
+    approuve: true,
+    publie: true,
+    vues: 0,
+  },
+  {
+    slug: "soupe-butternut-cookexpert",
+    titre: "Soupe veloutée butternut-curry",
+    description:
+      "Un velouté automnal au butternut rôti et curry doux. Onctueux et réconfortant.",
+    image_url: null,
+    video_youtube_id: null,
+    temps_preparation: 10,
+    temps_cuisson: 25,
+    difficulte: "facile",
+    nombre_portions: 4,
+    modele_thermomix: ["COOK_EXPERT"],
+    categories: ["soupe"],
+    regime: ["vegan", "sans-gluten", "sans-lactose"],
+    tags: ["butternut", "curry", "automne", "rapide"],
+    calories_par_portion: 140,
+    nutriscore: "A",
+    nutriscore_note: "Estimation indicative",
+    ingredients: [
+      {
+        nom: "Butternut",
+        quantite: 600,
+        unite: "g",
+        categorie: "Fruits & Légumes",
+      },
+      {
+        nom: "Oignon",
+        quantite: 1,
+        unite: "pièce",
+        categorie: "Fruits & Légumes",
+      },
+      {
+        nom: "Lait de coco",
+        quantite: 200,
+        unite: "ml",
+        categorie: "Épicerie",
+      },
+      {
+        nom: "Bouillon de légumes",
+        quantite: 400,
+        unite: "ml",
+        categorie: "Épicerie",
+      },
+      {
+        nom: "Curry en poudre",
+        quantite: 5,
+        unite: "g",
+        categorie: "Condiments",
+      },
+      {
+        nom: "Huile d'olive",
+        quantite: 10,
+        unite: "ml",
+        categorie: "Condiments",
+      },
+      { nom: "Sel", quantite: 1, unite: "pincée", categorie: "Condiments" },
+    ],
+    etapes: [
+      {
+        numero: 1,
+        instruction: "Hacher l'oignon. Faire revenir avec l'huile et le curry.",
+        vitesse: 1,
+        temperature: 120,
+        duree: 180,
+      },
+      {
+        numero: 2,
+        instruction: "Ajouter le butternut en cubes et le bouillon. Cuire.",
+        vitesse: 1,
+        temperature: 100,
+        duree: 1200,
+      },
+      {
+        numero: 3,
+        instruction: "Ajouter le lait de coco. Mixer.",
+        vitesse: 10,
+        duree: 60,
+      },
+    ],
+    faq: null,
+    approuve: true,
+    publie: true,
+    vues: 0,
+  },
+  // ── ÉQUILIBRÉE 🍲 ──
+  {
+    slug: "tajine-agneau-pruneaux-cookexpert",
+    titre: "Tajine d'agneau aux pruneaux",
+    description:
+      "Un tajine sucré-salé parfumé aux épices marocaines. L'agneau fond dans la bouche après une cuisson douce.",
+    image_url: null,
+    video_youtube_id: null,
+    temps_preparation: 15,
+    temps_cuisson: 50,
+    difficulte: "moyen",
+    nombre_portions: 4,
+    modele_thermomix: ["COOK_EXPERT"],
+    categories: ["plat"],
+    regime: ["sans-gluten", "sans-lactose", "halal"],
+    tags: ["tajine", "agneau", "pruneaux", "marocain"],
+    calories_par_portion: 480,
+    nutriscore: "B",
+    nutriscore_note: "Estimation indicative",
+    ingredients: [
+      {
+        nom: "Épaule d'agneau",
+        quantite: 600,
+        unite: "g",
+        categorie: "Viandes & Poissons",
+      },
+      {
+        nom: "Pruneaux dénoyautés",
+        quantite: 150,
+        unite: "g",
+        categorie: "Fruits & Légumes",
+      },
+      {
+        nom: "Oignon",
+        quantite: 2,
+        unite: "pièce",
+        categorie: "Fruits & Légumes",
+      },
+      { nom: "Miel", quantite: 30, unite: "g", categorie: "Épicerie" },
+      { nom: "Cannelle", quantite: 5, unite: "g", categorie: "Condiments" },
+      {
+        nom: "Gingembre moulu",
+        quantite: 3,
+        unite: "g",
+        categorie: "Condiments",
+      },
+      { nom: "Safran", quantite: 1, unite: "pincée", categorie: "Condiments" },
+      {
+        nom: "Amandes effilées",
+        quantite: 30,
+        unite: "g",
+        categorie: "Épicerie",
+      },
+      {
+        nom: "Huile d'olive",
+        quantite: 20,
+        unite: "ml",
+        categorie: "Condiments",
+      },
+      { nom: "Sel", quantite: 1, unite: "pincée", categorie: "Condiments" },
+      { nom: "Eau", quantite: 200, unite: "ml", categorie: "Autre" },
+    ],
+    etapes: [
+      { numero: 1, instruction: "Hacher les oignons.", vitesse: 5, duree: 5 },
+      {
+        numero: 2,
+        instruction: "Faire revenir avec l'huile et les épices.",
+        vitesse: 1,
+        temperature: 120,
+        duree: 180,
+      },
+      {
+        numero: 3,
+        instruction: "Ajouter l'agneau en morceaux et l'eau. Mijoter.",
+        vitesse: 1,
+        temperature: 100,
+        duree: 2400,
+      },
+      {
+        numero: 4,
+        instruction: "Ajouter les pruneaux et le miel. Poursuivre 15 min.",
+        vitesse: 1,
+        temperature: 100,
+        duree: 900,
+        conseil: "Servir avec de la semoule et des amandes grillées.",
+      },
+    ],
+    faq: null,
+    approuve: true,
+    publie: true,
+    vues: 0,
+  },
+  {
+    slug: "lasagnes-bolognaise-cookexpert",
+    titre: "Lasagnes à la bolognaise",
+    description:
+      "Des lasagnes généreuses avec une bolognaise maison et une béchamel onctueuse. Le Cook Expert prépare les deux sauces.",
+    image_url: null,
+    video_youtube_id: null,
+    temps_preparation: 20,
+    temps_cuisson: 40,
+    difficulte: "moyen",
+    nombre_portions: 4,
+    modele_thermomix: ["COOK_EXPERT"],
+    categories: ["plat"],
+    regime: [],
+    tags: ["lasagnes", "bolognaise", "italien", "gratin"],
+    calories_par_portion: 550,
+    nutriscore: "C",
+    nutriscore_note: "Estimation indicative",
+    ingredients: [
+      {
+        nom: "Viande hachée",
+        quantite: 400,
+        unite: "g",
+        categorie: "Viandes & Poissons",
+      },
+      {
+        nom: "Tomates concassées",
+        quantite: 400,
+        unite: "g",
+        categorie: "Épicerie",
+      },
+      {
+        nom: "Oignon",
+        quantite: 1,
+        unite: "pièce",
+        categorie: "Fruits & Légumes",
+      },
+      {
+        nom: "Ail",
+        quantite: 2,
+        unite: "pièce",
+        categorie: "Fruits & Légumes",
+      },
+      {
+        nom: "Carotte",
+        quantite: 1,
+        unite: "pièce",
+        categorie: "Fruits & Légumes",
+      },
+      {
+        nom: "Lait",
+        quantite: 500,
+        unite: "ml",
+        categorie: "Produits laitiers",
+      },
+      {
+        nom: "Beurre",
+        quantite: 40,
+        unite: "g",
+        categorie: "Produits laitiers",
+      },
+      { nom: "Farine", quantite: 40, unite: "g", categorie: "Épicerie" },
+      {
+        nom: "Feuilles de lasagnes",
+        quantite: 250,
+        unite: "g",
+        categorie: "Épicerie",
+      },
+      {
+        nom: "Gruyère râpé",
+        quantite: 100,
+        unite: "g",
+        categorie: "Produits laitiers",
+      },
+      {
+        nom: "Huile d'olive",
+        quantite: 10,
+        unite: "ml",
+        categorie: "Condiments",
+      },
+      { nom: "Sel", quantite: 1, unite: "pincée", categorie: "Condiments" },
+      { nom: "Muscade", quantite: 1, unite: "pincée", categorie: "Condiments" },
+    ],
+    etapes: [
+      {
+        numero: 1,
+        instruction: "Hacher l'oignon, l'ail et la carotte.",
+        vitesse: 5,
+        duree: 5,
+      },
+      {
+        numero: 2,
+        instruction: "Ajouter l'huile et faire revenir.",
+        vitesse: 1,
+        temperature: 120,
+        duree: 180,
+      },
+      {
+        numero: 3,
+        instruction:
+          "Ajouter la viande hachée et les tomates. Cuire la bolognaise.",
+        vitesse: 1,
+        temperature: 100,
+        duree: 1200,
+      },
+      {
+        numero: 4,
+        instruction:
+          "Vider, nettoyer le bol. Préparer la béchamel : beurre, farine, lait, muscade.",
+        vitesse: 4,
+        temperature: 90,
+        duree: 420,
+      },
+      {
+        numero: 5,
+        instruction:
+          "Monter les lasagnes en alternant pâtes, bolognaise, béchamel. Terminer par du gruyère.",
+      },
+      {
+        numero: 6,
+        instruction: "Enfourner 35 minutes à 190°C.",
+        conseil: "Laisser reposer 10 min avant de servir.",
+      },
+    ],
+    faq: null,
+    approuve: true,
+    publie: true,
+    vues: 0,
+  },
+  {
+    slug: "fondant-chocolat-cookexpert",
+    titre: "Fondant au chocolat intense",
+    description:
+      "Un fondant au cœur coulant, intense en chocolat. Le Cook Expert mélange la pâte à la perfection.",
+    image_url: null,
+    video_youtube_id: null,
+    temps_preparation: 15,
+    temps_cuisson: 30,
+    difficulte: "facile",
+    nombre_portions: 4,
+    modele_thermomix: ["COOK_EXPERT"],
+    categories: ["dessert"],
+    regime: ["vegetarien", "sans-gluten"],
+    tags: ["chocolat", "fondant", "dessert", "gourmand"],
+    calories_par_portion: 420,
+    nutriscore: "D",
+    nutriscore_note: "Riche en sucre et lipides",
+    ingredients: [
+      {
+        nom: "Chocolat noir 70%",
+        quantite: 200,
+        unite: "g",
+        categorie: "Épicerie",
+      },
+      {
+        nom: "Beurre",
+        quantite: 100,
+        unite: "g",
+        categorie: "Produits laitiers",
+      },
+      {
+        nom: "Œufs",
+        quantite: 3,
+        unite: "pièce",
+        categorie: "Produits laitiers",
+      },
+      { nom: "Sucre", quantite: 80, unite: "g", categorie: "Épicerie" },
+      { nom: "Maïzena", quantite: 20, unite: "g", categorie: "Épicerie" },
+    ],
+    etapes: [
+      {
+        numero: 1,
+        instruction: "Faire fondre le chocolat et le beurre dans le bol.",
+        vitesse: 2,
+        temperature: 50,
+        duree: 300,
+      },
+      {
+        numero: 2,
+        instruction: "Ajouter les œufs et le sucre. Mélanger.",
+        vitesse: 4,
+        duree: 20,
+      },
+      {
+        numero: 3,
+        instruction: "Ajouter la maïzena. Mélanger brièvement.",
+        vitesse: 3,
+        duree: 10,
+      },
+      {
+        numero: 4,
+        instruction:
+          "Verser dans des ramequins beurrés. Enfourner 12 minutes à 200°C.",
+        conseil: "Le centre doit être encore tremblotant.",
+      },
+    ],
+    faq: null,
+    approuve: true,
+    publie: true,
+    vues: 0,
+  },
+  // ── MIJOTÉE 🔥 ──
+  {
+    slug: "couscous-royal-cookexpert",
+    titre: "Couscous royal complet",
+    description:
+      "Le couscous traditionnel avec merguez, poulet et légumes. Le Cook Expert prépare le bouillon pendant que la semoule gonfle.",
+    image_url: null,
+    video_youtube_id: null,
+    temps_preparation: 25,
+    temps_cuisson: 60,
+    difficulte: "moyen",
+    nombre_portions: 4,
+    modele_thermomix: ["COOK_EXPERT"],
+    categories: ["plat"],
+    regime: ["halal"],
+    tags: ["couscous", "royal", "maghrébin", "mijoté"],
+    calories_par_portion: 580,
+    nutriscore: "B",
+    nutriscore_note: "Estimation indicative",
+    ingredients: [
+      {
+        nom: "Cuisses de poulet",
+        quantite: 4,
+        unite: "pièce",
+        categorie: "Viandes & Poissons",
+      },
+      {
+        nom: "Merguez",
+        quantite: 4,
+        unite: "pièce",
+        categorie: "Viandes & Poissons",
+      },
+      {
+        nom: "Courgettes",
+        quantite: 2,
+        unite: "pièce",
+        categorie: "Fruits & Légumes",
+      },
+      {
+        nom: "Carottes",
+        quantite: 2,
+        unite: "pièce",
+        categorie: "Fruits & Légumes",
+      },
+      {
+        nom: "Navet",
+        quantite: 1,
+        unite: "pièce",
+        categorie: "Fruits & Légumes",
+      },
+      {
+        nom: "Pois chiches en boîte",
+        quantite: 200,
+        unite: "g",
+        categorie: "Épicerie",
+      },
+      {
+        nom: "Tomates concassées",
+        quantite: 200,
+        unite: "g",
+        categorie: "Épicerie",
+      },
+      {
+        nom: "Oignon",
+        quantite: 1,
+        unite: "pièce",
+        categorie: "Fruits & Légumes",
+      },
+      {
+        nom: "Ras el hanout",
+        quantite: 10,
+        unite: "g",
+        categorie: "Condiments",
+      },
+      {
+        nom: "Semoule moyenne",
+        quantite: 300,
+        unite: "g",
+        categorie: "Épicerie",
+      },
+      {
+        nom: "Huile d'olive",
+        quantite: 20,
+        unite: "ml",
+        categorie: "Condiments",
+      },
+      { nom: "Sel", quantite: 1, unite: "pincée", categorie: "Condiments" },
+      { nom: "Eau", quantite: 800, unite: "ml", categorie: "Autre" },
+    ],
+    etapes: [
+      {
+        numero: 1,
+        instruction:
+          "Hacher l'oignon. Faire revenir avec l'huile et le ras el hanout.",
+        vitesse: 1,
+        temperature: 120,
+        duree: 180,
+      },
+      {
+        numero: 2,
+        instruction:
+          "Ajouter le poulet, les légumes coupés en gros morceaux, les tomates et l'eau. Cuire.",
+        vitesse: 1,
+        temperature: 100,
+        duree: 2700,
+      },
+      {
+        numero: 3,
+        instruction:
+          "Ajouter les pois chiches et les merguez 15 min avant la fin.",
+        vitesse: 1,
+        temperature: 100,
+        duree: 900,
+      },
+      {
+        numero: 4,
+        instruction:
+          "Préparer la semoule à part : verser de l'eau bouillante salée, couvrir 5 min, égrener à la fourchette avec un filet d'huile.",
+      },
+    ],
+    faq: null,
+    approuve: true,
+    publie: true,
+    vues: 0,
+  },
+  {
+    slug: "confit-canard-cookexpert",
+    titre: "Confit de canard maison",
+    description:
+      "Un confit de canard fondant, cuit lentement dans sa graisse. Le Cook Expert maintient la température basse idéale.",
+    image_url: null,
+    video_youtube_id: null,
+    temps_preparation: 15,
+    temps_cuisson: 120,
+    difficulte: "difficile",
+    nombre_portions: 4,
+    modele_thermomix: ["COOK_EXPERT"],
+    categories: ["plat"],
+    regime: ["sans-gluten", "sans-lactose"],
+    tags: ["canard", "confit", "sud-ouest", "mijoté"],
+    calories_par_portion: 620,
+    nutriscore: "C",
+    nutriscore_note: "Riche en lipides",
+    ingredients: [
+      {
+        nom: "Cuisses de canard confites",
+        quantite: 4,
+        unite: "pièce",
+        categorie: "Viandes & Poissons",
+      },
+      {
+        nom: "Graisse de canard",
+        quantite: 300,
+        unite: "g",
+        categorie: "Viandes & Poissons",
+      },
+      {
+        nom: "Pommes de terre",
+        quantite: 600,
+        unite: "g",
+        categorie: "Fruits & Légumes",
+      },
+      {
+        nom: "Ail",
+        quantite: 4,
+        unite: "pièce",
+        categorie: "Fruits & Légumes",
+      },
+      {
+        nom: "Persil",
+        quantite: 10,
+        unite: "g",
+        categorie: "Fruits & Légumes",
+      },
+      { nom: "Sel", quantite: 1, unite: "pincée", categorie: "Condiments" },
+    ],
+    etapes: [
+      {
+        numero: 1,
+        instruction:
+          "Mettre la graisse de canard dans le bol. Chauffer doucement.",
+        vitesse: 1,
+        temperature: 80,
+        duree: 300,
+      },
+      {
+        numero: 2,
+        instruction:
+          "Immerger les cuisses de canard dans la graisse. Confire à basse température.",
+        vitesse: 1,
+        temperature: 80,
+        duree: 5400,
+        conseil: "Cuisson lente de 90 minutes minimum.",
+      },
+      {
+        numero: 3,
+        instruction:
+          "Retirer les cuisses. Faire dorer les pommes de terre sarladaises avec l'ail et le persil dans la graisse.",
+        vitesse: 1,
+        temperature: 120,
+        duree: 1200,
+      },
+      {
+        numero: 4,
+        instruction:
+          "Passer les cuisses au four 10 min à 220°C pour les croustiller.",
+        conseil: "La peau doit être dorée et craquante.",
+      },
+    ],
+    faq: null,
+    approuve: true,
+    publie: true,
+    vues: 0,
+  },
+];
+</file>
+
+<file path="scripts/upload-images.ts">
+/* =============================================================
+   Kitchen Mix — Upload automatique d'images de recettes
+   
+   Usage : npm run images
+   
+   1. Place tes images dans le dossier ./images-recettes/
+      Nommage libre : "soupe-carotte.jpg", "risotto.png", etc.
+      Le script fait un fuzzy match avec les slugs en BDD.
+   
+   2. Le script :
+      - Compresse chaque image en WebP (max 400KB, 1200px)
+      - L'uploade dans le bucket Supabase "recettes-images"
+      - Met à jour la colonne image_url de la recette matchée
+   
+   3. À la fin, il affiche un résumé des matchs et erreurs.
+   
+   Prérequis :
+   - npm install sharp (si pas déjà installé)
+   - .env.local avec SUPABASE_SERVICE_ROLE_KEY
+   - Bucket "recettes-images" créé dans Supabase Storage (public)
+   ============================================================= */
+
+import { readFileSync, readdirSync, statSync } from "fs";
+import { resolve, basename, extname } from "path";
+import { createClient } from "@supabase/supabase-js";
+import sharp from "sharp";
+import { generateSlug } from "../lib/utils";
+
+// ─── Config ──────────────────────────────────────────────────
+
+const IMAGES_DIR = resolve(process.cwd(), "images-recettes");
+const BUCKET = "recettes-images";
+const MAX_WIDTH = 1200;
+const MAX_HEIGHT = 800;
+const QUALITY = 80; // WebP quality (1-100)
+const IMAGE_EXTENSIONS = [
+  ".jpg",
+  ".jpeg",
+  ".png",
+  ".webp",
+  ".gif",
+  ".bmp",
+  ".tiff",
+];
+
+// ─── Charger .env.local ──────────────────────────────────────
+
+try {
+  const envPath = resolve(process.cwd(), ".env.local");
+  const envFile = readFileSync(envPath, "utf-8");
+  for (const line of envFile.split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const eqIndex = trimmed.indexOf("=");
+    if (eqIndex === -1) continue;
+    const key = trimmed.slice(0, eqIndex).trim();
+    const value = trimmed.slice(eqIndex + 1).trim();
+    if (!process.env[key]) process.env[key] = value;
+  }
+} catch {
+  console.error("⚠️  .env.local introuvable.");
+}
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!supabaseUrl || !serviceRoleKey) {
+  console.error("❌ Variables manquantes dans .env.local");
+  process.exit(1);
+}
+
+const supabase = createClient(supabaseUrl, serviceRoleKey);
+
+// ─── Fuzzy matching ──────────────────────────────────────────
+
+/**
+ * Normalise un nom de fichier en tokens comparables
+ * "Soupe-Carotte_Gingembre (2).jpg" → ["soupe", "carotte", "gingembre"]
+ */
+function tokenize(str: string): string[] {
+  return str
+    .toLowerCase()
+    .replace(/\.[^.]+$/, "") // retirer extension
+    .replace(/[^a-zàâäéèêëïîôùûüÿçœæ0-9]/g, " ") // caractères spéciaux → espaces
+    .split(/\s+/)
+    .filter((t) => t.length > 2); // ignorer les mots courts (le, de, au...)
+}
+
+/**
+ * Score de similarité entre un nom de fichier et un slug
+ * Retourne un nombre entre 0 (aucun match) et 1 (parfait)
+ */
+function matchScore(fileTokens: string[], slug: string): number {
+  const slugTokens = slug.split("-").filter((t) => t.length > 2);
+  if (slugTokens.length === 0) return 0;
+
+  let matches = 0;
+  for (const ft of fileTokens) {
+    for (const st of slugTokens) {
+      // Match exact
+      if (ft === st) {
+        matches += 1;
+        break;
+      }
+      // Match partiel (le token du fichier contient le token du slug ou vice versa)
+      if (
+        ft.length >= 4 &&
+        st.length >= 4 &&
+        (ft.includes(st) || st.includes(ft))
+      ) {
+        matches += 0.7;
+        break;
+      }
+      // Match début commun (≥4 chars)
+      if (
+        ft.length >= 4 &&
+        st.length >= 4 &&
+        ft.slice(0, 4) === st.slice(0, 4)
+      ) {
+        matches += 0.5;
+        break;
+      }
+    }
+  }
+
+  // Score = proportion de tokens du slug qui ont matché, pondéré par le nombre de tokens fichier
+  const coverage = matches / slugTokens.length;
+  // Bonus si le nombre de tokens est similaire (pénalise les noms trop courts)
+  const lengthBonus =
+    Math.min(fileTokens.length, slugTokens.length) /
+    Math.max(fileTokens.length, slugTokens.length);
+
+  return coverage * 0.8 + lengthBonus * 0.2;
+}
+
+/**
+ * Trouve le meilleur slug pour un nom de fichier
+ */
+function findBestMatch(
+  filename: string,
+  slugs: string[],
+): { slug: string; score: number } | null {
+  const tokens = tokenize(filename);
+  if (tokens.length === 0) return null;
+
+  let bestSlug = "";
+  let bestScore = 0;
+
+  for (const slug of slugs) {
+    const score = matchScore(tokens, slug);
+    if (score > bestScore) {
+      bestScore = score;
+      bestSlug = slug;
+    }
+  }
+
+  // Seuil minimum : au moins 30% de match
+  if (bestScore < 0.3) return null;
+  return { slug: bestSlug, score: bestScore };
+}
+
+// ─── Compression ─────────────────────────────────────────────
+
+async function compressImage(filePath: string): Promise<Buffer> {
+  const buffer = await sharp(filePath)
+    .resize(MAX_WIDTH, MAX_HEIGHT, {
+      fit: "inside",
+      withoutEnlargement: true,
+    })
+    .webp({ quality: QUALITY })
+    .toBuffer();
+
+  return buffer;
+}
+
+// ─── Main ────────────────────────────────────────────────────
+
+async function main() {
+  console.log("\n🖼️  Upload automatique d'images de recettes\n");
+
+  // 1. Lister les images du dossier
+  let files: string[];
+  try {
+    files = readdirSync(IMAGES_DIR).filter((f) => {
+      const ext = extname(f).toLowerCase();
+      return IMAGE_EXTENSIONS.includes(ext);
+    });
+  } catch {
+    console.error(`❌ Dossier "${IMAGES_DIR}" introuvable.`);
+    console.error(`   Créez-le et placez-y vos images :`);
+    console.error(`   mkdir images-recettes`);
+    process.exit(1);
+  }
+
+  if (files.length === 0) {
+    console.error(`❌ Aucune image trouvée dans ${IMAGES_DIR}`);
+    process.exit(1);
+  }
+
+  console.log(`📁 ${files.length} images trouvées dans images-recettes/\n`);
+
+  // 2. Récupérer tous les slugs de recettes sans image
+  const { data: recettes, error: dbError } = await supabase
+    .from("recettes")
+    .select("slug, image_url")
+    .order("slug");
+
+  if (dbError || !recettes) {
+    console.error("❌ Erreur BDD:", dbError?.message);
+    process.exit(1);
+  }
+
+  // Slugs sans image en priorité, mais permettre l'écrasement
+  const allSlugs = recettes.map((r) => r.slug);
+  const slugsWithoutImage = recettes
+    .filter((r) => !r.image_url)
+    .map((r) => r.slug);
+
+  console.log(
+    `🍽️  ${allSlugs.length} recettes en BDD (${slugsWithoutImage.length} sans image)\n`,
+  );
+
+  // 3. Matcher, compresser, uploader
+  const results: {
+    file: string;
+    slug: string;
+    score: number;
+    status: string;
+  }[] = [];
+  const usedSlugs = new Set<string>();
+
+  // D'abord, construire tous les matchs
+  const matches: { file: string; slug: string; score: number }[] = [];
+
+  for (const file of files) {
+    const match = findBestMatch(file, allSlugs);
+    if (match && !usedSlugs.has(match.slug)) {
+      matches.push({ file, ...match });
+      usedSlugs.add(match.slug);
+    } else {
+      results.push({
+        file,
+        slug: "",
+        score: 0,
+        status: match ? "⚠️  Slug déjà utilisé" : "❌ Pas de match",
+      });
+    }
+  }
+
+  // Trier par score descendant pour traiter les meilleurs matchs en premier
+  matches.sort((a, b) => b.score - a.score);
+
+  // Afficher les matchs pour confirmation
+  console.log("═══ Matching ═══\n");
+  for (const m of matches) {
+    const confidence = m.score >= 0.7 ? "🟢" : m.score >= 0.5 ? "🟡" : "🔴";
+    console.log(
+      `  ${confidence} ${m.file.padEnd(45)} → ${m.slug} (${(m.score * 100).toFixed(0)}%)`,
+    );
+  }
+
+  if (results.filter((r) => r.status.includes("❌")).length > 0) {
+    console.log("\n  Non matchées :");
+    for (const r of results.filter((r) => r.status.includes("❌"))) {
+      console.log(`  ${r.status} ${r.file}`);
+    }
+  }
+
+  console.log(
+    `\n📊 ${matches.length} matchées, ${results.filter((r) => !r.slug).length} non matchées\n`,
+  );
+
+  // Demander confirmation
+  const readline = await import("readline");
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+  const answer = await new Promise<string>((resolve) => {
+    rl.question("🚀 Lancer la compression et l'upload ? (o/N) ", resolve);
+  });
+  rl.close();
+
+  if (answer.toLowerCase() !== "o" && answer.toLowerCase() !== "oui") {
+    console.log("Annulé.");
+    process.exit(0);
+  }
+
+  console.log("\n═══ Upload ═══\n");
+
+  let uploaded = 0;
+  let failed = 0;
+
+  for (const m of matches) {
+    const filePath = resolve(IMAGES_DIR, m.file);
+    process.stdout.write(`  → ${m.slug}...`);
+
+    try {
+      // Compresser
+      const compressed = await compressImage(filePath);
+      const sizeKB = (compressed.length / 1024).toFixed(0);
+
+      // Upload vers Supabase Storage
+      const storagePath = `${generateSlug(m.slug)}.webp`;
+      const { error: uploadError } = await supabase.storage
+        .from(BUCKET)
+        .upload(storagePath, compressed, {
+          contentType: "image/webp",
+          upsert: true, // écraser si existe
+        });
+
+      if (uploadError) throw new Error(uploadError.message);
+
+      // Récupérer l'URL publique
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from(BUCKET).getPublicUrl(storagePath);
+
+      // Mettre à jour la BDD
+      const { error: updateError } = await supabase
+        .from("recettes")
+        .update({ image_url: publicUrl })
+        .eq("slug", m.slug);
+
+      if (updateError) throw new Error(updateError.message);
+
+      console.log(` ✅ (${sizeKB}KB)`);
+      uploaded++;
+    } catch (err) {
+      console.log(` ❌ ${err instanceof Error ? err.message : "Erreur"}`);
+      failed++;
+    }
+  }
+
+  console.log(`\n🎉 Terminé ! ${uploaded} uploadées, ${failed} erreurs.\n`);
+}
+
+main().catch(console.error);
 </file>
 
 <file path="app/actions/comments.ts">
@@ -25146,6 +26928,176 @@ function TimePicker({
         <ChevronDown className="w-4 h-4" />
       </button>
     </div>
+  );
+}
+</file>
+
+<file path="components/layout/Footer.tsx">
+import Link from "next/link";
+import Logo from "@/components/ui/Logo";
+import { SITE_NAME } from "@/lib/constants";
+import NewsletterForm from "@/components/ui/NewsletterForm";
+
+export default function Footer() {
+  const year = new Date().getFullYear();
+
+  return (
+    <footer className="border-t border-border mt-16 pb-20 md:pb-0 no-print">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
+          {/* Brand */}
+          <div className="md:col-span-1">
+            <Link
+              href="/"
+              className="flex items-center gap-2 text-accent font-display font-bold text-lg"
+            >
+              <Logo className="w-10 h-auto" />
+              {SITE_NAME}
+            </Link>
+            <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
+              Recettes au robot cuiseur multifonction, originales et gourmandes.
+              Simulateur intégré, planificateur de repas.
+            </p>
+          </div>
+          {/* Recettes */}
+          <div>
+            <h3 className="font-display font-semibold text-sm uppercase tracking-wider mb-4 text-muted-foreground">
+              Recettes
+            </h3>
+            <ul className="space-y-2">
+              {[
+                { href: "/recettes?categorie=plat", label: "Plats" },
+                { href: "/recettes?categorie=dessert", label: "Desserts" },
+                { href: "/recettes?categorie=soupe", label: "Soupes" },
+                {
+                  href: "/recettes?categorie=boulangerie",
+                  label: "Boulangerie",
+                },
+              ].map((link) => (
+                <li key={link.href}>
+                  <Link
+                    href={link.href}
+                    className="text-sm text-muted-foreground hover:text-accent transition-colors"
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+          {/* Navigation */}
+          <div>
+            <h3 className="font-display font-semibold text-sm uppercase tracking-wider mb-4 text-muted-foreground">
+              Navigation
+            </h3>
+            <ul className="space-y-2">
+              {[
+                { href: "/recherche", label: "Recherche" },
+                { href: "/planificateur", label: "Planificateur" },
+                { href: "/favoris", label: "Mes Favoris" },
+                { href: "/profil", label: "Mon Profil" },
+              ].map((link) => (
+                <li key={link.href}>
+                  <Link
+                    href={link.href}
+                    className="text-sm text-muted-foreground hover:text-accent transition-colors"
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+          {/* Informations légales */}
+          <div>
+            <h3 className="font-display font-semibold text-sm uppercase tracking-wider mb-4 text-muted-foreground">
+              Informations
+            </h3>
+            <ul className="space-y-2">
+              <li>
+                <Link
+                  href="/a-propos"
+                  className="text-sm text-muted-foreground hover:text-accent transition-colors"
+                >
+                  À propos
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/mentions-legales"
+                  className="text-sm text-muted-foreground hover:text-accent transition-colors"
+                >
+                  Mentions légales
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/conditions"
+                  className="text-sm text-muted-foreground hover:text-accent transition-colors"
+                >
+                  Conditions d'utilisation
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/confidentialite"
+                  className="text-sm text-muted-foreground hover:text-accent transition-colors"
+                >
+                  Politique de confidentialité
+                </Link>
+              </li>
+            </ul>
+          </div>
+          {/* Modèles */}
+          <div>
+            <h3 className="font-display font-semibold text-sm uppercase tracking-wider mb-4 text-muted-foreground">
+              Par appareil
+            </h3>
+            <ul className="space-y-2">
+              {[
+                { modele: "TM6", label: "Thermomix TM6" },
+                { modele: "COMPANION", label: "Moulinex Companion" },
+                { modele: "COOK_EXPERT", label: "Magimix Cook Expert" },
+              ].map((item) => (
+                <li key={item.modele}>
+                  <Link
+                    href={`/recettes?modele=${item.modele}`}
+                    className="text-sm text-muted-foreground hover:text-accent transition-colors"
+                  >
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+
+        {/* Newsletter */}
+        <div className="mt-10 pt-8 border-t border-border">
+          <div className="max-w-md">
+            <h3 className="font-display font-semibold text-sm uppercase tracking-wider mb-3 text-muted-foreground">
+              Newsletter
+            </h3>
+            <p className="text-sm text-muted-foreground mb-3">
+              Recevez nos nouvelles recettes chaque semaine.
+            </p>
+            <NewsletterForm source="footer" compact />
+          </div>
+        </div>
+
+        {/* Bottom */}
+        <div className="mt-12 pt-8 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-xs text-muted-foreground">
+            © {year} {SITE_NAME}. Tous droits réservés.
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Kitchen Mix est un site indépendant, non affilié à Vorwerk,
+            Thermomix®, Magimix, Moulinex ou toute autre marque. Les noms de
+            marques sont utilisés uniquement à titre informatif.
+          </p>
+        </div>
+      </div>
+    </footer>
   );
 }
 </file>
