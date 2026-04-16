@@ -218,10 +218,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInWithMagicLink = useCallback(async (email: string) => {
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: {
-        // On passe par le callback serveur
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=/profil`,
-      },
+      options: { emailRedirectTo: `${window.location.origin}/profil` },
     });
     return { error };
   }, []);
@@ -229,10 +226,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInWithGoogle = useCallback(async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: {
-        // On passe par le callback serveur
-        redirectTo: `${window.location.origin}/auth/callback?next=/profil`,
-      },
+      options: { redirectTo: `${window.location.origin}/profil` },
     });
     return { error };
   }, []);
