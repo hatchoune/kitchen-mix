@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/hooks/useTheme";
 import { createClient } from "@/lib/supabase/client";
@@ -21,8 +22,9 @@ import {
 import { cn } from "@/lib/utils";
 
 export default function ParametresPage() {
-  const { user, isAdmin, profil } = useAuth();
+  const { user, isAdmin, profil, signOut } = useAuth();
   const { theme, setTheme } = useTheme();
+  const router = useRouter();
   const [supabase] = useState(() => createClient());
   const [notifs, setNotifs] = useState({ replies: true, moderation: true });
   const [loading, setLoading] = useState(false);
@@ -63,18 +65,32 @@ export default function ParametresPage() {
   const handleFinalDelete = async () => {
     if (deleteConfirmInput !== "supprimer mon compte") return;
     setLoading(true);
-    if (deleteReason) {
-      await supabase
-        .from("suppression_feedbacks")
-        .insert({ raison: deleteReason });
-    }
-    const { error } = await supabase.rpc("delete_user_account");
-    if (error) {
-      alert("Erreur technique. Contactez l'admin.");
+
+    try {
+      // 1. Feedback optionnel
+      if (deleteReason) {
+        await supabase
+          .from("suppression_feedbacks")
+          .insert({ raison: deleteReason });
+      }
+
+      // 2. Suppression du compte (nécessite une session valide)
+      const { error: deleteError } = await supabase.rpc("delete_user_account");
+      if (deleteError) {
+        alert("Erreur technique lors de la suppression. Contactez l'admin.");
+        setLoading(false);
+        return;
+      }
+
+      // 3. Déconnexion pour invalider les cookies
+      await signOut();
+
+      // 4. Redirection
+      router.push("/");
+    } catch (err) {
+      console.error("Erreur suppression:", err);
+      alert("Une erreur est survenue. Veuillez réessayer.");
       setLoading(false);
-    } else {
-      await supabase.auth.signOut();
-      window.location.href = "/";
     }
   };
 
@@ -269,7 +285,11 @@ export default function ParametresPage() {
                 onClick={handleFinalDelete}
                 className="flex-1 py-4 rounded-2xl bg-error text-white font-bold disabled:opacity-20 transition-all hover:brightness-110 shadow-lg shadow-error/20"
               >
-                Confirmer
+                {loading ? (
+                  <Loader2 className="animate-spin w-5 h-5 mx-auto" />
+                ) : (
+                  "Confirmer"
+                )}
               </button>
             </div>
           </div>

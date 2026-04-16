@@ -36,85 +36,173 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 const supabase = createClient();
 
+// Log helper (peut être commenté en production)
+const log = (...args: unknown[]) => {
+  console.log(`[AUTH ${new Date().toISOString().slice(11, 23)}]`, ...args);
+};
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profil, setProfil] = useState<Profil | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Refs pour éviter les race conditions et les re-renders inutiles
-  const loadingRef = useRef(false);
+  const loadingPromiseRef = useRef<Promise<boolean> | null>(null);
   const userIdRef = useRef<string | null>(null);
   const explicitSignOut = useRef(false);
+  const retryTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const safetyTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const loadUserData = useCallback(
-    async (userId: string, userEmail?: string) => {
-      // Si les données de cet user sont déjà chargées, on skip
-      if (loadingRef.current) return;
-      loadingRef.current = true;
-      try {
-        const [profilRes, adminRes] = await Promise.all([
-          supabase.from("profils").select("*").eq("id", userId).single(),
-          supabase
-            .from("admins")
-            .select("user_id")
-            .eq("user_id", userId)
-            .maybeSingle(),
-        ]);
+    async (userId: string, userEmail?: string): Promise<boolean> => {
+      if (loadingPromiseRef.current) {
+        log("⏭️ loadUserData déjà en cours, on attend la promesse existante");
+        return loadingPromiseRef.current;
+      }
 
-        setProfil(profilRes.data as Profil | null);
-        setIsAdmin(!!adminRes.data);
+      log("🔄 loadUserData START", { userId, userEmail });
 
-        // Vérif ban
+      const promise = (async () => {
         try {
-          if (userEmail) {
-            const banPromise = checkBannedEmail(userEmail);
-            const timeoutPromise = new Promise<boolean>((resolve) =>
-              setTimeout(() => resolve(false), 3000),
-            );
-            const isBanned = await Promise.race([banPromise, timeoutPromise]);
-            if (isBanned) {
-              explicitSignOut.current = true;
-              await supabase.auth.signOut();
-              setUser(null);
-              setProfil(null);
-              setIsAdmin(false);
-              userIdRef.current = null;
-              alert("Votre compte a été suspendu.");
-              return;
+          const timeoutPromise = new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error("TIMEOUT")), 5000),
+          );
+
+          const fetchPromise = Promise.all([
+            supabase.from("profils").select("*").eq("id", userId).single(),
+            supabase
+              .from("admins")
+              .select("user_id")
+              .eq("user_id", userId)
+              .maybeSingle(),
+          ]);
+
+          const [profilRes, adminRes] = await Promise.race([
+            fetchPromise,
+            timeoutPromise,
+          ]);
+
+          if (profilRes.error) {
+            if (profilRes.error.code === "PGRST116") {
+              log("⏳ Profil non trouvé (PGRST116), en attente de création...");
+              return false;
+            }
+            log("❌ Erreur Supabase:", profilRes.error);
+            throw profilRes.error;
+          }
+
+          log("✅ Profil trouvé:", profilRes.data);
+          setProfil(profilRes.data as Profil | null);
+          setIsAdmin(!!adminRes.data);
+
+          try {
+            if (userEmail) {
+              const banPromise = checkBannedEmail(userEmail);
+              const banTimeout = new Promise<boolean>((resolve) =>
+                setTimeout(() => resolve(false), 3000),
+              );
+              const isBanned = await Promise.race([banPromise, banTimeout]);
+              if (isBanned) {
+                explicitSignOut.current = true;
+                await supabase.auth.signOut();
+                setUser(null);
+                setProfil(null);
+                setIsAdmin(false);
+                userIdRef.current = null;
+                alert("Votre compte a été suspendu.");
+                return true;
+              }
+            }
+          } catch {
+            // optionnel
+          }
+
+          if (profilRes.data?.theme_preference) {
+            const theme = profilRes.data.theme_preference;
+            if (["dark", "light", "grey"].includes(theme)) {
+              localStorage.setItem("kmx-theme", theme);
+              document.documentElement.setAttribute("data-theme", theme);
             }
           }
-        } catch {
-          // ban check optionnel
-        }
 
-        // Sync thème
-        if (profilRes.data?.theme_preference) {
-          const theme = profilRes.data.theme_preference;
-          if (["dark", "light", "grey"].includes(theme)) {
-            localStorage.setItem("kmx-theme", theme);
-            document.documentElement.setAttribute("data-theme", theme);
+          checkAndUnlockAchievements(userId, "login").catch(() => {});
+          return true;
+        } catch (err) {
+          if (err instanceof Error && err.message === "TIMEOUT") {
+            log("⏰ TIMEOUT dans loadUserData, on abandonne");
+          } else {
+            log("❌ loadUserData ERROR", err);
           }
+          return true;
+        } finally {
+          loadingPromiseRef.current = null;
+          log("🔚 loadUserData END");
         }
+      })();
 
-        checkAndUnlockAchievements(userId, "login").catch(() => {});
-      } catch (err) {
-        console.error("Erreur chargement données utilisateur:", err);
-      } finally {
-        loadingRef.current = false;
-      }
+      loadingPromiseRef.current = promise;
+      return promise;
     },
     [],
   );
 
+  // Retry automatique si user connecté mais profil manquant
+  useEffect(() => {
+    log("🔁 Retry effect check", {
+      hasUser: !!user,
+      hasProfil: !!profil,
+      loading,
+      loadingPromise: !!loadingPromiseRef.current,
+    });
+
+    if (user && !profil && !loading && !loadingPromiseRef.current) {
+      if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+      log("⏰ Programmation retry dans 800ms");
+      retryTimerRef.current = setTimeout(async () => {
+        log("⏰ Retry déclenché !");
+        const success = await loadUserData(user.id, user.email ?? undefined);
+        if (!success) {
+          log("⚠️ Retry : profil toujours absent, on force un re-render");
+          setProfil(null);
+        }
+      }, 800);
+    }
+
+    return () => {
+      if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+    };
+  }, [user, profil, loading, loadUserData]);
+
+  // Sécurité : si loading reste true plus de 8s, on le force à false
+  useEffect(() => {
+    if (loading) {
+      if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
+      safetyTimerRef.current = setTimeout(() => {
+        log("🆘 Safety timeout : loading forcé à false");
+        setLoading(false);
+      }, 8000);
+    } else {
+      if (safetyTimerRef.current) {
+        clearTimeout(safetyTimerRef.current);
+        safetyTimerRef.current = null;
+      }
+    }
+    return () => {
+      if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
+    };
+  }, [loading]);
+
   useEffect(() => {
     let mounted = true;
+    log("🚀 AuthProvider mounted");
 
     const init = async () => {
+      log("📡 init: getSession...");
       try {
         const {
           data: { session },
         } = await supabase.auth.getSession();
+        log("📡 getSession résultat:", { hasSession: !!session });
         if (!mounted) return;
         const currentUser = session?.user ?? null;
         setUser(currentUser);
@@ -123,9 +211,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           await loadUserData(currentUser.id, currentUser.email ?? undefined);
         }
       } catch (err) {
-        console.error("Auth init error:", err);
+        log("❌ init error", err);
       } finally {
-        if (mounted) setLoading(false);
+        if (mounted) {
+          setLoading(false);
+          log("🏁 init terminé, loading=false");
+        }
       }
     };
 
@@ -134,22 +225,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      log(`🔔 onAuthStateChange: ${_event}`, { hasSession: !!session });
       if (!mounted) return;
 
       const currentUser = session?.user ?? null;
 
-      // ────── PROTECTION CLÉ ──────
-      // Si on avait un user connecté et que l'event dit "plus de session"
-      // MAIS que ce n'est PAS un signOut explicite → IGNORER.
-      // C'est le cas quand on switch d'onglet et que le token refresh
-      // échoue ou prend trop de temps. Les cookies sont toujours valides.
+      // Protection anti-faux-signout (Claude)
       if (!currentUser && userIdRef.current && !explicitSignOut.current) {
-        // On ignore cet event parasite
+        log("🛡️ Faux signout ignoré");
         return;
       }
 
-      // Reset le flag après un signOut explicite
       if (explicitSignOut.current && _event === "SIGNED_OUT") {
+        log("👋 SignOut explicite détecté");
         explicitSignOut.current = false;
         setUser(null);
         setProfil(null);
@@ -160,23 +248,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       if (currentUser) {
-        // Nouvel user ou reconnexion
         const isNewUser = currentUser.id !== userIdRef.current;
+        log("👤 Utilisateur présent, isNewUser =", isNewUser);
         setUser(currentUser);
         userIdRef.current = currentUser.id;
 
         if (isNewUser) {
-          // Charger les données seulement si c'est un NOUVEAU user
+          log("🆕 Nouvel utilisateur détecté, chargement du profil...");
+          setLoading(true);
           await loadUserData(currentUser.id, currentUser.email ?? undefined);
+          setLoading(false);
         }
+      } else {
+        log("👻 Session null, reset état");
+        setProfil(null);
+        setIsAdmin(false);
+        userIdRef.current = null;
+        setLoading(false);
       }
-
-      setLoading(false);
     });
 
     return () => {
       mounted = false;
       subscription.unsubscribe();
+      if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+      if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
+      log("💤 AuthProvider unmounted");
     };
   }, [loadUserData]);
 
@@ -206,7 +303,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await supabase.auth.signOut();
     } catch (err) {
       console.error("signOut error:", err);
-      // Forcer le nettoyage même si signOut échoue
       setUser(null);
       setProfil(null);
       setIsAdmin(false);
@@ -226,17 +322,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInWithGoogle = useCallback(async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/profil` },
+      options: {
+        redirectTo: `${window.location.origin}/profil`,
+        queryParams: {
+          prompt: "select_account", // 🔑 Force le choix du compte Google
+        },
+      },
     });
     return { error };
   }, []);
 
   const refreshProfil = useCallback(() => {
     if (user) {
-      loadingRef.current = false; // Forcer le rechargement
       loadUserData(user.id, user.email ?? undefined);
     }
   }, [user, loadUserData]);
+
+  log("🔄 Render AuthProvider", { user: !!user, profil: !!profil, loading });
 
   return (
     <AuthContext.Provider
