@@ -20272,357 +20272,6 @@ function Section({
 }
 </file>
 
-<file path="app/parametres/page.tsx">
-"use client";
-
-import { useState, useEffect } from "react";
-import { useAuth } from "@/hooks/useAuth";
-import { useTheme } from "@/hooks/useTheme";
-import { createClient } from "@/lib/supabase/client";
-import {
-  Settings,
-  Moon,
-  Sun,
-  Monitor,
-  Bell,
-  Lock,
-  Trash2,
-  Save,
-  CheckCircle2,
-  Shield,
-  AlertTriangle,
-  Loader2,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
-
-export default function ParametresPage() {
-  const { user, isAdmin, profil } = useAuth();
-  const { theme, setTheme } = useTheme();
-  const [supabase] = useState(() => createClient());
-  const [notifs, setNotifs] = useState({ replies: true, moderation: true });
-  const [loading, setLoading] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [deleteConfirmInput, setDeleteConfirmInput] = useState("");
-  const [deleteReason, setDeleteReason] = useState("");
-
-  useEffect(() => {
-    if (profil) {
-      setNotifs({
-        replies: profil.notify_replies ?? true,
-        moderation: profil.notify_moderation ?? true,
-      });
-    }
-  }, [profil]);
-
-  const handleSavePreferences = async () => {
-    if (!user) return;
-    setLoading(true);
-    const { error } = await supabase
-      .from("profils")
-      .update({
-        notify_replies: notifs.replies,
-        notify_moderation: notifs.moderation,
-        theme_preference: theme,
-      })
-      .eq("id", user.id);
-    setLoading(false);
-    if (error) {
-      alert("Erreur lors de la sauvegarde. Réessayez.");
-      return;
-    }
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
-  };
-
-  const handleFinalDelete = async () => {
-    if (deleteConfirmInput !== "supprimer mon compte") return;
-    setLoading(true);
-    if (deleteReason) {
-      await supabase
-        .from("suppression_feedbacks")
-        .insert({ raison: deleteReason });
-    }
-    const { error } = await supabase.rpc("delete_user_account");
-    if (error) {
-      alert("Erreur technique. Contactez l'admin.");
-      setLoading(false);
-    } else {
-      await supabase.auth.signOut();
-      window.location.href = "/";
-    }
-  };
-
-  if (!user) return null;
-
-  return (
-    <div className="max-w-4xl mx-auto p-6 space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      {/* HEADER */}
-      <div className="flex items-center justify-between border-b border-border pb-8">
-        <div className="flex items-center gap-4">
-          <div className="p-3 bg-accent/10 rounded-2xl text-accent">
-            <Settings className="w-8 h-8" />
-          </div>
-          <div>
-            <h1 className="font-display font-bold text-3xl italic text-foreground uppercase tracking-tight">
-              Paramètres
-            </h1>
-            <p className="text-xs text-muted-foreground">
-              Gérez vos préférences et la sécurité de votre compte
-            </p>
-          </div>
-        </div>
-        {isAdmin && (
-          <div className="flex items-center gap-2 px-4 py-1.5 bg-accent/20 text-accent border border-accent/30 rounded-full text-[10px] font-bold tracking-widest">
-            <Shield className="w-3 h-3" /> ADMIN
-          </div>
-        )}
-      </div>
-
-      <div className="grid gap-12">
-        {/* SECTION 1 : APPARENCE */}
-        <section className="space-y-6">
-          <div className="flex items-center gap-2 text-accent font-bold">
-            <Monitor className="w-5 h-5" />
-            <h2 className="text-lg uppercase tracking-wider">
-              Apparence du site
-            </h2>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <ThemeButton
-              active={theme === "light"}
-              onClick={() => setTheme("light")}
-              icon={<Sun className="w-6 h-6" />}
-              label="Clair"
-            />
-            <ThemeButton
-              active={theme === "dark"}
-              onClick={() => setTheme("dark")}
-              icon={<Moon className="w-6 h-6" />}
-              label="Sombre"
-            />
-            <ThemeButton
-              active={theme === "grey"}
-              onClick={() => setTheme("grey")}
-              icon={<Monitor className="w-6 h-6" />}
-              label="Gris"
-            />
-          </div>
-          <p className="text-xs text-muted-foreground italic">
-            Le thème est sauvegardé sur votre profil. Il vous suivra sur tous
-            vos appareils.
-          </p>
-        </section>
-
-        {/* SECTION 2 : NOTIFICATIONS */}
-        <section className="space-y-6">
-          <div className="flex items-center gap-2 text-accent font-bold">
-            <Bell className="w-5 h-5" />
-            <h2 className="text-lg uppercase tracking-wider">Notifications</h2>
-          </div>
-          <div className="glass-card p-6 space-y-6 rounded-[2rem] border border-border/40 shadow-inner">
-            <ToggleOption
-              label="Réponses aux commentaires"
-              description="Recevoir une alerte quand un utilisateur répond à l'un de vos messages."
-              checked={notifs.replies}
-              onChange={() =>
-                setNotifs({ ...notifs, replies: !notifs.replies })
-              }
-            />
-            <div className="h-px bg-border/40 w-full" />
-            <ToggleOption
-              label="Suivi de modération"
-              description="Être informé dès qu'un de vos commentaires ou recettes est validé."
-              checked={notifs.moderation}
-              onChange={() =>
-                setNotifs({ ...notifs, moderation: !notifs.moderation })
-              }
-            />
-          </div>
-        </section>
-
-        {/* SECTION 3 : SÉCURITÉ */}
-        <section className="space-y-6">
-          <div className="flex items-center gap-2 text-error font-bold">
-            <Lock className="w-5 h-5" />
-            <h2 className="text-lg uppercase tracking-wider">Sécurité</h2>
-          </div>
-          <div className="p-8 bg-error/5 rounded-[2rem] border border-error/20 space-y-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <div>
-                <p className="font-bold text-foreground">
-                  Suppression du compte
-                </p>
-                <p className="text-xs text-muted-foreground max-w-md">
-                  Cette action est définitive. Toutes vos données seront
-                  anonymisées et vos favoris perdus.
-                </p>
-              </div>
-              <button
-                onClick={() => setShowDeleteModal(true)}
-                className="px-6 py-3 bg-error/10 text-error border border-error/20 rounded-xl font-bold hover:bg-error hover:text-white transition-all text-sm"
-              >
-                Supprimer mon compte
-              </button>
-            </div>
-          </div>
-        </section>
-      </div>
-
-      {/* BOUTON SAUVEGARDER */}
-      <div className="sticky bottom-6 flex justify-end">
-        <button
-          onClick={handleSavePreferences}
-          disabled={loading}
-          className={cn(
-            "flex items-center gap-3 px-10 py-4 rounded-2xl font-bold shadow-2xl transition-all hover:scale-105 active:scale-95",
-            saved ? "bg-sage text-white" : "btn-primary",
-          )}
-        >
-          {loading ? (
-            <Loader2 className="animate-spin w-5 h-5" />
-          ) : saved ? (
-            <CheckCircle2 className="w-5 h-5" />
-          ) : (
-            <Save className="w-5 h-5" />
-          )}
-          {saved ? "Modifications enregistrées !" : "Sauvegarder les réglages"}
-        </button>
-      </div>
-
-      {/* MODALE SUPPRESSION */}
-      {showDeleteModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
-          <div className="bg-card border border-error/30 p-8 rounded-[2.5rem] max-w-md w-full space-y-6 shadow-2xl scale-in-center">
-            <div className="flex items-center gap-4 text-error">
-              <div className="p-3 bg-error/10 rounded-2xl">
-                <AlertTriangle className="w-8 h-8" />
-              </div>
-              <h3 className="font-display font-bold text-2xl tracking-tighter">
-                Action Critique
-              </h3>
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase text-muted-foreground">
-                Pourquoi nous quittez-vous ?
-              </label>
-              <textarea
-                className="w-full bg-background border border-border rounded-2xl p-4 text-sm focus:ring-2 ring-error/20 outline-none transition-all"
-                placeholder="Optionnel..."
-                rows={3}
-                value={deleteReason}
-                onChange={(e) => setDeleteReason(e.target.value)}
-              />
-            </div>
-            <div className="space-y-3 p-4 bg-error/5 rounded-2xl border border-error/10">
-              <p className="text-xs text-center font-bold italic">
-                Tapez exactement la phrase ci-dessous :
-              </p>
-              <p className="text-center text-error font-mono text-sm font-bold">
-                supprimer mon compte
-              </p>
-              <input
-                type="text"
-                className="w-full bg-background border border-border rounded-xl p-3 text-center font-mono text-error focus:ring-2 ring-error/20 outline-none"
-                value={deleteConfirmInput}
-                onChange={(e) =>
-                  setDeleteConfirmInput(e.target.value.toLowerCase())
-                }
-              />
-            </div>
-            <div className="flex gap-4">
-              <button
-                onClick={() => setShowDeleteModal(false)}
-                className="flex-1 py-4 rounded-2xl border border-border font-bold hover:bg-card-hover transition-colors"
-              >
-                Annuler
-              </button>
-              <button
-                disabled={
-                  deleteConfirmInput !== "supprimer mon compte" || loading
-                }
-                onClick={handleFinalDelete}
-                className="flex-1 py-4 rounded-2xl bg-error text-white font-bold disabled:opacity-20 transition-all hover:brightness-110 shadow-lg shadow-error/20"
-              >
-                Confirmer
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function ThemeButton({
-  active,
-  onClick,
-  icon,
-  label,
-}: {
-  active: boolean;
-  onClick: () => void;
-  icon: React.ReactNode;
-  label: string;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "flex flex-col items-center p-6 rounded-[1.5rem] border-2 transition-all duration-300",
-        active
-          ? "border-accent bg-accent/10 text-accent scale-100 shadow-lg shadow-accent/10"
-          : "border-border bg-card/40 text-muted-foreground hover:border-accent/30 hover:text-foreground scale-95 opacity-70 hover:opacity-100",
-      )}
-    >
-      {icon}
-      <span className="text-[10px] font-bold mt-3 uppercase tracking-[0.2em]">
-        {label}
-      </span>
-    </button>
-  );
-}
-
-function ToggleOption({
-  label,
-  description,
-  checked,
-  onChange,
-}: {
-  label: string;
-  description: string;
-  checked: boolean;
-  onChange: () => void;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-6 group">
-      <div className="space-y-1">
-        <p className="text-sm font-bold group-hover:text-accent transition-colors">
-          {label}
-        </p>
-        <p className="text-[11px] text-muted-foreground leading-relaxed">
-          {description}
-        </p>
-      </div>
-      <button
-        onClick={onChange}
-        className={cn(
-          "w-14 h-7 rounded-full transition-all duration-500 relative shrink-0",
-          checked ? "bg-accent shadow-lg shadow-accent/20" : "bg-muted",
-        )}
-      >
-        <div
-          className={cn(
-            "absolute top-1 w-5 h-5 bg-white rounded-full transition-all duration-300 shadow-md",
-            checked ? "left-8" : "left-1",
-          )}
-        />
-      </button>
-    </div>
-  );
-}
-</file>
-
 <file path="app/planificateur/layout.tsx">
 import type { Metadata } from "next";
 import { Suspense } from "react";
@@ -24145,6 +23794,377 @@ function PlanningRow({
           )}
         </button>
       </div>
+    </div>
+  );
+}
+</file>
+
+<file path="app/parametres/page.tsx">
+"use client";
+
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
+import { useTheme } from "@/hooks/useTheme";
+import { createClient } from "@/lib/supabase/client";
+import {
+  Settings,
+  Moon,
+  Sun,
+  Monitor,
+  Bell,
+  Lock,
+  Trash2,
+  Save,
+  CheckCircle2,
+  Shield,
+  AlertTriangle,
+  Loader2,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+
+export default function ParametresPage() {
+  const { user, isAdmin, profil, signOut } = useAuth();
+  const { theme, setTheme } = useTheme();
+  const router = useRouter();
+  const [supabase] = useState(() => createClient());
+  const [notifs, setNotifs] = useState({ replies: true, moderation: true });
+  const [loading, setLoading] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirmInput, setDeleteConfirmInput] = useState("");
+  const [deleteReason, setDeleteReason] = useState("");
+
+  useEffect(() => {
+    if (profil) {
+      setNotifs({
+        replies: profil.notify_replies ?? true,
+        moderation: profil.notify_moderation ?? true,
+      });
+    }
+  }, [profil]);
+
+  const handleSavePreferences = async () => {
+    if (!user) return;
+    setLoading(true);
+    const { error } = await supabase
+      .from("profils")
+      .update({
+        notify_replies: notifs.replies,
+        notify_moderation: notifs.moderation,
+        theme_preference: theme,
+      })
+      .eq("id", user.id);
+    setLoading(false);
+    if (error) {
+      alert("Erreur lors de la sauvegarde. Réessayez.");
+      return;
+    }
+    setSaved(true);
+    setTimeout(() => setSaved(false), 3000);
+  };
+
+  const handleFinalDelete = async () => {
+    if (deleteConfirmInput !== "supprimer mon compte") return;
+    setLoading(true);
+
+    try {
+      // 1. Feedback optionnel
+      if (deleteReason) {
+        await supabase
+          .from("suppression_feedbacks")
+          .insert({ raison: deleteReason });
+      }
+
+      // 2. Suppression du compte (nécessite une session valide)
+      const { error: deleteError } = await supabase.rpc("delete_user_account");
+      if (deleteError) {
+        alert("Erreur technique lors de la suppression. Contactez l'admin.");
+        setLoading(false);
+        return;
+      }
+
+      // 3. Déconnexion pour invalider les cookies
+      await signOut();
+
+      // 4. Redirection
+      router.push("/");
+    } catch (err) {
+      console.error("Erreur suppression:", err);
+      alert("Une erreur est survenue. Veuillez réessayer.");
+      setLoading(false);
+    }
+  };
+
+  if (!user) return null;
+
+  return (
+    <div className="max-w-4xl mx-auto p-6 space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      {/* HEADER */}
+      <div className="flex items-center justify-between border-b border-border pb-8">
+        <div className="flex items-center gap-4">
+          <div className="p-3 bg-accent/10 rounded-2xl text-accent">
+            <Settings className="w-8 h-8" />
+          </div>
+          <div>
+            <h1 className="font-display font-bold text-3xl italic text-foreground uppercase tracking-tight">
+              Paramètres
+            </h1>
+            <p className="text-xs text-muted-foreground">
+              Gérez vos préférences et la sécurité de votre compte
+            </p>
+          </div>
+        </div>
+        {isAdmin && (
+          <div className="flex items-center gap-2 px-4 py-1.5 bg-accent/20 text-accent border border-accent/30 rounded-full text-[10px] font-bold tracking-widest">
+            <Shield className="w-3 h-3" /> ADMIN
+          </div>
+        )}
+      </div>
+
+      <div className="grid gap-12">
+        {/* SECTION 1 : APPARENCE */}
+        <section className="space-y-6">
+          <div className="flex items-center gap-2 text-accent font-bold">
+            <Monitor className="w-5 h-5" />
+            <h2 className="text-lg uppercase tracking-wider">
+              Apparence du site
+            </h2>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <ThemeButton
+              active={theme === "light"}
+              onClick={() => setTheme("light")}
+              icon={<Sun className="w-6 h-6" />}
+              label="Clair"
+            />
+            <ThemeButton
+              active={theme === "dark"}
+              onClick={() => setTheme("dark")}
+              icon={<Moon className="w-6 h-6" />}
+              label="Sombre"
+            />
+            <ThemeButton
+              active={theme === "grey"}
+              onClick={() => setTheme("grey")}
+              icon={<Monitor className="w-6 h-6" />}
+              label="Gris"
+            />
+          </div>
+          <p className="text-xs text-muted-foreground italic">
+            Le thème est sauvegardé sur votre profil. Il vous suivra sur tous
+            vos appareils.
+          </p>
+        </section>
+
+        {/* SECTION 2 : NOTIFICATIONS */}
+        <section className="space-y-6">
+          <div className="flex items-center gap-2 text-accent font-bold">
+            <Bell className="w-5 h-5" />
+            <h2 className="text-lg uppercase tracking-wider">Notifications</h2>
+          </div>
+          <div className="glass-card p-6 space-y-6 rounded-[2rem] border border-border/40 shadow-inner">
+            <ToggleOption
+              label="Réponses aux commentaires"
+              description="Recevoir une alerte quand un utilisateur répond à l'un de vos messages."
+              checked={notifs.replies}
+              onChange={() =>
+                setNotifs({ ...notifs, replies: !notifs.replies })
+              }
+            />
+            <div className="h-px bg-border/40 w-full" />
+            <ToggleOption
+              label="Suivi de modération"
+              description="Être informé dès qu'un de vos commentaires ou recettes est validé."
+              checked={notifs.moderation}
+              onChange={() =>
+                setNotifs({ ...notifs, moderation: !notifs.moderation })
+              }
+            />
+          </div>
+        </section>
+
+        {/* SECTION 3 : SÉCURITÉ */}
+        <section className="space-y-6">
+          <div className="flex items-center gap-2 text-error font-bold">
+            <Lock className="w-5 h-5" />
+            <h2 className="text-lg uppercase tracking-wider">Sécurité</h2>
+          </div>
+          <div className="p-8 bg-error/5 rounded-[2rem] border border-error/20 space-y-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <p className="font-bold text-foreground">
+                  Suppression du compte
+                </p>
+                <p className="text-xs text-muted-foreground max-w-md">
+                  Cette action est définitive. Toutes vos données seront
+                  anonymisées et vos favoris perdus.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowDeleteModal(true)}
+                className="px-6 py-3 bg-error/10 text-error border border-error/20 rounded-xl font-bold hover:bg-error hover:text-white transition-all text-sm"
+              >
+                Supprimer mon compte
+              </button>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      {/* BOUTON SAUVEGARDER */}
+      <div className="sticky bottom-6 flex justify-end">
+        <button
+          onClick={handleSavePreferences}
+          disabled={loading}
+          className={cn(
+            "flex items-center gap-3 px-10 py-4 rounded-2xl font-bold shadow-2xl transition-all hover:scale-105 active:scale-95",
+            saved ? "bg-sage text-white" : "btn-primary",
+          )}
+        >
+          {loading ? (
+            <Loader2 className="animate-spin w-5 h-5" />
+          ) : saved ? (
+            <CheckCircle2 className="w-5 h-5" />
+          ) : (
+            <Save className="w-5 h-5" />
+          )}
+          {saved ? "Modifications enregistrées !" : "Sauvegarder les réglages"}
+        </button>
+      </div>
+
+      {/* MODALE SUPPRESSION */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="bg-card border border-error/30 p-8 rounded-[2.5rem] max-w-md w-full space-y-6 shadow-2xl scale-in-center">
+            <div className="flex items-center gap-4 text-error">
+              <div className="p-3 bg-error/10 rounded-2xl">
+                <AlertTriangle className="w-8 h-8" />
+              </div>
+              <h3 className="font-display font-bold text-2xl tracking-tighter">
+                Action Critique
+              </h3>
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase text-muted-foreground">
+                Pourquoi nous quittez-vous ?
+              </label>
+              <textarea
+                className="w-full bg-background border border-border rounded-2xl p-4 text-sm focus:ring-2 ring-error/20 outline-none transition-all"
+                placeholder="Optionnel..."
+                rows={3}
+                value={deleteReason}
+                onChange={(e) => setDeleteReason(e.target.value)}
+              />
+            </div>
+            <div className="space-y-3 p-4 bg-error/5 rounded-2xl border border-error/10">
+              <p className="text-xs text-center font-bold italic">
+                Tapez exactement la phrase ci-dessous :
+              </p>
+              <p className="text-center text-error font-mono text-sm font-bold">
+                supprimer mon compte
+              </p>
+              <input
+                type="text"
+                className="w-full bg-background border border-border rounded-xl p-3 text-center font-mono text-error focus:ring-2 ring-error/20 outline-none"
+                value={deleteConfirmInput}
+                onChange={(e) =>
+                  setDeleteConfirmInput(e.target.value.toLowerCase())
+                }
+              />
+            </div>
+            <div className="flex gap-4">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="flex-1 py-4 rounded-2xl border border-border font-bold hover:bg-card-hover transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                disabled={
+                  deleteConfirmInput !== "supprimer mon compte" || loading
+                }
+                onClick={handleFinalDelete}
+                className="flex-1 py-4 rounded-2xl bg-error text-white font-bold disabled:opacity-20 transition-all hover:brightness-110 shadow-lg shadow-error/20"
+              >
+                {loading ? (
+                  <Loader2 className="animate-spin w-5 h-5 mx-auto" />
+                ) : (
+                  "Confirmer"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ThemeButton({
+  active,
+  onClick,
+  icon,
+  label,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "flex flex-col items-center p-6 rounded-[1.5rem] border-2 transition-all duration-300",
+        active
+          ? "border-accent bg-accent/10 text-accent scale-100 shadow-lg shadow-accent/10"
+          : "border-border bg-card/40 text-muted-foreground hover:border-accent/30 hover:text-foreground scale-95 opacity-70 hover:opacity-100",
+      )}
+    >
+      {icon}
+      <span className="text-[10px] font-bold mt-3 uppercase tracking-[0.2em]">
+        {label}
+      </span>
+    </button>
+  );
+}
+
+function ToggleOption({
+  label,
+  description,
+  checked,
+  onChange,
+}: {
+  label: string;
+  description: string;
+  checked: boolean;
+  onChange: () => void;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-6 group">
+      <div className="space-y-1">
+        <p className="text-sm font-bold group-hover:text-accent transition-colors">
+          {label}
+        </p>
+        <p className="text-[11px] text-muted-foreground leading-relaxed">
+          {description}
+        </p>
+      </div>
+      <button
+        onClick={onChange}
+        className={cn(
+          "w-14 h-7 rounded-full transition-all duration-500 relative shrink-0",
+          checked ? "bg-accent shadow-lg shadow-accent/20" : "bg-muted",
+        )}
+      >
+        <div
+          className={cn(
+            "absolute top-1 w-5 h-5 bg-white rounded-full transition-all duration-300 shadow-md",
+            checked ? "left-8" : "left-1",
+          )}
+        />
+      </button>
     </div>
   );
 }
@@ -29022,85 +29042,173 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 const supabase = createClient();
 
+// Log helper (peut être commenté en production)
+const log = (...args: unknown[]) => {
+  console.log(`[AUTH ${new Date().toISOString().slice(11, 23)}]`, ...args);
+};
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profil, setProfil] = useState<Profil | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Refs pour éviter les race conditions et les re-renders inutiles
-  const loadingRef = useRef(false);
+  const loadingPromiseRef = useRef<Promise<boolean> | null>(null);
   const userIdRef = useRef<string | null>(null);
   const explicitSignOut = useRef(false);
+  const retryTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const safetyTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const loadUserData = useCallback(
-    async (userId: string, userEmail?: string) => {
-      // Si les données de cet user sont déjà chargées, on skip
-      if (loadingRef.current) return;
-      loadingRef.current = true;
-      try {
-        const [profilRes, adminRes] = await Promise.all([
-          supabase.from("profils").select("*").eq("id", userId).single(),
-          supabase
-            .from("admins")
-            .select("user_id")
-            .eq("user_id", userId)
-            .maybeSingle(),
-        ]);
+    async (userId: string, userEmail?: string): Promise<boolean> => {
+      if (loadingPromiseRef.current) {
+        log("⏭️ loadUserData déjà en cours, on attend la promesse existante");
+        return loadingPromiseRef.current;
+      }
 
-        setProfil(profilRes.data as Profil | null);
-        setIsAdmin(!!adminRes.data);
+      log("🔄 loadUserData START", { userId, userEmail });
 
-        // Vérif ban
+      const promise = (async () => {
         try {
-          if (userEmail) {
-            const banPromise = checkBannedEmail(userEmail);
-            const timeoutPromise = new Promise<boolean>((resolve) =>
-              setTimeout(() => resolve(false), 3000),
-            );
-            const isBanned = await Promise.race([banPromise, timeoutPromise]);
-            if (isBanned) {
-              explicitSignOut.current = true;
-              await supabase.auth.signOut();
-              setUser(null);
-              setProfil(null);
-              setIsAdmin(false);
-              userIdRef.current = null;
-              alert("Votre compte a été suspendu.");
-              return;
+          const timeoutPromise = new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error("TIMEOUT")), 5000),
+          );
+
+          const fetchPromise = Promise.all([
+            supabase.from("profils").select("*").eq("id", userId).single(),
+            supabase
+              .from("admins")
+              .select("user_id")
+              .eq("user_id", userId)
+              .maybeSingle(),
+          ]);
+
+          const [profilRes, adminRes] = await Promise.race([
+            fetchPromise,
+            timeoutPromise,
+          ]);
+
+          if (profilRes.error) {
+            if (profilRes.error.code === "PGRST116") {
+              log("⏳ Profil non trouvé (PGRST116), en attente de création...");
+              return false;
+            }
+            log("❌ Erreur Supabase:", profilRes.error);
+            throw profilRes.error;
+          }
+
+          log("✅ Profil trouvé:", profilRes.data);
+          setProfil(profilRes.data as Profil | null);
+          setIsAdmin(!!adminRes.data);
+
+          try {
+            if (userEmail) {
+              const banPromise = checkBannedEmail(userEmail);
+              const banTimeout = new Promise<boolean>((resolve) =>
+                setTimeout(() => resolve(false), 3000),
+              );
+              const isBanned = await Promise.race([banPromise, banTimeout]);
+              if (isBanned) {
+                explicitSignOut.current = true;
+                await supabase.auth.signOut();
+                setUser(null);
+                setProfil(null);
+                setIsAdmin(false);
+                userIdRef.current = null;
+                alert("Votre compte a été suspendu.");
+                return true;
+              }
+            }
+          } catch {
+            // optionnel
+          }
+
+          if (profilRes.data?.theme_preference) {
+            const theme = profilRes.data.theme_preference;
+            if (["dark", "light", "grey"].includes(theme)) {
+              localStorage.setItem("kmx-theme", theme);
+              document.documentElement.setAttribute("data-theme", theme);
             }
           }
-        } catch {
-          // ban check optionnel
-        }
 
-        // Sync thème
-        if (profilRes.data?.theme_preference) {
-          const theme = profilRes.data.theme_preference;
-          if (["dark", "light", "grey"].includes(theme)) {
-            localStorage.setItem("kmx-theme", theme);
-            document.documentElement.setAttribute("data-theme", theme);
+          checkAndUnlockAchievements(userId, "login").catch(() => {});
+          return true;
+        } catch (err) {
+          if (err instanceof Error && err.message === "TIMEOUT") {
+            log("⏰ TIMEOUT dans loadUserData, on abandonne");
+          } else {
+            log("❌ loadUserData ERROR", err);
           }
+          return true;
+        } finally {
+          loadingPromiseRef.current = null;
+          log("🔚 loadUserData END");
         }
+      })();
 
-        checkAndUnlockAchievements(userId, "login").catch(() => {});
-      } catch (err) {
-        console.error("Erreur chargement données utilisateur:", err);
-      } finally {
-        loadingRef.current = false;
-      }
+      loadingPromiseRef.current = promise;
+      return promise;
     },
     [],
   );
 
+  // Retry automatique si user connecté mais profil manquant
+  useEffect(() => {
+    log("🔁 Retry effect check", {
+      hasUser: !!user,
+      hasProfil: !!profil,
+      loading,
+      loadingPromise: !!loadingPromiseRef.current,
+    });
+
+    if (user && !profil && !loading && !loadingPromiseRef.current) {
+      if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+      log("⏰ Programmation retry dans 800ms");
+      retryTimerRef.current = setTimeout(async () => {
+        log("⏰ Retry déclenché !");
+        const success = await loadUserData(user.id, user.email ?? undefined);
+        if (!success) {
+          log("⚠️ Retry : profil toujours absent, on force un re-render");
+          setProfil(null);
+        }
+      }, 800);
+    }
+
+    return () => {
+      if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+    };
+  }, [user, profil, loading, loadUserData]);
+
+  // Sécurité : si loading reste true plus de 8s, on le force à false
+  useEffect(() => {
+    if (loading) {
+      if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
+      safetyTimerRef.current = setTimeout(() => {
+        log("🆘 Safety timeout : loading forcé à false");
+        setLoading(false);
+      }, 8000);
+    } else {
+      if (safetyTimerRef.current) {
+        clearTimeout(safetyTimerRef.current);
+        safetyTimerRef.current = null;
+      }
+    }
+    return () => {
+      if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
+    };
+  }, [loading]);
+
   useEffect(() => {
     let mounted = true;
+    log("🚀 AuthProvider mounted");
 
     const init = async () => {
+      log("📡 init: getSession...");
       try {
         const {
           data: { session },
         } = await supabase.auth.getSession();
+        log("📡 getSession résultat:", { hasSession: !!session });
         if (!mounted) return;
         const currentUser = session?.user ?? null;
         setUser(currentUser);
@@ -29109,9 +29217,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           await loadUserData(currentUser.id, currentUser.email ?? undefined);
         }
       } catch (err) {
-        console.error("Auth init error:", err);
+        log("❌ init error", err);
       } finally {
-        if (mounted) setLoading(false);
+        if (mounted) {
+          setLoading(false);
+          log("🏁 init terminé, loading=false");
+        }
       }
     };
 
@@ -29120,22 +29231,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      log(`🔔 onAuthStateChange: ${_event}`, { hasSession: !!session });
       if (!mounted) return;
 
       const currentUser = session?.user ?? null;
 
-      // ────── PROTECTION CLÉ ──────
-      // Si on avait un user connecté et que l'event dit "plus de session"
-      // MAIS que ce n'est PAS un signOut explicite → IGNORER.
-      // C'est le cas quand on switch d'onglet et que le token refresh
-      // échoue ou prend trop de temps. Les cookies sont toujours valides.
+      // Protection anti-faux-signout (Claude)
       if (!currentUser && userIdRef.current && !explicitSignOut.current) {
-        // On ignore cet event parasite
+        log("🛡️ Faux signout ignoré");
         return;
       }
 
-      // Reset le flag après un signOut explicite
       if (explicitSignOut.current && _event === "SIGNED_OUT") {
+        log("👋 SignOut explicite détecté");
         explicitSignOut.current = false;
         setUser(null);
         setProfil(null);
@@ -29146,23 +29254,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       if (currentUser) {
-        // Nouvel user ou reconnexion
         const isNewUser = currentUser.id !== userIdRef.current;
+        log("👤 Utilisateur présent, isNewUser =", isNewUser);
         setUser(currentUser);
         userIdRef.current = currentUser.id;
 
         if (isNewUser) {
-          // Charger les données seulement si c'est un NOUVEAU user
+          log("🆕 Nouvel utilisateur détecté, chargement du profil...");
+          setLoading(true);
           await loadUserData(currentUser.id, currentUser.email ?? undefined);
+          setLoading(false);
         }
+      } else {
+        log("👻 Session null, reset état");
+        setProfil(null);
+        setIsAdmin(false);
+        userIdRef.current = null;
+        setLoading(false);
       }
-
-      setLoading(false);
     });
 
     return () => {
       mounted = false;
       subscription.unsubscribe();
+      if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+      if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
+      log("💤 AuthProvider unmounted");
     };
   }, [loadUserData]);
 
@@ -29192,7 +29309,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await supabase.auth.signOut();
     } catch (err) {
       console.error("signOut error:", err);
-      // Forcer le nettoyage même si signOut échoue
       setUser(null);
       setProfil(null);
       setIsAdmin(false);
@@ -29212,17 +29328,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInWithGoogle = useCallback(async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/profil` },
+      options: {
+        redirectTo: `${window.location.origin}/profil`,
+        queryParams: {
+          prompt: "select_account", // 🔑 Force le choix du compte Google
+        },
+      },
     });
     return { error };
   }, []);
 
   const refreshProfil = useCallback(() => {
     if (user) {
-      loadingRef.current = false; // Forcer le rechargement
       loadUserData(user.id, user.email ?? undefined);
     }
   }, [user, loadUserData]);
+
+  log("🔄 Render AuthProvider", { user: !!user, profil: !!profil, loading });
 
   return (
     <AuthContext.Provider

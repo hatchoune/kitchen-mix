@@ -24,6 +24,7 @@ import { readFileSync, readdirSync, statSync } from "fs";
 import { resolve, basename, extname } from "path";
 import { createClient } from "@supabase/supabase-js";
 import sharp from "sharp";
+import { generateSlug } from "../lib/utils";
 
 // ─── Config ──────────────────────────────────────────────────
 
@@ -32,7 +33,15 @@ const BUCKET = "recettes-images";
 const MAX_WIDTH = 1200;
 const MAX_HEIGHT = 800;
 const QUALITY = 80; // WebP quality (1-100)
-const IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".tiff"];
+const IMAGE_EXTENSIONS = [
+  ".jpg",
+  ".jpeg",
+  ".png",
+  ".webp",
+  ".gif",
+  ".bmp",
+  ".tiff",
+];
 
 // ─── Charger .env.local ──────────────────────────────────────
 
@@ -94,12 +103,20 @@ function matchScore(fileTokens: string[], slug: string): number {
         break;
       }
       // Match partiel (le token du fichier contient le token du slug ou vice versa)
-      if (ft.length >= 4 && st.length >= 4 && (ft.includes(st) || st.includes(ft))) {
+      if (
+        ft.length >= 4 &&
+        st.length >= 4 &&
+        (ft.includes(st) || st.includes(ft))
+      ) {
         matches += 0.7;
         break;
       }
       // Match début commun (≥4 chars)
-      if (ft.length >= 4 && st.length >= 4 && ft.slice(0, 4) === st.slice(0, 4)) {
+      if (
+        ft.length >= 4 &&
+        st.length >= 4 &&
+        ft.slice(0, 4) === st.slice(0, 4)
+      ) {
         matches += 0.5;
         break;
       }
@@ -109,7 +126,9 @@ function matchScore(fileTokens: string[], slug: string): number {
   // Score = proportion de tokens du slug qui ont matché, pondéré par le nombre de tokens fichier
   const coverage = matches / slugTokens.length;
   // Bonus si le nombre de tokens est similaire (pénalise les noms trop courts)
-  const lengthBonus = Math.min(fileTokens.length, slugTokens.length) / Math.max(fileTokens.length, slugTokens.length);
+  const lengthBonus =
+    Math.min(fileTokens.length, slugTokens.length) /
+    Math.max(fileTokens.length, slugTokens.length);
 
   return coverage * 0.8 + lengthBonus * 0.2;
 }
@@ -197,10 +216,17 @@ async function main() {
     .filter((r) => !r.image_url)
     .map((r) => r.slug);
 
-  console.log(`🍽️  ${allSlugs.length} recettes en BDD (${slugsWithoutImage.length} sans image)\n`);
+  console.log(
+    `🍽️  ${allSlugs.length} recettes en BDD (${slugsWithoutImage.length} sans image)\n`,
+  );
 
   // 3. Matcher, compresser, uploader
-  const results: { file: string; slug: string; score: number; status: string }[] = [];
+  const results: {
+    file: string;
+    slug: string;
+    score: number;
+    status: string;
+  }[] = [];
   const usedSlugs = new Set<string>();
 
   // D'abord, construire tous les matchs
@@ -227,8 +253,7 @@ async function main() {
   // Afficher les matchs pour confirmation
   console.log("═══ Matching ═══\n");
   for (const m of matches) {
-    const confidence =
-      m.score >= 0.7 ? "🟢" : m.score >= 0.5 ? "🟡" : "🔴";
+    const confidence = m.score >= 0.7 ? "🟢" : m.score >= 0.5 ? "🟡" : "🔴";
     console.log(
       `  ${confidence} ${m.file.padEnd(45)} → ${m.slug} (${(m.score * 100).toFixed(0)}%)`,
     );
@@ -241,11 +266,16 @@ async function main() {
     }
   }
 
-  console.log(`\n📊 ${matches.length} matchées, ${results.filter((r) => !r.slug).length} non matchées\n`);
+  console.log(
+    `\n📊 ${matches.length} matchées, ${results.filter((r) => !r.slug).length} non matchées\n`,
+  );
 
   // Demander confirmation
   const readline = await import("readline");
-  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
   const answer = await new Promise<string>((resolve) => {
     rl.question("🚀 Lancer la compression et l'upload ? (o/N) ", resolve);
   });
@@ -271,7 +301,7 @@ async function main() {
       const sizeKB = (compressed.length / 1024).toFixed(0);
 
       // Upload vers Supabase Storage
-      const storagePath = `${m.slug}.webp`;
+      const storagePath = `${generateSlug(m.slug)}.webp`;
       const { error: uploadError } = await supabase.storage
         .from(BUCKET)
         .upload(storagePath, compressed, {
