@@ -10,6 +10,7 @@ import {
 } from "@/app/actions/plannings";
 import { getMondayOfWeek, toDateString } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/components/ui/Toast";
 
 interface PlanningActionsProps {
   planningId: string;
@@ -27,6 +28,7 @@ export default function PlanningActions({
   const [favorited, setFavorited] = useState(false);
   const [duplicating, setDuplicating] = useState(false);
   const [duplicated, setDuplicated] = useState(false);
+  const { toastSuccess, toastError } = useToast();
 
   const handleLike = async () => {
     if (!user) return;
@@ -55,9 +57,10 @@ export default function PlanningActions({
       const currentWeek = toDateString(getMondayOfWeek());
       const result = await duplicatePlanningToWeek(planningId, currentWeek);
       setDuplicated(true);
+      toastSuccess("Planning copié dans votre semaine !");
       setTimeout(() => setDuplicated(false), 3000);
     } catch (err) {
-      alert("Erreur : " + (err instanceof Error ? err.message : ""));
+      toastError("Erreur : " + (err instanceof Error ? err.message : "Erreur inconnue"));
     } finally {
       setDuplicating(false);
     }

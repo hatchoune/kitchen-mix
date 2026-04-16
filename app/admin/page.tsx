@@ -35,10 +35,12 @@ import {
 } from "@/app/actions/users";
 import { UserX, Users, Ban, Undo2, Trash2 } from "lucide-react";
 import Image from "next/image";
+import { useToast } from "@/components/ui/Toast";
 
 export default function AdminPage() {
   const { user, loading: authLoading, isAdmin: authIsAdmin } = useAuth();
   const router = useRouter();
+  const { toastSuccess, toastError } = useToast();
 
   const [recettesEnAttente, setRecettesEnAttente] = useState<Recette[]>([]);
   const [allRecettes, setAllRecettes] = useState<Recette[]>([]);
@@ -143,7 +145,7 @@ export default function AdminPage() {
       await loadData();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Erreur inconnue";
-      alert("Erreur: " + message);
+      toastError(message);
     }
   };
   const handleBan = async (userId: string, pseudo: string | null) => {
@@ -156,10 +158,10 @@ export default function AdminPage() {
         userId,
         reason || "Comportement inapproprié",
       );
-      alert(`${result.email} a été banni et supprimé.`);
+      toastSuccess(`${result.email} a été banni et supprimé.`);
       await loadData();
     } catch (err: unknown) {
-      alert("Erreur: " + (err instanceof Error ? err.message : "Erreur"));
+      toastError(err instanceof Error ? err.message : "Erreur inconnue");
     }
   };
 
@@ -167,9 +169,10 @@ export default function AdminPage() {
     if (!confirm(`Débannir ${email} ?`)) return;
     try {
       await unbanUser(email);
+      toastSuccess(`${email} a été débanni.`);
       await loadData();
     } catch (err: unknown) {
-      alert("Erreur: " + (err instanceof Error ? err.message : "Erreur"));
+      toastError(err instanceof Error ? err.message : "Erreur inconnue");
     }
   };
 

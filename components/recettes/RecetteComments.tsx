@@ -27,6 +27,7 @@ import {
   voteComment,
 } from "@/app/actions/comments";
 
+import { useToast } from "@/components/ui/Toast";
 /* ─── Types ───────────────────────────────────────────────── */
 
 interface CommentData {
@@ -52,6 +53,7 @@ interface VoteCounts {
 
 export default function RecetteComments({ recetteId }: { recetteId: string }) {
   const { user } = useAuth();
+  const { toastSuccess, toastError, toastWarning } = useToast();
   const [supabase] = useState(() => createClient());
 
   const [comments, setComments] = useState<CommentData[]>([]);
@@ -155,11 +157,11 @@ export default function RecetteComments({ recetteId }: { recetteId: string }) {
 
   const pickPhoto = (file: File) => {
     if (file.size > 5 * 1024 * 1024) {
-      alert("Photo max 5 Mo");
+      toastWarning("Photo max 5 Mo");
       return;
     }
     if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
-      alert("JPEG, PNG ou WebP");
+      toastWarning("Format accepté : JPEG, PNG ou WebP");
       return;
     }
     setPhotoFile(file);
@@ -216,7 +218,7 @@ export default function RecetteComments({ recetteId }: { recetteId: string }) {
       if (!parentId && photoFile) {
         imageUrl = await uploadPhoto();
         if (imageUrl === null && photoFile) {
-          alert("Erreur lors de l'upload de la photo.");
+          toastError("Erreur lors de l'upload de la photo.");
           setIsSubmitting(false);
           return;
         }
@@ -232,7 +234,9 @@ export default function RecetteComments({ recetteId }: { recetteId: string }) {
       }
       await loadComments();
     } catch (err: unknown) {
-      alert("Erreur : " + (err instanceof Error ? err.message : ""));
+      toastError(
+        "Erreur : " + (err instanceof Error ? err.message : "Erreur inconnue"),
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -246,7 +250,7 @@ export default function RecetteComments({ recetteId }: { recetteId: string }) {
       setEditContent("");
       await loadComments();
     } catch (err: unknown) {
-      alert(
+      toastError(
         "Erreur : " + (err instanceof Error ? err.message : "Erreur inconnue"),
       );
     }
@@ -258,7 +262,7 @@ export default function RecetteComments({ recetteId }: { recetteId: string }) {
       await deleteComment(id, recetteId);
       await loadComments();
     } catch (err: unknown) {
-      alert(
+      toastError(
         "Erreur : " + (err instanceof Error ? err.message : "Erreur inconnue"),
       );
     }

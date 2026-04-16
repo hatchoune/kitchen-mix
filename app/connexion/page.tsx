@@ -203,7 +203,6 @@ function ConnexionContent() {
             </button>
           </form>
         )}
-
         {tab === "register" && (
           <form
             onSubmit={registerForm.handleSubmit(handleRegister)}
@@ -295,15 +294,7 @@ function ConnexionContent() {
           <span className="text-xs text-muted-foreground">ou</span>
           <div className="flex-1 h-px bg-border" />
         </div>
-
-        <button
-          onClick={handleMagicLink}
-          disabled={submitting}
-          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-border text-sm hover:bg-card-hover"
-        >
-          <Wand2 className="w-4 h-4" /> Magic Link par email
-        </button>
-
+        {/* Un seul bouton Google pour les deux usages */}
         <button
           onClick={handleGoogle}
           disabled={submitting}
@@ -313,6 +304,13 @@ function ConnexionContent() {
             ...
           </svg>
           Continuer avec Google
+        </button>
+        <button
+          onClick={handleMagicLink}
+          disabled={submitting}
+          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-border text-sm hover:bg-card-hover"
+        >
+          <Wand2 className="w-4 h-4" /> Magic Link par email
         </button>
       </div>
     </div>
