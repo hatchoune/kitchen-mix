@@ -387,11 +387,12 @@ export default function AdminPage() {
       {/* ── Commentaires en attente ── */}
       {tab === "all_recettes" && (
         <div className="space-y-4">
-          {/* Champ de recherche */}
+          {/* Barre de recherche */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
               type="text"
+              name="admin-recipe-search"
               placeholder="Rechercher une recette par titre ou slug..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -399,19 +400,27 @@ export default function AdminPage() {
             />
           </div>
 
+          {/* Liste filtrée */}
           <div className="grid gap-3">
-            {allRecettes
-              .filter(
+            {(() => {
+              const recettesFiltrees = (allRecettes || []).filter(
                 (r) =>
-                  r.titre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                  r.slug.toLowerCase().includes(searchTerm.toLowerCase()),
-              )
-              .map((r) => (
+                  r.titre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                  r.slug?.toLowerCase().includes(searchTerm.toLowerCase()),
+              );
+              if (recettesFiltrees.length === 0) {
+                return (
+                  <p className="text-center text-muted-foreground py-8">
+                    Aucune recette trouvée.
+                  </p>
+                );
+              }
+              return recettesFiltrees.map((r) => (
                 <div
                   key={r.id}
                   className="glass-card p-3 flex items-center gap-3 opacity-80 hover:opacity-100"
                 >
-                  {/* Ici tu laisses exactement le même contenu de ligne qu'avant */}
+                  {/* Miniature */}
                   <Link
                     href={r.approuve ? `/recettes/${r.slug}` : "#"}
                     className="shrink-0"
@@ -432,6 +441,7 @@ export default function AdminPage() {
                     )}
                   </Link>
 
+                  {/* Titre et statut */}
                   <div className="text-sm min-w-0 flex-1 overflow-hidden">
                     <span
                       className={cn(
@@ -460,6 +470,7 @@ export default function AdminPage() {
                     </Link>
                   </div>
 
+                  {/* Actions */}
                   <div className="flex gap-2 items-center shrink-0 ml-3">
                     {!r.approuve && !r.raison_rejet && (
                       <button
@@ -491,7 +502,8 @@ export default function AdminPage() {
                     </button>
                   </div>
                 </div>
-              ))}
+              ));
+            })()}
           </div>
         </div>
       )}
