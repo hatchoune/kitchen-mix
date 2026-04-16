@@ -10,7 +10,6 @@ export default function Footer() {
     <footer className="border-t border-border mt-16 pb-20 md:pb-0 no-print">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
-          {" "}
           {/* Brand */}
           <div className="md:col-span-1">
             <Link
@@ -93,7 +92,23 @@ export default function Footer() {
                   href="/mentions-legales"
                   className="text-sm text-muted-foreground hover:text-accent transition-colors"
                 >
-                  Mentions légales / CGU
+                  Mentions légales
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/conditions"
+                  className="text-sm text-muted-foreground hover:text-accent transition-colors"
+                >
+                  Conditions d'utilisation
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/confidentialite"
+                  className="text-sm text-muted-foreground hover:text-accent transition-colors"
+                >
+                  Politique de confidentialité
                 </Link>
               </li>
             </ul>
