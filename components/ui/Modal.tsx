@@ -3,6 +3,7 @@
 import { useEffect, useCallback, type ReactNode } from "react";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 
 interface ModalProps {
   isOpen: boolean;
@@ -28,15 +29,14 @@ export default function Modal({
     [onClose],
   );
 
+  // Scroll lock agressif centralisé dans le hook (empêche la barre d'adresse
+  // mobile et les onglets du bas de bouger).
+  useBodyScrollLock(isOpen);
+
   useEffect(() => {
-    if (isOpen) {
-      document.addEventListener("keydown", handleEscape);
-      document.body.style.overflow = "hidden";
-    }
-    return () => {
-      document.removeEventListener("keydown", handleEscape);
-      document.body.style.overflow = "";
-    };
+    if (!isOpen) return;
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
   }, [isOpen, handleEscape]);
 
   if (!isOpen) return null;
@@ -44,7 +44,10 @@ export default function Modal({
   return (
     <div
       className={cn(
-        "fixed inset-0 z-[100]",
+        // FIX iOS : `h-[100dvh]` force la hauteur au viewport visible.
+        // Sans ça, `fixed inset-0` peut déborder sous la toolbar Safari,
+        // ce qui cache la partie basse du modal.
+        "fixed inset-0 z-[100] h-[100dvh] overscroll-none",
         !fullScreen && "flex items-center justify-center",
       )}
       role="dialog"
@@ -62,7 +65,7 @@ export default function Modal({
       {/* Content */}
       <div
         className={cn(
-          "relative z-10 animate-scale-in",
+          "relative z-10 animate-scale-in overscroll-none",
           fullScreen
             ? "absolute inset-0 lg:inset-3 lg:rounded-2xl overflow-hidden"
             : "w-full max-w-2xl max-h-[90dvh] mx-4 rounded-2xl overflow-hidden",
@@ -84,7 +87,9 @@ export default function Modal({
           </div>
         )}
 
-        {!title && (
+        {/* Croix par défaut (sans titre) — MASQUÉE en fullScreen :
+            le composant enfant gère sa propre croix bien visible. */}
+        {!title && !fullScreen && (
           <button
             onClick={onClose}
             className="absolute top-4 right-4 z-10 p-2 rounded-lg hover:bg-white/10 transition-colors"

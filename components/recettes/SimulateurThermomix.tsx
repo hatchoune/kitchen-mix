@@ -9,12 +9,11 @@ import {
   Gauge,
   UtensilsCrossed,
   RotateCw,
-  Check, // Corrigé : ajout de l'import Check
+  Check,
   X,
 } from "lucide-react";
 import Modal from "@/components/ui/Modal";
 import type { EtapeThermomix } from "@/types";
-import { cn } from "@/lib/utils";
 
 interface SimulateurProps {
   isOpen: boolean;
@@ -35,14 +34,17 @@ export default function SimulateurThermomix({
   // Détection de l'orientation pour le mobile
   useEffect(() => {
     const checkOrientation = () => {
-      // On considère "Portrait" si la hauteur > largeur sur un petit écran
       setIsPortrait(
         window.innerHeight > window.innerWidth && window.innerWidth < 1024,
       );
     };
     checkOrientation();
     window.addEventListener("resize", checkOrientation);
-    return () => window.removeEventListener("resize", checkOrientation);
+    window.addEventListener("orientationchange", checkOrientation);
+    return () => {
+      window.removeEventListener("resize", checkOrientation);
+      window.removeEventListener("orientationchange", checkOrientation);
+    };
   }, []);
 
   if (!isOpen) return null;
@@ -50,7 +52,6 @@ export default function SimulateurThermomix({
   const etape = etapes[currentStep];
   const isLastStep = currentStep === etapes.length - 1;
 
-  // Fonction pour formater le temps (secondes -> MM:SS)
   const formatTime = (seconds: number | undefined) => {
     if (!seconds) return "--:--";
     const m = Math.floor(seconds / 60);
@@ -62,7 +63,16 @@ export default function SimulateurThermomix({
     <Modal isOpen={isOpen} onClose={onClose} fullScreen>
       {/* 1. ALERTE ROTATION (Mobile Portrait uniquement) */}
       {isPortrait && (
-        <div className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center p-6 text-center">
+        <div className="absolute inset-0 z-[110] bg-black flex flex-col items-center justify-center p-6 text-center overscroll-none">
+          {/* Croix BIEN VISIBLE pour sortir même en portrait */}
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 p-3 bg-accent text-black hover:bg-accent-hover active:scale-95 rounded-full transition-all shadow-lg shadow-accent/30"
+            aria-label="Fermer le mode guidé"
+          >
+            <X className="w-6 h-6" strokeWidth={3} />
+          </button>
+
           <div className="animate-bounce mb-4 text-accent">
             <RotateCw className="w-16 h-16" />
           </div>
@@ -76,21 +86,24 @@ export default function SimulateurThermomix({
         </div>
       )}
 
-      {/* 2. CONTENU DU SIMULATEUR (Full Screen dynamique) */}
-      <div className="flex flex-col h-[100dvh] lg:h-full bg-neutral-950 text-white overflow-hidden">
+      {/* 2. CONTENU DU SIMULATEUR — Full Screen stable.
+          `h-full` hérite de la hauteur bornée par le Modal parent (100dvh),
+          donc plus aucun débordement sous la toolbar iOS. */}
+      <div className="flex flex-col h-full bg-neutral-950 text-white overflow-hidden overscroll-none">
         {/* Header */}
-        <div className="grid grid-cols-3 items-center p-2 lg:p-4 border-b border-white/10 bg-black/50">
-          {/* Gauche : croix + titre */}
+        <div className="grid grid-cols-3 items-center gap-2 p-2 lg:p-4 border-b border-white/10 bg-black/50 shrink-0">
+          {/* Gauche : croix de sortie BIEN VISIBLE (fond accent) + titre */}
           <div className="flex items-center gap-3 min-w-0">
             <button
               onClick={onClose}
-              className="p-2 hover:bg-white/10 rounded-full shrink-0"
+              className="p-2.5 bg-accent text-black hover:bg-accent-hover active:scale-95 rounded-full shrink-0 transition-all shadow-lg shadow-accent/20"
+              aria-label="Fermer le mode guidé"
             >
-              <X className="w-5 h-5" />
+              <X className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={3} />
             </button>
             <h3 className="font-display font-bold text-sm truncate">{titre}</h3>
           </div>
-          {/* Centre : étape X/Y — parfaitement centré */}
+          {/* Centre : étape X/Y */}
           <div className="flex justify-center">
             <div className="text-xs font-mono bg-accent/20 text-accent px-3 py-1 rounded-full border border-accent/30 whitespace-nowrap">
               ÉTAPE {currentStep + 1} / {etapes.length}
@@ -100,8 +113,8 @@ export default function SimulateurThermomix({
           <div />
         </div>
 
-        {/* Zone Centrale - Flex-1 et Overflow-auto règlent le problème du bas "mangé" */}
-        <div className="flex-1 overflow-y-auto p-2 lg:p-8 flex flex-col items-center justify-center gap-3 lg:gap-10">
+        {/* Zone Centrale */}
+        <div className="flex-1 overflow-y-auto overscroll-contain p-2 lg:p-8 flex flex-col items-center justify-center gap-3 lg:gap-10">
           {/* Les 3 Ronds style Thermomix */}
           <div className="flex gap-3 sm:gap-12 justify-center w-full">
             {/* @ts-ignore - duree peut être undefined selon tes données */}
@@ -123,7 +136,7 @@ export default function SimulateurThermomix({
             />
           </div>
 
-          {/* L'Instruction - Zone de texte flexible */}
+          {/* L'Instruction */}
           <div className="max-w-4xl w-full text-center px-2">
             <p className="text-sm sm:text-xl font-medium leading-relaxed text-balance">
               {etape.instruction}
@@ -140,7 +153,7 @@ export default function SimulateurThermomix({
         </div>
 
         {/* Footer */}
-        <div className="p-4 sm:p-6 pb-safe max-md:pb-12 lg:pb-6 bg-black/80 border-t border-white/5 flex items-center justify-between gap-4">
+        <div className="p-4 sm:p-6 pb-safe max-md:pb-8 lg:pb-6 bg-black/80 border-t border-white/5 flex items-center justify-between gap-4 shrink-0">
           <button
             onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
             disabled={currentStep === 0}

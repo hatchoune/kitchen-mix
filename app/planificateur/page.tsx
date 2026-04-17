@@ -24,6 +24,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import RecipePreviewModal from "@/components/planificateur/RecipePreviewModal";
 import { useMealPlans } from "@/hooks/useMealPlans";
 import { useToast } from "@/components/ui/Toast";
+import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 
 /* ─── Types ───────────────────────────────────────────────── */
 
@@ -124,6 +125,16 @@ export default function PlanificateurPage() {
   const [favoris, setFavoris] = useState<RecetteMin[]>([]);
   const [favorisLoaded, setFavorisLoaded] = useState(false);
   const [favorisLoading, setFavorisLoading] = useState(false);
+
+  // === Scroll lock global : dès qu'un modal de la page est ouvert, on gèle
+  // le body pour empêcher la barre d'adresse/onglets mobiles de bouger. ===
+  const anyModalOpen =
+    selectingDay !== null ||
+    showListe ||
+    dayModalOpen !== null ||
+    previewRecipe !== null ||
+    showSaveModal;
+  useBodyScrollLock(anyModalOpen);
 
   /* ─── Save plan ─────────────────────────────────────────── */
 
@@ -768,15 +779,15 @@ export default function PlanificateurPage() {
         </div>
       )}
 
-      {/* Modal détail jour */}
+      {/* Modal détail jour — FIX : z-[100] au-dessus de BottomNav + h-[100dvh] pour iOS */}
       {dayModalOpen !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[100] h-[100dvh] overscroll-none flex items-center justify-center p-4">
           <div
             className="absolute inset-0 bg-black/60"
             onClick={() => setDayModalOpen(null)}
           />
           <div
-            className="relative z-10 w-full max-w-lg rounded-2xl p-6 space-y-4 max-h-[85dvh] flex flex-col animate-scale-in"
+            className="relative z-10 w-full max-w-lg rounded-2xl p-6 space-y-4 max-h-[85dvh] flex flex-col animate-scale-in overscroll-contain"
             style={{ backgroundColor: "var(--color-bg)" }}
           >
             <div className="flex items-center justify-between">
@@ -788,7 +799,7 @@ export default function PlanificateurPage() {
               </button>
             </div>
 
-            <div className="space-y-3 flex-1 overflow-y-auto">
+            <div className="space-y-3 flex-1 overflow-y-auto overscroll-contain">
               {(plan[dayModalOpen] || [null, null, null]).map(
                 (recipe, slotIdx) => (
                   <div key={slotIdx}>
@@ -852,9 +863,14 @@ export default function PlanificateurPage() {
         </div>
       )}
 
-      {/* Modal sélection recette (point 6 — fix mobile) */}
+      {/* Modal sélection recette — FIX MOBILE :
+          - z-[100] : passe AU-DESSUS de la BottomNav (qui est z-50).
+            Avant, la BottomNav "mangeait" la moitié inférieure du modal.
+          - h-[100dvh] : borne le wrapper au viewport visible sur iOS.
+            Sans ça, `fixed inset-0` déborde sous la toolbar Safari.
+          - pb-safe : respecte la zone home indicator iPhone. */}
       {selectingDay !== null && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+        <div className="fixed inset-0 z-[100] h-[100dvh] overscroll-none flex items-end sm:items-center justify-center">
           <div
             className="absolute inset-0 bg-black/60"
             onClick={() => {
@@ -864,12 +880,13 @@ export default function PlanificateurPage() {
               setSearchResults([]);
             }}
           />
+          {/* Bottom sheet sur mobile (h-[85dvh] = prend 85% de l'écran dès
+              l'ouverture, plus de modal rabougri qui colle en bas).
+              Sur desktop (sm+), retour à un modal centré auto-dimensionné. */}
           <div
-            className="relative z-10 w-full sm:max-w-md sm:mx-4 rounded-t-2xl sm:rounded-2xl p-5 sm:p-6 space-y-4 flex flex-col animate-slide-up"
+            className="relative z-10 w-full h-[85dvh] sm:h-auto sm:max-h-[85dvh] sm:max-w-md sm:mx-4 rounded-t-2xl sm:rounded-2xl p-5 sm:p-6 space-y-4 flex flex-col animate-slide-up pb-safe"
             style={{
               backgroundColor: "var(--color-bg)",
-              maxHeight:
-                "min(85dvh, calc(100dvh - env(safe-area-inset-bottom, 0px) - 60px))",
             }}
           >
             <div className="flex items-center justify-between flex-shrink-0">
@@ -885,6 +902,8 @@ export default function PlanificateurPage() {
                   setSearchQuery("");
                   setSearchResults([]);
                 }}
+                className="p-2 -mr-2 rounded-lg hover:bg-card-hover transition-colors"
+                aria-label="Fermer"
               >
                 <X className="w-5 h-5 text-muted-foreground" />
               </button>
@@ -919,7 +938,7 @@ export default function PlanificateurPage() {
             </div>
 
             {activeTab === "search" && (
-              <div className="space-y-2 overflow-y-auto flex-1 min-h-0">
+              <div className="space-y-2 overflow-y-auto overscroll-contain flex-1 min-h-0">
                 <input
                   type="search"
                   value={searchQuery}
@@ -1003,15 +1022,15 @@ export default function PlanificateurPage() {
         </div>
       )}
 
-      {/* Modal liste de courses */}
+      {/* Modal liste de courses — FIX : z-[100] + h-[100dvh] */}
       {showListe && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center">
+        <div className="fixed inset-0 z-[100] h-[100dvh] overscroll-none flex items-center justify-center">
           <div
             className="absolute inset-0 bg-black/60"
             onClick={() => setShowListe(false)}
           />
           <div
-            className="relative z-10 w-full max-w-lg mx-4 rounded-2xl max-h-[85dvh] flex flex-col animate-scale-in"
+            className="relative z-10 w-full max-w-lg mx-4 rounded-2xl max-h-[85dvh] flex flex-col animate-scale-in overscroll-contain"
             style={{ backgroundColor: "var(--color-bg)" }}
           >
             <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
@@ -1046,7 +1065,7 @@ export default function PlanificateurPage() {
                 </button>
               </div>
             </div>
-            <div className="flex-1 overflow-y-auto px-6 py-4">
+            <div className="flex-1 overflow-y-auto overscroll-contain px-6 py-4">
               {listeItems.length === 0 ? (
                 <p className="text-center text-muted-foreground py-12">
                   Aucun ingrédient pour les jours sélectionnés.
