@@ -154,10 +154,12 @@ export default function RecipePreviewModal({
     : 0;
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+    // z-[110] : DOIT passer AU-DESSUS du modal "Ajouter" (z-[100]).
+    // h-[100dvh] : borne le wrapper au viewport visible sur iOS.
+    <div className="fixed inset-0 z-[110] h-[100dvh] overscroll-none flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/70" onClick={onClose} />
       <div
-        className="relative z-10 w-full max-w-lg max-h-[90dvh] rounded-2xl flex flex-col animate-scale-in overflow-hidden"
+        className="relative z-10 w-full max-w-lg max-h-[90dvh] rounded-2xl flex flex-col animate-scale-in overflow-hidden overscroll-contain"
         style={{ backgroundColor: "var(--color-bg)" }}
       >
         {/* Header fixe */}
@@ -174,7 +176,7 @@ export default function RecipePreviewModal({
         </div>
 
         {/* Contenu scrollable */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto overscroll-contain">
           {loading && (
             <div className="flex items-center justify-center py-20">
               <Loader2 className="w-6 h-6 animate-spin text-accent" />
