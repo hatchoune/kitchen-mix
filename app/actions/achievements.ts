@@ -265,9 +265,14 @@ export async function checkAndUnlockAchievements(
             .in("comment_id", commentIds)
             .eq("vote_type", "like");
           const n = count || 0;
+          // Paliers existants
           if (n >= 1) await unlock("likes_received_1");
           if (n >= 10) await unlock("likes_received_10");
           if (n >= 50) await unlock("likes_received_50");
+          // Nouveaux paliers
+          if (n >= 100) await unlock("likes_received_100");
+          if (n >= 250) await unlock("likes_received_250");
+          if (n >= 500) await unlock("likes_received_500");
         }
         break;
       }

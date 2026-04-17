@@ -231,3 +231,38 @@ export interface UserPlanning {
   created_at: string;
   updated_at: string;
 }
+
+// ─── Notifications ───────────────────────────────────────────
+
+export type NotificationType =
+  | "comment_like"
+  | "comment_reply"
+  | "recipe_comment"
+  | "recipe_favorite"
+  | "recipe_rating";
+
+export interface NotificationMetadata {
+  recette_titre?: string | null;
+  recette_slug?: string | null;
+  comment_preview?: string | null;
+  rating?: number | null;
+}
+
+export interface Notification {
+  id: string;
+  user_id: string;
+  actor_id: string | null;
+  type: NotificationType;
+  recette_id: string | null;
+  comment_id: string | null;
+  metadata: NotificationMetadata | null;
+  read_at: string | null;
+  created_at: string;
+}
+
+/** Notification enrichie des entités liées (jointures PostgREST). */
+export interface NotificationEnriched extends Notification {
+  actor: Pick<Profil, "pseudo" | "avatar_url"> | null;
+  recette: Pick<Recette, "slug" | "titre" | "approuve" | "publie"> | null;
+  comment: Pick<RecipeComment, "content" | "parent_id"> | null;
+}

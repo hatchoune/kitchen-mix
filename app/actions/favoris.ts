@@ -37,9 +37,24 @@ export async function toggleFavori(recetteId: string) {
     if (error) throw new Error(error.message);
 
     // Achievements
-    const { checkAndUnlockAchievements } =
-      await import("@/app/actions/achievements");
-    await checkAndUnlockAchievements(user.id, "favori_added");
+    try {
+      const { checkAndUnlockAchievements } = await import(
+        "@/app/actions/achievements"
+      );
+      await checkAndUnlockAchievements(user.id, "favori_added");
+    } catch (err) {
+      console.error("[favoris] achievement check error:", err);
+    }
+
+    // Notification à l'auteur de la recette
+    try {
+      const { notifyRecipeFavorite } = await import(
+        "@/app/actions/notifications"
+      );
+      await notifyRecipeFavorite(recetteId);
+    } catch (err) {
+      console.error("[favoris] notifyRecipeFavorite error:", err);
+    }
 
     return { action: "added" };
   }

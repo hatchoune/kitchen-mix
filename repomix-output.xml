@@ -50,6 +50,7 @@ app/
     comments.ts
     favoris.ts
     newsletter.ts
+    notifications.ts
     plannings.ts
     ratings.ts
     recettes.ts
@@ -83,6 +84,8 @@ app/
   mes-plannings/
     layout.tsx
     page.tsx
+  notifications/
+    layout.tsx
   parametres/
     page.tsx
   planificateur/
@@ -127,7 +130,9 @@ components/
   layout/
     BottomNav.tsx
     Footer.tsx
+    LogoIcon.tsx
     Navbar.tsx
+    NotificationBell.tsx
   planificateur/
     RecipePreviewModal.tsx
     SavePlanningModal.tsx
@@ -191,6 +196,7 @@ lib/
   achievements.ts
   appliance-specs.ts
   constants.ts
+  notifications.ts
   seed-data-companion-lot1.ts
   seed-data-cook-expert.ts
   seed-data-lot2.ts
@@ -251,6 +257,1328 @@ vercel.json
 
 <files>
 This section contains the contents of the repository's files.
+
+<file path="app/actions/notifications.ts">
+"use server";
+
+import {
+  createAdminSupabase,
+  createServerSupabase,
+} from "@/lib/supabase/server";
+import { revalidatePath } from "next/cache";
+import { truncatePreview } from "@/lib/notifications";
+import type {
+  NotificationEnriched,
+  NotificationMetadata,
+  NotificationType,
+} from "@/types";
+
+/* =============================================================
+   Kitchen Mix — Actions : Notifications
+   -------------------------------------------------------------
+   - Les notifications sont CRÉÉES via le service_role (admin)
+     car l'acteur (auth.uid()) est différent du destinataire.
+   - Les LECTURES / MARQUAGES passent par le client utilisateur
+     et sont filtrées par RLS (user_id = auth.uid()).
+   ============================================================= */
+
+// ─── Helper interne (non exporté) ───────────────────────────
+
+interface InsertParams {
+  recipientId: string;
+  actorId: string;
+  type: NotificationType;
+  recetteId?: string | null;
+  commentId?: string | null;
+  metadata?: NotificationMetadata;
+}
+
+async function insertNotification(params: InsertParams): Promise<void> {
+  // Jamais de notification à soi-même.
+  if (params.recipientId === params.actorId) return;
+
+  const admin = createAdminSupabase();
+  const { error } = await admin.from("notifications").insert({
+    user_id: params.recipientId,
+    actor_id: params.actorId,
+    type: params.type,
+    recette_id: params.recetteId ?? null,
+    comment_id: params.commentId ?? null,
+    metadata: params.metadata ?? null,
+  });
+
+  if (error) {
+    console.error("[notifications] insert error:", error.message);
+  }
+}
+
+// ─── Déclencheurs (appelés depuis les autres server actions) ─
+
+/** Notifie l'auteur d'un commentaire qu'il a reçu un like. */
+export async function notifyCommentLike(commentId: string): Promise<void> {
+  try {
+    const supabase = await createServerSupabase();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const admin = createAdminSupabase();
+    const { data: comment } = await admin
+      .from("recipe_comments")
+      .select(
+        "user_id, recette_id, content, recettes:recette_id(titre, slug)",
+      )
+      .eq("id", commentId)
+      .single();
+
+    if (!comment || !comment.user_id) return;
+    if (comment.user_id === user.id) return;
+
+    const recette = comment.recettes as
+      | { titre: string | null; slug: string | null }
+      | null
+      | { titre: string | null; slug: string | null }[];
+    const recetteData = Array.isArray(recette) ? recette[0] : recette;
+
+    await insertNotification({
+      recipientId: comment.user_id,
+      actorId: user.id,
+      type: "comment_like",
+      recetteId: comment.recette_id,
+      commentId,
+      metadata: {
+        comment_preview: truncatePreview(comment.content ?? "", 80),
+        recette_titre: recetteData?.titre ?? null,
+        recette_slug: recetteData?.slug ?? null,
+      },
+    });
+  } catch (err) {
+    console.error("[notifications] notifyCommentLike error:", err);
+  }
+}
+
+/**
+ * Notifications liées à un nouveau commentaire :
+ *   - L'auteur de la recette (si recette approuvée & publiée) → recipe_comment
+ *   - L'auteur du commentaire parent (si réponse)             → comment_reply
+ *
+ * Les deux notifications sont envoyées indépendamment : si la même
+ * personne est à la fois auteur de la recette et du commentaire
+ * parent, elle reçoit 2 notifications (comme demandé).
+ */
+export async function notifyNewComment(commentId: string): Promise<void> {
+  try {
+    const supabase = await createServerSupabase();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const admin = createAdminSupabase();
+    const { data: newComment } = await admin
+      .from("recipe_comments")
+      .select(
+        "user_id, recette_id, content, parent_id, recettes:recette_id(titre, slug, auteur_id, approuve, publie)",
+      )
+      .eq("id", commentId)
+      .single();
+
+    if (!newComment) return;
+
+    const recette = newComment.recettes as
+      | {
+          titre: string | null;
+          slug: string | null;
+          auteur_id: string | null;
+          approuve: boolean | null;
+          publie: boolean | null;
+        }
+      | {
+          titre: string | null;
+          slug: string | null;
+          auteur_id: string | null;
+          approuve: boolean | null;
+          publie: boolean | null;
+        }[]
+      | null;
+    const recetteData = Array.isArray(recette) ? recette[0] : recette;
+
+    const preview = truncatePreview(newComment.content ?? "", 80);
+    const baseMetadata: NotificationMetadata = {
+      comment_preview: preview,
+      recette_titre: recetteData?.titre ?? null,
+      recette_slug: recetteData?.slug ?? null,
+    };
+
+    // 1) Notif à l'auteur de la recette (si approuvée ET publique)
+    if (
+      recetteData?.auteur_id &&
+      recetteData.auteur_id !== user.id &&
+      recetteData.approuve &&
+      recetteData.publie
+    ) {
+      await insertNotification({
+        recipientId: recetteData.auteur_id,
+        actorId: user.id,
+        type: "recipe_comment",
+        recetteId: newComment.recette_id,
+        commentId,
+        metadata: baseMetadata,
+      });
+    }
+
+    // 2) Notif à l'auteur du commentaire parent (si réponse)
+    if (newComment.parent_id) {
+      const { data: parent } = await admin
+        .from("recipe_comments")
+        .select("user_id")
+        .eq("id", newComment.parent_id)
+        .single();
+
+      if (parent?.user_id && parent.user_id !== user.id) {
+        await insertNotification({
+          recipientId: parent.user_id,
+          actorId: user.id,
+          type: "comment_reply",
+          recetteId: newComment.recette_id,
+          commentId,
+          metadata: baseMetadata,
+        });
+      }
+    }
+  } catch (err) {
+    console.error("[notifications] notifyNewComment error:", err);
+  }
+}
+
+/** Notifie l'auteur d'une recette qu'elle a été mise en favori. */
+export async function notifyRecipeFavorite(recetteId: string): Promise<void> {
+  try {
+    const supabase = await createServerSupabase();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const admin = createAdminSupabase();
+    const { data: recette } = await admin
+      .from("recettes")
+      .select("auteur_id, titre, slug, approuve, publie")
+      .eq("id", recetteId)
+      .single();
+
+    if (!recette || !recette.auteur_id) return;
+    if (!recette.approuve || !recette.publie) return;
+    if (recette.auteur_id === user.id) return;
+
+    await insertNotification({
+      recipientId: recette.auteur_id,
+      actorId: user.id,
+      type: "recipe_favorite",
+      recetteId,
+      metadata: {
+        recette_titre: recette.titre,
+        recette_slug: recette.slug,
+      },
+    });
+  } catch (err) {
+    console.error("[notifications] notifyRecipeFavorite error:", err);
+  }
+}
+
+/** Notifie l'auteur d'une recette qu'elle vient d'être notée. */
+export async function notifyRecipeRating(
+  recetteId: string,
+  rating: number,
+): Promise<void> {
+  try {
+    const supabase = await createServerSupabase();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const admin = createAdminSupabase();
+    const { data: recette } = await admin
+      .from("recettes")
+      .select("auteur_id, titre, slug, approuve, publie")
+      .eq("id", recetteId)
+      .single();
+
+    if (!recette || !recette.auteur_id) return;
+    if (!recette.approuve || !recette.publie) return;
+    if (recette.auteur_id === user.id) return;
+
+    await insertNotification({
+      recipientId: recette.auteur_id,
+      actorId: user.id,
+      type: "recipe_rating",
+      recetteId,
+      metadata: {
+        rating,
+        recette_titre: recette.titre,
+        recette_slug: recette.slug,
+      },
+    });
+  } catch (err) {
+    console.error("[notifications] notifyRecipeRating error:", err);
+  }
+}
+
+// ─── Lecture (utilisateur connecté) ─────────────────────────
+
+const ENRICHED_SELECT = `
+  id, user_id, actor_id, type, recette_id, comment_id, metadata, read_at, created_at,
+  actor:profils!notifications_actor_id_fkey(pseudo, avatar_url),
+  recette:recettes!notifications_recette_id_fkey(slug, titre, approuve, publie),
+  comment:recipe_comments!notifications_comment_id_fkey(content, parent_id)
+`;
+
+/** Compteur non-lues (utilisé par le badge de la cloche). */
+export async function getUnreadNotificationsCount(): Promise<number> {
+  try {
+    const supabase = await createServerSupabase();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return 0;
+
+    const { count } = await supabase
+      .from("notifications")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .is("read_at", null);
+
+    return count ?? 0;
+  } catch (err) {
+    console.error("[notifications] getUnreadNotificationsCount error:", err);
+    return 0;
+  }
+}
+
+/** Les N dernières notifications (utilisées par le dropdown). */
+export async function getRecentNotifications(
+  limit = 10,
+): Promise<NotificationEnriched[]> {
+  try {
+    const supabase = await createServerSupabase();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return [];
+
+    const { data, error } = await supabase
+      .from("notifications")
+      .select(ENRICHED_SELECT)
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      console.error("[notifications] getRecent error:", error.message);
+      return [];
+    }
+
+    return (data ?? []) as unknown as NotificationEnriched[];
+  } catch (err) {
+    console.error("[notifications] getRecentNotifications error:", err);
+    return [];
+  }
+}
+
+/** Page complète paginée (utilisée par la page /notifications). */
+export async function getAllNotifications(
+  page = 1,
+  pageSize = 20,
+): Promise<{
+  data: NotificationEnriched[];
+  count: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}> {
+  const empty = { data: [], count: 0, page, pageSize, totalPages: 0 };
+  try {
+    const supabase = await createServerSupabase();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return empty;
+
+    const safePage = Math.max(1, Math.floor(page));
+    const safeSize = Math.min(50, Math.max(1, Math.floor(pageSize)));
+    const from = (safePage - 1) * safeSize;
+    const to = from + safeSize - 1;
+
+    const { data, count, error } = await supabase
+      .from("notifications")
+      .select(ENRICHED_SELECT, { count: "exact" })
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .range(from, to);
+
+    if (error) {
+      console.error("[notifications] getAll error:", error.message);
+      return empty;
+    }
+
+    const total = count ?? 0;
+    return {
+      data: (data ?? []) as unknown as NotificationEnriched[],
+      count: total,
+      page: safePage,
+      pageSize: safeSize,
+      totalPages: Math.max(1, Math.ceil(total / safeSize)),
+    };
+  } catch (err) {
+    console.error("[notifications] getAllNotifications error:", err);
+    return empty;
+  }
+}
+
+// ─── Marquage lu ────────────────────────────────────────────
+
+/** Marque une seule notification comme lue. */
+export async function markNotificationRead(
+  id: string,
+): Promise<{ success: boolean }> {
+  try {
+    const supabase = await createServerSupabase();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return { success: false };
+
+    await supabase
+      .from("notifications")
+      .update({ read_at: new Date().toISOString() })
+      .eq("id", id)
+      .eq("user_id", user.id)
+      .is("read_at", null);
+
+    revalidatePath("/notifications");
+    return { success: true };
+  } catch (err) {
+    console.error("[notifications] markNotificationRead error:", err);
+    return { success: false };
+  }
+}
+
+/** Marque plusieurs notifications comme lues (batch). */
+export async function markNotificationsRead(
+  ids: string[],
+): Promise<{ success: boolean }> {
+  if (!ids || ids.length === 0) return { success: true };
+  try {
+    const supabase = await createServerSupabase();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return { success: false };
+
+    await supabase
+      .from("notifications")
+      .update({ read_at: new Date().toISOString() })
+      .in("id", ids)
+      .eq("user_id", user.id)
+      .is("read_at", null);
+
+    revalidatePath("/notifications");
+    return { success: true };
+  } catch (err) {
+    console.error("[notifications] markNotificationsRead error:", err);
+    return { success: false };
+  }
+}
+
+/** Marque TOUTES les notifications non lues de l'utilisateur comme lues. */
+export async function markAllNotificationsRead(): Promise<{
+  success: boolean;
+}> {
+  try {
+    const supabase = await createServerSupabase();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return { success: false };
+
+    await supabase
+      .from("notifications")
+      .update({ read_at: new Date().toISOString() })
+      .eq("user_id", user.id)
+      .is("read_at", null);
+
+    revalidatePath("/notifications");
+    return { success: true };
+  } catch (err) {
+    console.error("[notifications] markAllNotificationsRead error:", err);
+    return { success: false };
+  }
+}
+</file>
+
+<file path="app/notifications/layout.tsx">
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Mes notifications",
+  robots: { index: false, follow: false },
+};
+
+export default function NotificationsLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return <>{children}</>;
+}
+</file>
+
+<file path="components/layout/LogoIcon.tsx">
+"use client";
+
+import { useState, useEffect, useRef } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { usePathname, useRouter } from "next/navigation";
+import {
+  User,
+  LogOut,
+  Settings,
+  ChevronDown,
+  Shield,
+  Menu,
+  X,
+  Home,
+  BookOpen,
+  Search,
+  PlusCircle,
+  Heart,
+  Calendar,
+  Info,
+  Bell,
+} from "lucide-react";
+import ThemeToggle from "@/components/ui/ThemeToggle";
+import Logo from "@/components/ui/Logo";
+import NotificationBell from "@/components/layout/NotificationBell";
+import { useAuth } from "@/hooks/useAuth";
+import { cn } from "@/lib/utils";
+
+const NAV_LINKS = [
+  { href: "/", label: "Accueil", icon: Home },
+  { href: "/recettes", label: "Recettes", icon: BookOpen },
+  { href: "/recherche", label: "Recherche", icon: Search },
+  { href: "/planificateur", label: "Planning", icon: Calendar },
+  { href: "/mes-plannings", label: "Mes plannings", icon: Calendar },
+  { href: "/soumettre", label: "Proposer", icon: PlusCircle },
+  { href: "/favoris", label: "Favoris", icon: Heart },
+  { href: "/a-propos", label: "À propos", icon: Info },
+];
+export default function Navbar() {
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [visible, setVisible] = useState(true);
+  const { isAdmin, user, signOut, profil } = useAuth();
+  const pathname = usePathname();
+  const router = useRouter();
+  const userMenuRef = useRef<HTMLDivElement>(null);
+  const lastScrollY = useRef(0);
+  const ticking = useRef(false);
+
+  // Fermer dropdown clic extérieur
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        userMenuRef.current &&
+        !userMenuRef.current.contains(event.target as Node)
+      ) {
+        setUserMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Hide on scroll down, show on scroll up
+  useEffect(() => {
+    const handleScroll = () => {
+      if (ticking.current) return;
+      ticking.current = true;
+      requestAnimationFrame(() => {
+        const currentY = window.scrollY;
+        if (currentY < 60) setVisible(true);
+        else if (currentY - lastScrollY.current > 10) {
+          setVisible(false);
+          setUserMenuOpen(false);
+          setMobileOpen(false);
+        } else if (lastScrollY.current - currentY > 10) setVisible(true);
+        lastScrollY.current = currentY;
+        ticking.current = false;
+      });
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const handleLogout = async () => {
+    await signOut();
+    setUserMenuOpen(false);
+    router.push("/");
+  };
+
+  const isActive = (href: string) =>
+    href === "/" ? pathname === "/" : pathname.startsWith(href);
+
+  // Avatar URL
+  const avatarUrl = profil?.avatar_url;
+
+  return (
+    <header
+      className={cn(
+        "sticky top-0 z-50 bg-background/99 backdrop-blur-[1px] border-b border-border transition-transform duration-300",
+        visible ? "translate-y-0" : "-translate-y-full",
+      )}
+    >
+      <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16">
+          {/* Logo */}
+          {/* Logo */}
+          <Link
+            href="/"
+            className="flex items-center gap-2 font-display text-xl font-bold text-accent shrink-0 group"
+          >
+            <Logo className="h-10 w-auto md:h-12" />
+            <span className="hidden sm:inline">Kitchen Mix</span>
+          </Link>
+
+          {/* Desktop Nav Links */}
+          <div className="hidden lg:flex items-center gap-1">
+            {NAV_LINKS.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={cn(
+                  "px-3 py-2 rounded-lg text-sm font-medium transition-all",
+                  isActive(link.href)
+                    ? "bg-accent/15 text-accent shadow-sm shadow-accent/10"
+                    : "bg-background/15 text-foreground/80 hover:text-foreground hover:bg-background/25 backdrop-blur-sm",
+                )}
+              >
+                {link.label}
+              </Link>
+            ))}
+          </div>
+
+          {/* Right side */}
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+
+            {/* Cloche de notifications (uniquement connecté) */}
+            {user && <NotificationBell />}
+
+            {/* Admin button */}
+            {isAdmin && (
+              <Link
+                href="/admin"
+                className={cn(
+                  "p-2 rounded-lg transition-colors hidden sm:flex",
+                  isActive("/admin")
+                    ? "bg-accent/15 text-accent"
+                    : "text-accent/60 hover:text-accent hover:bg-accent/10",
+                )}
+                title="Administration"
+              >
+                <Shield className="w-5 h-5" />
+              </Link>
+            )}
+
+            {/* Profile / Login */}
+            {user ? (
+              <div className="relative" ref={userMenuRef}>
+                <button
+                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  className="flex items-center gap-2 p-1 rounded-full hover:bg-card-hover transition-colors border border-transparent hover:border-border"
+                >
+                  {/* Avatar ou icône par défaut */}
+                  {avatarUrl ? (
+                    <Image
+                      src={avatarUrl}
+                      alt={profil?.pseudo || "Avatar"}
+                      width={32}
+                      height={32}
+                      className="w-8 h-8 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-accent">
+                      <User className="w-5 h-5" />
+                    </div>
+                  )}
+                  <ChevronDown
+                    className={cn(
+                      "w-4 h-4 text-muted-foreground transition-transform",
+                      userMenuOpen && "rotate-180",
+                    )}
+                  />
+                </button>
+
+                {userMenuOpen && (
+                  <div
+                    className="absolute right-0 mt-2 w-52 rounded-xl shadow-2xl py-1 animate-in fade-in zoom-in duration-200 border border-border"
+                    style={{ backgroundColor: "var(--color-bg)" }}
+                  >
+                    <div className="px-4 py-2.5 border-b border-border mb-1">
+                      <p className="text-xs text-muted-foreground">
+                        Connecté en tant que
+                      </p>
+                      <p className="text-sm font-bold truncate">
+                        {profil?.pseudo || user.email}
+                      </p>
+                    </div>
+                    <Link
+                      href="/profil"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-accent/10 hover:text-accent transition-colors"
+                    >
+                      <User className="w-4 h-4" /> Mon Profil
+                    </Link>
+                    <Link
+                      href={`/profil/${user.id}`}
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-accent/10 hover:text-accent transition-colors"
+                    >
+                      <User className="w-4 h-4 opacity-50" /> Profil public
+                    </Link>
+                    <Link
+                      href="/parametres"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-accent/10 hover:text-accent transition-colors"
+                    >
+                      <Settings className="w-4 h-4" /> Paramètres
+                    </Link>
+                    {isAdmin && (
+                      <Link
+                        href="/admin"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-accent hover:bg-accent/10 transition-colors"
+                      >
+                        <Shield className="w-4 h-4" /> Administration
+                      </Link>
+                    )}
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-error hover:bg-error/10 transition-colors border-t border-border mt-1"
+                    >
+                      <LogOut className="w-4 h-4" /> Se déconnecter
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Link href="/connexion" className="btn-primary py-2 px-4 text-sm">
+                Connexion
+              </Link>
+            )}
+
+            {/* Mobile burger */}
+            <button
+              onClick={() => setMobileOpen(!mobileOpen)}
+              className="lg:hidden p-2 rounded-lg hover:bg-card-hover transition-colors"
+              aria-label={mobileOpen ? "Fermer" : "Menu"}
+            >
+              {mobileOpen ? (
+                <X className="w-5 h-5" />
+              ) : (
+                <Menu className="w-5 h-5" />
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile menu */}
+        {mobileOpen && (
+          <div className="lg:hidden pb-4 border-t border-border mt-2 pt-3 animate-fade-in">
+            {NAV_LINKS.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={() => setMobileOpen(false)}
+                className={cn(
+                  "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all",
+                  isActive(link.href)
+                    ? "bg-accent/15 text-accent shadow-sm shadow-accent/10"
+                    : "bg-background/15 text-foreground/80 hover:text-foreground hover:bg-background/25 backdrop-blur-sm",
+                )}
+              >
+                <link.icon className="w-4 h-4" />
+                {link.label}
+              </Link>
+            ))}
+            {user && (
+              <Link
+                href="/notifications"
+                onClick={() => setMobileOpen(false)}
+                className={cn(
+                  "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all",
+                  isActive("/notifications")
+                    ? "bg-accent/15 text-accent shadow-sm shadow-accent/10"
+                    : "bg-background/15 text-foreground/80 hover:text-foreground hover:bg-background/25 backdrop-blur-sm",
+                )}
+              >
+                <Bell className="w-4 h-4" />
+                Notifications
+              </Link>
+            )}
+            {isAdmin && (
+              <Link
+                href="/admin"
+                onClick={() => setMobileOpen(false)}
+                className={cn(
+                  "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold transition-all",
+                  isActive("/admin")
+                    ? "bg-accent/15 text-accent shadow-sm shadow-accent/10"
+                    : "bg-background/15 text-accent/80 hover:text-accent hover:bg-background/25 backdrop-blur-sm",
+                )}
+              >
+                <Shield className="w-4 h-4" /> Administration
+              </Link>
+            )}
+          </div>
+        )}
+      </nav>
+    </header>
+  );
+}
+</file>
+
+<file path="components/layout/NotificationBell.tsx">
+"use client";
+
+import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { Bell, Check, CheckCheck, Loader2, User } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { cn } from "@/lib/utils";
+import {
+  buildNotificationDisplay,
+  formatRelativeTime,
+  NOTIFICATION_TYPE_ICONS,
+} from "@/lib/notifications";
+import type { NotificationEnriched } from "@/types";
+import {
+  getRecentNotifications,
+  getUnreadNotificationsCount,
+  markAllNotificationsRead,
+  markNotificationRead,
+} from "@/app/actions/notifications";
+
+/* =============================================================
+   Cloche de notifications (Navbar).
+   - Badge = nombre de non-lues (poll toutes les 60s).
+   - Au clic, le dropdown charge les 10 dernières.
+   - Click sur une notif = marquage lu + navigation vers la cible.
+   ============================================================= */
+
+const POLL_INTERVAL_MS = 60_000;
+const DROPDOWN_LIMIT = 10;
+
+export default function NotificationBell() {
+  const { user } = useAuth();
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [items, setItems] = useState<NotificationEnriched[]>([]);
+  const [listLoading, setListLoading] = useState(false);
+  const [markingAll, setMarkingAll] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  // ── Poll du compteur ─────────────────────────────────────
+  const refreshCount = useCallback(async () => {
+    if (!user) return;
+    try {
+      const count = await getUnreadNotificationsCount();
+      setUnreadCount(count);
+    } catch {
+      // silent fail
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) {
+      setUnreadCount(0);
+      setItems([]);
+      return;
+    }
+    refreshCount();
+    const id = setInterval(refreshCount, POLL_INTERVAL_MS);
+    const onFocus = () => refreshCount();
+    window.addEventListener("focus", onFocus);
+    return () => {
+      clearInterval(id);
+      window.removeEventListener("focus", onFocus);
+    };
+  }, [user, refreshCount]);
+
+  // ── Chargement de la liste à l'ouverture ────────────────
+  const loadList = useCallback(async () => {
+    if (!user) return;
+    setListLoading(true);
+    try {
+      const data = await getRecentNotifications(DROPDOWN_LIMIT);
+      setItems(data);
+    } finally {
+      setListLoading(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (open) loadList();
+  }, [open, loadList]);
+
+  // ── Fermer au clic extérieur ─────────────────────────────
+  useEffect(() => {
+    if (!open) return;
+    const onClick = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, [open]);
+
+  // ── Fermer avec Escape ──────────────────────────────────
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open]);
+
+  // ── Actions ──────────────────────────────────────────────
+  const handleItemClick = async (
+    notif: NotificationEnriched,
+    href: string | null,
+  ) => {
+    // Marquage lu optimiste
+    if (!notif.read_at) {
+      setItems((prev) =>
+        prev.map((n) =>
+          n.id === notif.id
+            ? { ...n, read_at: new Date().toISOString() }
+            : n,
+        ),
+      );
+      setUnreadCount((c) => Math.max(0, c - 1));
+      try {
+        await markNotificationRead(notif.id);
+      } catch {
+        // silent — on rafraîchira au prochain poll
+      }
+    }
+    setOpen(false);
+    if (href) router.push(href);
+  };
+
+  const handleMarkAll = async () => {
+    if (markingAll || unreadCount === 0) return;
+    setMarkingAll(true);
+    const now = new Date().toISOString();
+    setItems((prev) =>
+      prev.map((n) => (n.read_at ? n : { ...n, read_at: now })),
+    );
+    setUnreadCount(0);
+    try {
+      await markAllNotificationsRead();
+    } catch {
+      // refresh fallback
+      refreshCount();
+    } finally {
+      setMarkingAll(false);
+    }
+  };
+
+  if (!user) return null;
+
+  return (
+    <div className="relative" ref={wrapRef}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className={cn(
+          "relative p-2 rounded-lg transition-colors",
+          open
+            ? "bg-accent/15 text-accent"
+            : "text-foreground/70 hover:text-foreground hover:bg-card-hover",
+        )}
+        aria-label={
+          unreadCount > 0
+            ? `Notifications (${unreadCount} non lue${unreadCount > 1 ? "s" : ""})`
+            : "Notifications"
+        }
+      >
+        <Bell className="w-5 h-5" />
+        {unreadCount > 0 && (
+          <span
+            className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-accent text-[10px] font-bold text-black flex items-center justify-center shadow-sm"
+            aria-hidden="true"
+          >
+            {unreadCount > 99 ? "99+" : unreadCount}
+          </span>
+        )}
+      </button>
+
+      {open && (
+        <div
+          className="absolute right-0 mt-2 w-[min(92vw,22rem)] rounded-xl shadow-2xl border border-border overflow-hidden animate-in fade-in zoom-in duration-200"
+          style={{ backgroundColor: "var(--color-bg)" }}
+          role="dialog"
+          aria-label="Notifications"
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+            <h2 className="font-display font-bold text-sm">Notifications</h2>
+            <button
+              onClick={handleMarkAll}
+              disabled={markingAll || unreadCount === 0}
+              className={cn(
+                "flex items-center gap-1 text-xs font-medium transition-colors",
+                unreadCount === 0
+                  ? "text-muted-foreground/50 cursor-default"
+                  : "text-accent hover:text-accent-hover",
+                markingAll && "opacity-50 cursor-wait",
+              )}
+              title="Tout marquer comme lu"
+            >
+              <CheckCheck className="w-3.5 h-3.5" />
+              Tout lire
+            </button>
+          </div>
+
+          {/* Liste */}
+          <div className="max-h-[60vh] overflow-y-auto">
+            {listLoading ? (
+              <div className="flex items-center justify-center py-10">
+                <Loader2 className="w-5 h-5 animate-spin text-accent" />
+              </div>
+            ) : items.length === 0 ? (
+              <div className="px-6 py-10 text-center text-sm text-muted-foreground">
+                Aucune notification pour le moment.
+              </div>
+            ) : (
+              <ul className="divide-y divide-border">
+                {items.map((notif) => (
+                  <NotificationRow
+                    key={notif.id}
+                    notif={notif}
+                    onActivate={handleItemClick}
+                  />
+                ))}
+              </ul>
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="border-t border-border px-4 py-2.5 text-center">
+            <Link
+              href="/notifications"
+              onClick={() => setOpen(false)}
+              className="text-xs font-medium text-accent hover:underline"
+            >
+              Voir toutes les notifications
+            </Link>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── Ligne individuelle ─────────────────────────────────── */
+
+function NotificationRow({
+  notif,
+  onActivate,
+}: {
+  notif: NotificationEnriched;
+  onActivate: (n: NotificationEnriched, href: string | null) => void;
+}) {
+  const d = buildNotificationDisplay(notif);
+  const unread = !notif.read_at;
+
+  const content = (
+    <div
+      className={cn(
+        "flex items-start gap-3 px-4 py-3 transition-colors text-left w-full",
+        unread ? "bg-accent/5" : "bg-transparent",
+        "hover:bg-card-hover",
+      )}
+    >
+      {/* Avatar */}
+      <div className="relative shrink-0">
+        {d.actorAvatar ? (
+          <Image
+            src={d.actorAvatar}
+            alt={d.actorPseudo}
+            width={36}
+            height={36}
+            className="w-9 h-9 rounded-full object-cover"
+          />
+        ) : (
+          <div className="w-9 h-9 rounded-full bg-accent/20 flex items-center justify-center text-accent">
+            <User className="w-4 h-4" />
+          </div>
+        )}
+        <span
+          className="absolute -bottom-0.5 -right-0.5 text-xs bg-background rounded-full px-1 leading-none py-0.5 border border-border"
+          aria-hidden="true"
+        >
+          {NOTIFICATION_TYPE_ICONS[notif.type]}
+        </span>
+      </div>
+
+      {/* Contenu */}
+      <div className="flex-1 min-w-0">
+        <p className="text-sm leading-snug">
+          <span className="font-semibold">{d.actorPseudo}</span>{" "}
+          <span className="text-foreground/80">{d.actionLabel}</span>
+          {d.rating != null && (
+            <span className="text-foreground/80"> {d.rating}/5</span>
+          )}
+        </p>
+
+        {d.contextTitle && (
+          <p
+            className={cn(
+              "text-xs mt-0.5 truncate",
+              d.isDeleted
+                ? "text-muted-foreground italic line-through"
+                : "text-muted-foreground",
+            )}
+          >
+            {d.isDeleted ? "Contenu supprimé" : d.contextTitle}
+          </p>
+        )}
+
+        {!d.isDeleted && d.commentPreview && (
+          <p className="text-xs mt-1 text-muted-foreground italic line-clamp-2">
+            « {d.commentPreview} »
+          </p>
+        )}
+
+        <p className="text-[11px] text-muted-foreground/80 mt-1">
+          {formatRelativeTime(notif.created_at)}
+        </p>
+      </div>
+
+      {/* Pastille non-lu */}
+      {unread && (
+        <span
+          className="shrink-0 mt-1.5 w-2 h-2 rounded-full bg-accent"
+          aria-hidden="true"
+        />
+      )}
+    </div>
+  );
+
+  return (
+    <li>
+      {d.isDeleted || !d.href ? (
+        <button
+          type="button"
+          onClick={() => onActivate(notif, null)}
+          className="w-full block"
+          aria-label="Notification (contenu supprimé)"
+        >
+          {content}
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={() => onActivate(notif, d.href)}
+          className="w-full block"
+        >
+          {content}
+        </button>
+      )}
+    </li>
+  );
+}
+
+/* ─── Export complémentaire : bouton « marquer lu » isolé ── */
+/* (non utilisé ici, mais exporté au cas où on voudrait le réutiliser) */
+export function MarkReadButton({
+  notifId,
+  onDone,
+}: {
+  notifId: string;
+  onDone?: () => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  return (
+    <button
+      type="button"
+      disabled={busy}
+      onClick={async () => {
+        setBusy(true);
+        try {
+          await markNotificationRead(notifId);
+          onDone?.();
+        } finally {
+          setBusy(false);
+        }
+      }}
+      className="inline-flex items-center gap-1 text-xs text-accent hover:underline disabled:opacity-50"
+    >
+      <Check className="w-3 h-3" /> Marquer comme lu
+    </button>
+  );
+}
+</file>
+
+<file path="lib/notifications.ts">
+/* =============================================================
+   Kitchen Mix — Notifications : constantes & helpers d'affichage
+   -------------------------------------------------------------
+   Pas de code serveur ici : uniquement des types UI et des
+   fonctions pures utilisables côté client ou serveur.
+   ============================================================= */
+
+import type { NotificationEnriched, NotificationType } from "@/types";
+
+/* ─── Labels courts par type ─────────────────────────────── */
+
+export const NOTIFICATION_TYPE_LABELS: Record<NotificationType, string> = {
+  comment_like: "a aimé votre commentaire",
+  comment_reply: "a répondu à votre commentaire",
+  recipe_comment: "a commenté votre recette",
+  recipe_favorite: "a ajouté votre recette à ses favoris",
+  recipe_rating: "a noté votre recette",
+};
+
+/* ─── Icône emoji associée au type ───────────────────────── */
+
+export const NOTIFICATION_TYPE_ICONS: Record<NotificationType, string> = {
+  comment_like: "👍",
+  comment_reply: "💬",
+  recipe_comment: "💬",
+  recipe_favorite: "❤️",
+  recipe_rating: "⭐",
+};
+
+/* ─── Tronquer un texte pour l'aperçu ───────────────────── */
+
+export function truncatePreview(text: string, max = 80): string {
+  const clean = text.trim().replace(/\s+/g, " ");
+  if (clean.length <= max) return clean;
+  return clean.slice(0, max).trimEnd() + "…";
+}
+
+/* ─── Résolution du contexte d'affichage ─────────────────── */
+
+export interface NotificationDisplay {
+  /** Pseudo de l'acteur, ou « Un utilisateur » en repli. */
+  actorPseudo: string;
+  /** Avatar de l'acteur (null si aucun). */
+  actorAvatar: string | null;
+  /** Verbe d'action humanisé ("a aimé votre commentaire", etc.). */
+  actionLabel: string;
+  /** Titre de la recette à afficher (live si possible, sinon metadata). */
+  contextTitle: string | null;
+  /** Aperçu du commentaire si pertinent. */
+  commentPreview: string | null;
+  /** Note attribuée (uniquement type recipe_rating). */
+  rating: number | null;
+  /** Lien cible ou null si l'entité a été supprimée. */
+  href: string | null;
+  /** True si le contenu lié (recette) a disparu. */
+  isDeleted: boolean;
+}
+
+/**
+ * Transforme une notification enrichie (avec jointures) en un objet
+ * prêt pour l'UI. Gère proprement la suppression de la recette ou
+ * du commentaire associé.
+ */
+export function buildNotificationDisplay(
+  n: NotificationEnriched,
+): NotificationDisplay {
+  const metadata = n.metadata ?? {};
+  const actorPseudo = n.actor?.pseudo || "Un utilisateur";
+  const actorAvatar = n.actor?.avatar_url ?? null;
+  const actionLabel = NOTIFICATION_TYPE_LABELS[n.type];
+
+  // Recette : on privilégie la donnée vivante, sinon la métadonnée.
+  const liveRecette = n.recette;
+  const liveIsVisible =
+    liveRecette != null && liveRecette.approuve && liveRecette.publie;
+  const recetteSlug = liveRecette?.slug ?? metadata.recette_slug ?? null;
+  const recetteTitre = liveRecette?.titre ?? metadata.recette_titre ?? null;
+
+  // Si la recette n'existe plus OU n'est plus publique/approuvée,
+  // on considère la cible supprimée pour l'utilisateur final.
+  const isDeleted = !liveIsVisible;
+
+  // Construction du lien :
+  //   - recette présente + commentaire présent   → ancre sur le commentaire
+  //   - recette présente + commentaire supprimé  → page recette seule
+  //   - recette absente                          → pas de lien
+  let href: string | null = null;
+  if (!isDeleted && recetteSlug) {
+    if (n.comment_id && n.comment) {
+      href = `/recettes/${recetteSlug}#comment-${n.comment_id}`;
+    } else {
+      href = `/recettes/${recetteSlug}`;
+    }
+  }
+
+  const commentPreview = n.comment?.content
+    ? truncatePreview(n.comment.content, 120)
+    : (metadata.comment_preview ?? null);
+
+  const rating =
+    n.type === "recipe_rating" && typeof metadata.rating === "number"
+      ? metadata.rating
+      : null;
+
+  return {
+    actorPseudo,
+    actorAvatar,
+    actionLabel,
+    contextTitle: recetteTitre,
+    commentPreview,
+    rating,
+    href,
+    isDeleted,
+  };
+}
+
+/* ─── Format relatif de date ─────────────────────────────── */
+
+export function formatRelativeTime(iso: string): string {
+  const then = new Date(iso).getTime();
+  const now = Date.now();
+  const diffSec = Math.max(0, Math.floor((now - then) / 1000));
+
+  if (diffSec < 60) return "à l'instant";
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `il y a ${diffMin} min`;
+  const diffH = Math.floor(diffMin / 60);
+  if (diffH < 24) return `il y a ${diffH} h`;
+  const diffJ = Math.floor(diffH / 24);
+  if (diffJ < 7) return `il y a ${diffJ} j`;
+  const diffSem = Math.floor(diffJ / 7);
+  if (diffSem < 5) return `il y a ${diffSem} sem.`;
+  const diffMo = Math.floor(diffJ / 30);
+  if (diffMo < 12) return `il y a ${diffMo} mois`;
+  const diffAn = Math.floor(diffJ / 365);
+  return `il y a ${diffAn} an${diffAn > 1 ? "s" : ""}`;
+}
+</file>
 
 <file path="app/a-propos/layout.tsx">
 // app/a-propos/layout.tsx
@@ -539,9 +1867,14 @@ export async function checkAndUnlockAchievements(
             .in("comment_id", commentIds)
             .eq("vote_type", "like");
           const n = count || 0;
+          // Paliers existants
           if (n >= 1) await unlock("likes_received_1");
           if (n >= 10) await unlock("likes_received_10");
           if (n >= 50) await unlock("likes_received_50");
+          // Nouveaux paliers
+          if (n >= 100) await unlock("likes_received_100");
+          if (n >= 250) await unlock("likes_received_250");
+          if (n >= 500) await unlock("likes_received_500");
         }
         break;
       }
@@ -5289,60 +6622,356 @@ export const TIER_BG: Record<1 | 2 | 3, string> = {
 
 export const ACHIEVEMENTS: AchievementDef[] = [
   // ── Connexion ──
-  { code: "first_login", name: "Bienvenue !", description: "Première connexion à Kitchen Mix", category: "connexion", tier: 1, icon: "👋" },
-  { code: "streak_7", name: "Habitué", description: "7 jours consécutifs de connexion", category: "connexion", tier: 2, icon: "🔥", threshold: 7 },
-  { code: "streak_30", name: "Fidèle", description: "30 jours consécutifs de connexion", category: "connexion", tier: 3, icon: "💎", threshold: 30 },
+  {
+    code: "first_login",
+    name: "Bienvenue !",
+    description: "Première connexion à Kitchen Mix",
+    category: "connexion",
+    tier: 1,
+    icon: "👋",
+  },
+  {
+    code: "streak_7",
+    name: "Habitué",
+    description: "7 jours consécutifs de connexion",
+    category: "connexion",
+    tier: 2,
+    icon: "🔥",
+    threshold: 7,
+  },
+  {
+    code: "streak_30",
+    name: "Fidèle",
+    description: "30 jours consécutifs de connexion",
+    category: "connexion",
+    tier: 3,
+    icon: "💎",
+    threshold: 30,
+  },
 
   // ── Profil ──
-  { code: "avatar_set", name: "Beau portrait", description: "Photo de profil ajoutée", category: "profil", tier: 1, icon: "📸" },
+  {
+    code: "avatar_set",
+    name: "Beau portrait",
+    description: "Photo de profil ajoutée",
+    category: "profil",
+    tier: 1,
+    icon: "📸",
+  },
 
   // ── Recettes soumises ──
-  { code: "recipe_submit_1", name: "Apprenti chef", description: "1ère recette soumise", category: "recettes", tier: 1, icon: "🍳", threshold: 1 },
-  { code: "recipe_submit_5", name: "Cuisinier confirmé", description: "5 recettes soumises", category: "recettes", tier: 2, icon: "👨‍🍳", threshold: 5 },
-  { code: "recipe_submit_10", name: "Chef étoilé", description: "10 recettes soumises", category: "recettes", tier: 3, icon: "⭐", threshold: 10 },
+  {
+    code: "recipe_submit_1",
+    name: "Apprenti chef",
+    description: "1ère recette soumise",
+    category: "recettes",
+    tier: 1,
+    icon: "🍳",
+    threshold: 1,
+  },
+  {
+    code: "recipe_submit_5",
+    name: "Cuisinier confirmé",
+    description: "5 recettes soumises",
+    category: "recettes",
+    tier: 2,
+    icon: "👨‍🍳",
+    threshold: 5,
+  },
+  {
+    code: "recipe_submit_10",
+    name: "Chef étoilé",
+    description: "10 recettes soumises",
+    category: "recettes",
+    tier: 3,
+    icon: "⭐",
+    threshold: 10,
+  },
 
   // ── Recettes approuvées ──
-  { code: "recipe_approved_1", name: "Validé !", description: "1ère recette approuvée", category: "recettes", tier: 1, icon: "✅", threshold: 1 },
-  { code: "recipe_approved_5", name: "Valeur sûre", description: "5 recettes approuvées", category: "recettes", tier: 2, icon: "🏅", threshold: 5 },
-  { code: "recipe_approved_10", name: "Référence", description: "10 recettes approuvées", category: "recettes", tier: 3, icon: "🏆", threshold: 10 },
+  {
+    code: "recipe_approved_1",
+    name: "Validé !",
+    description: "1ère recette approuvée",
+    category: "recettes",
+    tier: 1,
+    icon: "✅",
+    threshold: 1,
+  },
+  {
+    code: "recipe_approved_5",
+    name: "Valeur sûre",
+    description: "5 recettes approuvées",
+    category: "recettes",
+    tier: 2,
+    icon: "🏅",
+    threshold: 5,
+  },
+  {
+    code: "recipe_approved_10",
+    name: "Référence",
+    description: "10 recettes approuvées",
+    category: "recettes",
+    tier: 3,
+    icon: "🏆",
+    threshold: 10,
+  },
 
   // ── Favoris ──
-  { code: "fav_1", name: "Premier coup de cœur", description: "1er favori ajouté", category: "favoris", tier: 1, icon: "❤️", threshold: 1 },
-  { code: "fav_10", name: "Collectionneur", description: "10 favoris ajoutés", category: "favoris", tier: 2, icon: "💕", threshold: 10 },
-  { code: "fav_50", name: "Gourmand insatiable", description: "50 favoris ajoutés", category: "favoris", tier: 3, icon: "🤤", threshold: 50 },
+  {
+    code: "fav_1",
+    name: "Premier coup de cœur",
+    description: "1er favori ajouté",
+    category: "favoris",
+    tier: 1,
+    icon: "❤️",
+    threshold: 1,
+  },
+  {
+    code: "fav_10",
+    name: "Collectionneur",
+    description: "10 favoris ajoutés",
+    category: "favoris",
+    tier: 2,
+    icon: "💕",
+    threshold: 10,
+  },
+  {
+    code: "fav_50",
+    name: "Gourmand insatiable",
+    description: "50 favoris ajoutés",
+    category: "favoris",
+    tier: 3,
+    icon: "🤤",
+    threshold: 50,
+  },
 
   // ── Commentaires postés ──
-  { code: "comment_1", name: "Première impression", description: "1er commentaire posté", category: "commentaires", tier: 1, icon: "💬", threshold: 1 },
-  { code: "comment_10", name: "Bavard", description: "10 commentaires postés", category: "commentaires", tier: 2, icon: "🗣️", threshold: 10 },
-  { code: "comment_50", name: "Chroniqueur", description: "50 commentaires postés", category: "commentaires", tier: 3, icon: "📝", threshold: 50 },
+  {
+    code: "comment_1",
+    name: "Première impression",
+    description: "1er commentaire posté",
+    category: "commentaires",
+    tier: 1,
+    icon: "💬",
+    threshold: 1,
+  },
+  {
+    code: "comment_10",
+    name: "Bavard",
+    description: "10 commentaires postés",
+    category: "commentaires",
+    tier: 2,
+    icon: "🗣️",
+    threshold: 10,
+  },
+  {
+    code: "comment_50",
+    name: "Chroniqueur",
+    description: "50 commentaires postés",
+    category: "commentaires",
+    tier: 3,
+    icon: "📝",
+    threshold: 50,
+  },
 
   // ── Commentaires approuvés ──
-  { code: "comment_approved_1", name: "Parole validée", description: "1er commentaire approuvé", category: "commentaires", tier: 1, icon: "✔️", threshold: 1 },
-  { code: "comment_approved_10", name: "Voix de confiance", description: "10 commentaires approuvés", category: "commentaires", tier: 2, icon: "🎤", threshold: 10 },
-  { code: "comment_approved_50", name: "Critique reconnu", description: "50 commentaires approuvés", category: "commentaires", tier: 3, icon: "🎯", threshold: 50 },
+  {
+    code: "comment_approved_1",
+    name: "Parole validée",
+    description: "1er commentaire approuvé",
+    category: "commentaires",
+    tier: 1,
+    icon: "✔️",
+    threshold: 1,
+  },
+  {
+    code: "comment_approved_10",
+    name: "Voix de confiance",
+    description: "10 commentaires approuvés",
+    category: "commentaires",
+    tier: 2,
+    icon: "🎤",
+    threshold: 10,
+  },
+  {
+    code: "comment_approved_50",
+    name: "Critique reconnu",
+    description: "50 commentaires approuvés",
+    category: "commentaires",
+    tier: 3,
+    icon: "🎯",
+    threshold: 50,
+  },
 
   // ── Notes ──
-  { code: "rating_1", name: "Première note", description: "1ère note attribuée", category: "notes", tier: 1, icon: "⭐", threshold: 1 },
-  { code: "rating_10", name: "Juge assidu", description: "10 notes attribuées", category: "notes", tier: 2, icon: "🌟", threshold: 10 },
-  { code: "rating_50", name: "Critique gastronomique", description: "50 notes attribuées", category: "notes", tier: 3, icon: "💫", threshold: 50 },
+  {
+    code: "rating_1",
+    name: "Première note",
+    description: "1ère note attribuée",
+    category: "notes",
+    tier: 1,
+    icon: "⭐",
+    threshold: 1,
+  },
+  {
+    code: "rating_10",
+    name: "Juge assidu",
+    description: "10 notes attribuées",
+    category: "notes",
+    tier: 2,
+    icon: "🌟",
+    threshold: 10,
+  },
+  {
+    code: "rating_50",
+    name: "Critique gastronomique",
+    description: "50 notes attribuées",
+    category: "notes",
+    tier: 3,
+    icon: "💫",
+    threshold: 50,
+  },
 
   // ── Planificateur ──
-  { code: "plan_1", name: "Organisé", description: "1er planning complété (3+ repas)", category: "planificateur", tier: 1, icon: "📅", threshold: 1 },
-  { code: "plan_4", name: "Méthodique", description: "4 semaines planifiées", category: "planificateur", tier: 2, icon: "📋", threshold: 4 },
-  { code: "plan_12", name: "Maître planificateur", description: "12 semaines planifiées", category: "planificateur", tier: 3, icon: "🗓️", threshold: 12 },
+  {
+    code: "plan_1",
+    name: "Organisé",
+    description: "1er planning complété (3+ repas)",
+    category: "planificateur",
+    tier: 1,
+    icon: "📅",
+    threshold: 1,
+  },
+  {
+    code: "plan_4",
+    name: "Méthodique",
+    description: "4 semaines planifiées",
+    category: "planificateur",
+    tier: 2,
+    icon: "📋",
+    threshold: 4,
+  },
+  {
+    code: "plan_12",
+    name: "Maître planificateur",
+    description: "12 semaines planifiées",
+    category: "planificateur",
+    tier: 3,
+    icon: "🗓️",
+    threshold: 12,
+  },
 
   // ── Social (likes reçus sur commentaires) ──
-  { code: "likes_received_1", name: "Apprécié", description: "1er like reçu sur un commentaire", category: "social", tier: 1, icon: "👍", threshold: 1 },
-  { code: "likes_received_10", name: "Populaire", description: "10 likes reçus", category: "social", tier: 2, icon: "🔥", threshold: 10 },
-  { code: "likes_received_50", name: "Influenceur", description: "50 likes reçus", category: "social", tier: 3, icon: "🌟", threshold: 50 },
+  // Paliers existants : conservés tels quels pour la continuité.
+  {
+    code: "likes_received_1",
+    name: "Apprécié",
+    description: "1er like reçu sur un commentaire",
+    category: "social",
+    tier: 1,
+    icon: "👍",
+    threshold: 1,
+  },
+  {
+    code: "likes_received_10",
+    name: "Populaire",
+    description: "10 likes reçus",
+    category: "social",
+    tier: 2,
+    icon: "🔥",
+    threshold: 10,
+  },
+  {
+    code: "likes_received_50",
+    name: "Influenceur",
+    description: "50 likes reçus",
+    category: "social",
+    tier: 3,
+    icon: "🌟",
+    threshold: 50,
+  },
+
+  // Nouveaux paliers : prolongent la progression au-delà de 50.
+  {
+    code: "likes_received_100",
+    name: "Star",
+    description: "100 likes reçus sur ses commentaires",
+    category: "social",
+    tier: 3,
+    icon: "🌠",
+    threshold: 100,
+  },
+  {
+    code: "likes_received_250",
+    name: "Célébrité",
+    description: "250 likes reçus sur ses commentaires",
+    category: "social",
+    tier: 3,
+    icon: "👑",
+    threshold: 250,
+  },
+  {
+    code: "likes_received_500",
+    name: "Légende",
+    description: "500 likes reçus sur ses commentaires",
+    category: "social",
+    tier: 3,
+    icon: "🏆",
+    threshold: 500,
+  },
 
   // ── Spécial ──
-  { code: "recipe_with_photo", name: "Photogénique", description: "Recette soumise avec photo", category: "special", tier: 1, icon: "📷" },
-  { code: "recipe_with_video", name: "Vidéaste", description: "Recette avec vidéo YouTube", category: "special", tier: 2, icon: "🎬" },
-  { code: "recipe_with_faq", name: "Pédagogue", description: "Recette avec FAQ", category: "special", tier: 2, icon: "❓" },
-  { code: "nutriscore_1", name: "Soucieux", description: "Nutri-Score renseigné", category: "special", tier: 1, icon: "🥗" },
-  { code: "nutriscore_5", name: "Nutritionniste", description: "5 recettes avec Nutri-Score", category: "special", tier: 2, icon: "🥦", threshold: 5 },
-  { code: "nutriscore_10", name: "Expert nutrition", description: "10 recettes avec Nutri-Score", category: "special", tier: 3, icon: "🧬", threshold: 10 },
+  {
+    code: "recipe_with_photo",
+    name: "Photogénique",
+    description: "Recette soumise avec photo",
+    category: "special",
+    tier: 1,
+    icon: "📷",
+  },
+  {
+    code: "recipe_with_video",
+    name: "Vidéaste",
+    description: "Recette avec vidéo YouTube",
+    category: "special",
+    tier: 2,
+    icon: "🎬",
+  },
+  {
+    code: "recipe_with_faq",
+    name: "Pédagogue",
+    description: "Recette avec FAQ",
+    category: "special",
+    tier: 2,
+    icon: "❓",
+  },
+  {
+    code: "nutriscore_1",
+    name: "Soucieux",
+    description: "Nutri-Score renseigné",
+    category: "special",
+    tier: 1,
+    icon: "🥗",
+  },
+  {
+    code: "nutriscore_5",
+    name: "Nutritionniste",
+    description: "5 recettes avec Nutri-Score",
+    category: "special",
+    tier: 2,
+    icon: "🥦",
+    threshold: 5,
+  },
+  {
+    code: "nutriscore_10",
+    name: "Expert nutrition",
+    description: "10 recettes avec Nutri-Score",
+    category: "special",
+    tier: 3,
+    icon: "🧬",
+    threshold: 10,
+  },
 ];
 
 // ─── Helpers ─────────────────────────────────────────────────
@@ -5351,7 +6980,9 @@ export function getAchievementByCode(code: string): AchievementDef | undefined {
   return ACHIEVEMENTS.find((a) => a.code === code);
 }
 
-export function getAchievementsByCategory(category: AchievementCategory): AchievementDef[] {
+export function getAchievementsByCategory(
+  category: AchievementCategory,
+): AchievementDef[] {
   return ACHIEVEMENTS.filter((a) => a.category === category);
 }
 </file>
@@ -19451,9 +21082,24 @@ export async function toggleFavori(recetteId: string) {
     if (error) throw new Error(error.message);
 
     // Achievements
-    const { checkAndUnlockAchievements } =
-      await import("@/app/actions/achievements");
-    await checkAndUnlockAchievements(user.id, "favori_added");
+    try {
+      const { checkAndUnlockAchievements } = await import(
+        "@/app/actions/achievements"
+      );
+      await checkAndUnlockAchievements(user.id, "favori_added");
+    } catch (err) {
+      console.error("[favoris] achievement check error:", err);
+    }
+
+    // Notification à l'auteur de la recette
+    try {
+      const { notifyRecipeFavorite } = await import(
+        "@/app/actions/notifications"
+      );
+      await notifyRecipeFavorite(recetteId);
+    } catch (err) {
+      console.error("[favoris] notifyRecipeFavorite error:", err);
+    }
 
     return { action: "added" };
   }
@@ -19539,802 +21185,6 @@ export async function getShoppingListForDays(
   );
 
   return items;
-}
-</file>
-
-<file path="app/admin/editer/[id]/page.tsx">
-"use client";
-
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import {
-  ArrowLeft,
-  Save,
-  Loader2,
-  Check,
-  Plus,
-  Trash2,
-  ChevronDown,
-} from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
-import { createClient } from "@/lib/supabase/client";
-import {
-  CATEGORIES,
-  REGIMES,
-  MODELES_THERMOMIX,
-  DIFFICULTES,
-  INGREDIENT_CATEGORIES,
-} from "@/lib/constants";
-import { cn } from "@/lib/utils";
-import Link from "next/link";
-import type { Recette, Ingredient, EtapeThermomix, FAQItem } from "@/types";
-import { Upload, X, ImageIcon } from "lucide-react"; // Pour les icônes
-import imageCompression from "browser-image-compression";
-import { updateRecette } from "@/app/actions/admin";
-import { uploadImage } from "@/app/actions/upload";
-import Image from "next/image";
-
-interface PageProps {
-  params: Promise<{ id: string }>;
-}
-
-export default function AdminEditerPage({ params }: PageProps) {
-  const { user, isAdmin, loading: authLoading } = useAuth();
-  const router = useRouter();
-  const [supabase] = useState(() => createClient());
-
-  const [recette, setRecette] = useState<Recette | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [error, setError] = useState("");
-
-  // Form state
-  const [titre, setTitre] = useState("");
-  const [description, setDescription] = useState("");
-  const [difficulte, setDifficulte] = useState("facile");
-  const [tempsPrep, setTempsPrep] = useState(15);
-  const [tempsCuisson, setTempsCuisson] = useState(20);
-  const [portions, setPortions] = useState(4);
-  const [modeles, setModeles] = useState<string[]>([]);
-  const [cats, setCats] = useState<string[]>([]);
-  const [regimesState, setRegimesState] = useState<string[]>([]);
-  const [tagsStr, setTagsStr] = useState("");
-  const [nutriscore, setNutriscore] = useState("");
-  const [calories, setCalories] = useState("");
-  const [imageUrl, setImageUrl] = useState("");
-  const [videoId, setVideoId] = useState("");
-  const [approuve, setApprouve] = useState(false);
-  const [ingredients, setIngredients] = useState<Ingredient[]>([]);
-  const [etapes, setEtapes] = useState<EtapeThermomix[]>([]);
-  const [faq, setFaq] = useState<FAQItem[]>([]);
-
-  // Sections ouvertes/fermées
-  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
-    infos: true,
-    ingredients: false,
-    etapes: false,
-    medias: false,
-    faq: false,
-    admin: true,
-  });
-
-  const toggleSection = (key: string) =>
-    setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
-
-  // Load recipe
-  useEffect(() => {
-    const load = async () => {
-      const { id } = await params;
-      const { data, error: err } = await supabase
-        .from("recettes")
-        .select("*")
-        .eq("id", id)
-        .single();
-
-      if (err || !data) {
-        setError("Recette introuvable");
-        setLoading(false);
-        return;
-      }
-
-      const r = data as Recette;
-      setRecette(r);
-      setTitre(r.titre);
-      setDescription(r.description);
-      setDifficulte(r.difficulte);
-      setTempsPrep(r.temps_preparation);
-      setTempsCuisson(r.temps_cuisson);
-      setPortions(r.nombre_portions);
-      setModeles(r.modele_thermomix);
-      setCats(r.categories);
-      setRegimesState(r.regime);
-      setTagsStr(r.tags.join(", "));
-      setNutriscore(r.nutriscore || "");
-      setCalories(r.calories_par_portion ? String(r.calories_par_portion) : "");
-      setImageUrl(r.image_url || "");
-      setVideoId(r.video_youtube_id || "");
-      setApprouve(r.approuve);
-      setIngredients(r.ingredients);
-      setEtapes(r.etapes);
-      setFaq(r.faq || []);
-      setLoading(false);
-    };
-
-    if (!authLoading) {
-      if (!user || !isAdmin) router.push("/");
-      else load();
-    }
-  }, [authLoading, user, isAdmin, params, supabase, router]);
-
-  // Save
-  const handleSave = async () => {
-    if (!recette) return;
-    setSaving(true);
-    setError("");
-    setSaved(false);
-
-    try {
-      const updates = {
-        titre,
-        description,
-        difficulte,
-        temps_preparation: tempsPrep,
-        temps_cuisson: tempsCuisson,
-        nombre_portions: portions,
-        modele_thermomix: modeles,
-        categories: cats,
-        regime: regimesState,
-        tags: tagsStr
-          .split(",")
-          .map((t) => t.trim())
-          .filter(Boolean),
-        nutriscore: nutriscore || null,
-        calories_par_portion: calories ? parseInt(calories) : null,
-        image_url: imageUrl || null,
-        video_youtube_id: videoId || null,
-        approuve,
-        ingredients,
-        etapes,
-        faq: faq.length > 0 ? faq : null,
-      };
-
-      await updateRecette(recette.id, updates);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Erreur");
-    } finally {
-      setSaving(false);
-    }
-  };
-  // Ingredient helpers
-  const addIng = () =>
-    setIngredients([...ingredients, { nom: "", quantite: 0, unite: "g" }]);
-  const rmIng = (i: number) =>
-    setIngredients(ingredients.filter((_, j) => j !== i));
-  const upIng = (i: number, updates: Partial<Ingredient>) => {
-    const a = [...ingredients];
-    a[i] = { ...a[i], ...updates };
-    setIngredients(a);
-  };
-
-  // Etape helpers
-  const addEtape = () =>
-    setEtapes([...etapes, { numero: etapes.length + 1, instruction: "" }]);
-  const rmEtape = (i: number) =>
-    setEtapes(
-      etapes.filter((_, j) => j !== i).map((e, j) => ({ ...e, numero: j + 1 })),
-    );
-  const upEtape = (i: number, updates: Partial<EtapeThermomix>) => {
-    const a = [...etapes];
-    a[i] = { ...a[i], ...updates };
-    setEtapes(a);
-  };
-
-  // FAQ helpers
-  const addFaqItem = () => setFaq([...faq, { question: "", reponse: "" }]);
-  const rmFaqItem = (i: number) => setFaq(faq.filter((_, j) => j !== i));
-  const upFaqItem = (i: number, updates: Partial<FAQItem>) => {
-    const a = [...faq];
-    a[i] = { ...a[i], ...updates };
-    setFaq(a);
-  };
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const imageFile = e.target.files?.[0];
-    if (!imageFile) return;
-
-    setSaving(true);
-
-    try {
-      const formData = new FormData();
-      formData.append("file", imageFile);
-      const { url } = await uploadImage(formData);
-      setImageUrl(url);
-      setSaved(false);
-    } catch (err: unknown) {
-      console.error("Erreur upload:", err);
-      alert("Erreur lors du traitement de l'image.");
-    } finally {
-      setSaving(false);
-    }
-  };
-  const toggle = (arr: string[], v: string, set: (a: string[]) => void) =>
-    set(arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
-
-  if (loading || authLoading)
-    return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-10 h-10 animate-spin text-accent" />
-      </div>
-    );
-
-  if (error && !recette)
-    return (
-      <div className="text-center py-20">
-        <p className="text-error mb-4">{error}</p>
-        <Link href="/admin" className="text-accent hover:underline">
-          ← Retour admin
-        </Link>
-      </div>
-    );
-
-  return (
-    <div className="max-w-4xl mx-auto p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Link href="/admin" className="p-2 rounded-lg hover:bg-card-hover">
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
-          <div>
-            <h1 className="font-display font-bold text-2xl">
-              Modifier la recette
-            </h1>
-            <p className="text-xs text-muted-foreground">{recette?.slug}</p>
-          </div>
-        </div>
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className={cn(
-            "flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all",
-            saved
-              ? "bg-sage text-white"
-              : "bg-accent text-black hover:bg-accent-hover",
-          )}
-        >
-          {saving ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : saved ? (
-            <Check className="w-4 h-4" />
-          ) : (
-            <Save className="w-4 h-4" />
-          )}
-          {saved ? "Sauvegardé !" : "Enregistrer"}
-        </button>
-      </div>
-
-      {error && (
-        <div className="p-3 rounded-xl bg-error/10 text-error text-sm">
-          {error}
-        </div>
-      )}
-
-      {/* ── SECTION : Admin ── */}
-      <Section
-        title="Statut"
-        open={openSections.admin}
-        toggle={() => toggleSection("admin")}
-      >
-        <div className="flex items-center gap-4">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={approuve}
-              onChange={(e) => setApprouve(e.target.checked)}
-              className="w-4 h-4 accent-accent"
-            />
-            <span className="text-sm font-medium">
-              Recette approuvée (visible sur le site)
-            </span>
-          </label>
-        </div>
-      </Section>
-
-      {/* ── SECTION : Infos ── */}
-      <Section
-        title="Informations générales"
-        open={openSections.infos}
-        toggle={() => toggleSection("infos")}
-      >
-        <div className="space-y-4">
-          <div>
-            <label className="text-xs font-medium text-muted-foreground">
-              Titre
-            </label>
-            <input
-              type="text"
-              value={titre}
-              onChange={(e) => setTitre(e.target.value)}
-              className="input-field mt-1"
-            />
-          </div>
-          <div>
-            <label className="text-xs font-medium text-muted-foreground">
-              Description
-            </label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={3}
-              className="input-field mt-1 resize-none"
-            />
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div>
-              <label className="text-xs font-medium text-muted-foreground">
-                Difficulté
-              </label>
-              <select
-                value={difficulte}
-                onChange={(e) => setDifficulte(e.target.value)}
-                className="input-field mt-1"
-              >
-                {DIFFICULTES.map((d) => (
-                  <option key={d.value} value={d.value}>
-                    {d.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground">
-                Prépa (min)
-              </label>
-              <input
-                type="number"
-                value={tempsPrep}
-                onChange={(e) => setTempsPrep(+e.target.value)}
-                className="input-field mt-1"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground">
-                Cuisson (min)
-              </label>
-              <input
-                type="number"
-                value={tempsCuisson}
-                onChange={(e) => setTempsCuisson(+e.target.value)}
-                className="input-field mt-1"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground">
-                Portions
-              </label>
-              <input
-                type="number"
-                value={portions}
-                onChange={(e) => setPortions(+e.target.value)}
-                className="input-field mt-1"
-              />
-            </div>
-          </div>
-          <div>
-            <label className="text-xs font-medium text-muted-foreground mb-2 block">
-              Modèles
-            </label>
-            <div className="flex gap-2">
-              {MODELES_THERMOMIX.map((m) => (
-                <button
-                  key={m}
-                  type="button"
-                  onClick={() => toggle(modeles, m, setModeles)}
-                  className={cn(
-                    "px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
-                    modeles.includes(m)
-                      ? "bg-accent text-black"
-                      : "bg-card border border-border",
-                  )}
-                >
-                  {m}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div>
-            <label className="text-xs font-medium text-muted-foreground mb-2 block">
-              Catégories
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {CATEGORIES.map((c) => (
-                <button
-                  key={c.value}
-                  type="button"
-                  onClick={() => toggle(cats, c.value, setCats)}
-                  className={cn(
-                    "px-3 py-1 rounded-full text-xs font-medium transition-colors",
-                    cats.includes(c.value)
-                      ? "bg-accent text-black"
-                      : "bg-card border border-border",
-                  )}
-                >
-                  {c.label}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div>
-            <label className="text-xs font-medium text-muted-foreground mb-2 block">
-              Régimes
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {REGIMES.map((r) => (
-                <button
-                  key={r.value}
-                  type="button"
-                  onClick={() => toggle(regimesState, r.value, setRegimesState)}
-                  className={cn(
-                    "px-3 py-1 rounded-full text-xs font-medium transition-colors",
-                    regimesState.includes(r.value)
-                      ? "bg-[#7A9E7E] text-white"
-                      : "bg-card border border-border",
-                  )}
-                >
-                  {r.label}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <label className="text-xs font-medium text-muted-foreground">
-                Tags
-              </label>
-              <input
-                type="text"
-                value={tagsStr}
-                onChange={(e) => setTagsStr(e.target.value)}
-                className="input-field mt-1"
-                placeholder="tag1, tag2"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground">
-                Nutri-Score
-              </label>
-              <select
-                value={nutriscore}
-                onChange={(e) => setNutriscore(e.target.value)}
-                className="input-field mt-1"
-              >
-                <option value="">—</option>
-                {["A", "B", "C", "D", "E"].map((n) => (
-                  <option key={n} value={n}>
-                    {n}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground">
-                Calories
-              </label>
-              <input
-                type="number"
-                value={calories}
-                onChange={(e) => setCalories(e.target.value)}
-                className="input-field mt-1"
-              />
-            </div>
-          </div>
-        </div>
-      </Section>
-
-      {/* ── SECTION : Ingrédients ── */}
-      <Section
-        title={`Ingrédients (${ingredients.length})`}
-        open={openSections.ingredients}
-        toggle={() => toggleSection("ingredients")}
-      >
-        <div className="space-y-2">
-          {ingredients.map((ing, i) => (
-            <div key={i} className="flex gap-2 items-center">
-              <input
-                type="text"
-                value={ing.nom}
-                onChange={(e) => upIng(i, { nom: e.target.value })}
-                placeholder="Nom"
-                className="input-field flex-1 text-xs"
-              />
-              <input
-                type="number"
-                value={ing.quantite}
-                onChange={(e) => upIng(i, { quantite: +e.target.value })}
-                className="input-field w-20 text-xs"
-              />
-              <input
-                type="text"
-                value={ing.unite}
-                onChange={(e) => upIng(i, { unite: e.target.value })}
-                className="input-field w-24 text-xs"
-              />
-              <select
-                value={ing.categorie || ""}
-                onChange={(e) => upIng(i, { categorie: e.target.value })}
-                className="input-field w-36 text-xs"
-              >
-                <option value="">Cat.</option>
-                {INGREDIENT_CATEGORIES.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-              <button onClick={() => rmIng(i)} className="text-error p-1">
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          ))}
-          <button
-            onClick={addIng}
-            className="text-accent text-xs hover:underline flex items-center gap-1"
-          >
-            <Plus className="w-3 h-3" /> Ajouter
-          </button>
-        </div>
-      </Section>
-
-      {/* ── SECTION : Étapes ── */}
-      <Section
-        title={`Étapes (${etapes.length})`}
-        open={openSections.etapes}
-        toggle={() => toggleSection("etapes")}
-      >
-        <div className="space-y-4">
-          {etapes.map((et, i) => (
-            <div
-              key={i}
-              className="p-3 bg-card/50 rounded-xl border border-border space-y-2"
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-accent">
-                  Étape {et.numero}
-                </span>
-                <button onClick={() => rmEtape(i)} className="text-error">
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-              </div>
-              <textarea
-                value={et.instruction}
-                onChange={(e) => upEtape(i, { instruction: e.target.value })}
-                rows={2}
-                className="input-field text-xs resize-none"
-                placeholder="Instruction..."
-              />
-              <div className="grid grid-cols-4 gap-2">
-                <input
-                  type="number"
-                  value={et.vitesse ?? ""}
-                  onChange={(e) =>
-                    upEtape(i, {
-                      vitesse: e.target.value ? +e.target.value : undefined,
-                    })
-                  }
-                  placeholder="Vitesse"
-                  className="input-field text-xs"
-                />
-                <input
-                  type="number"
-                  value={et.temperature ?? ""}
-                  onChange={(e) =>
-                    upEtape(i, {
-                      temperature: e.target.value ? +e.target.value : undefined,
-                    })
-                  }
-                  placeholder="Temp °C"
-                  className="input-field text-xs"
-                />
-                <input
-                  type="number"
-                  value={et.duree ?? ""}
-                  onChange={(e) =>
-                    upEtape(i, {
-                      duree: e.target.value ? +e.target.value : undefined,
-                    })
-                  }
-                  placeholder="Durée (sec)"
-                  className="input-field text-xs"
-                />
-                <input
-                  type="text"
-                  value={et.accessoire ?? ""}
-                  onChange={(e) =>
-                    upEtape(i, { accessoire: e.target.value || undefined })
-                  }
-                  placeholder="Accessoire"
-                  className="input-field text-xs"
-                />
-              </div>
-              <input
-                type="text"
-                value={et.conseil ?? ""}
-                onChange={(e) =>
-                  upEtape(i, { conseil: e.target.value || undefined })
-                }
-                placeholder="Conseil (optionnel)"
-                className="input-field text-xs"
-              />
-            </div>
-          ))}
-          <button
-            onClick={addEtape}
-            className="text-accent text-xs hover:underline flex items-center gap-1"
-          >
-            <Plus className="w-3 h-3" /> Ajouter une étape
-          </button>
-        </div>
-      </Section>
-
-      {/* ── SECTION : Médias ── */}
-      <Section
-        title="Médias"
-        open={openSections.medias}
-        toggle={() => toggleSection("medias")}
-      >
-        <div className="space-y-4">
-          <label className="text-xs font-bold uppercase text-muted-foreground">
-            Image de la recette
-          </label>
-
-          <div className="flex items-start gap-4">
-            {/* Prévisualisation */}
-            {imageUrl ? (
-              <div className="relative w-40 h-24 rounded-lg overflow-hidden border border-border group">
-                <Image
-                  src={imageUrl}
-                  alt="Preview"
-                  fill
-                  className="object-cover"
-                />
-                <button
-                  onClick={() => setImageUrl("")}
-                  className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 ..."
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-            ) : (
-              <div className="w-40 h-24 rounded-lg border-2 border-dashed border-border flex items-center justify-center bg-card">
-                <ImageIcon className="w-8 h-8 text-muted-foreground/20" />
-              </div>
-            )}
-
-            {/* Bouton d'upload physique */}
-            <div className="flex-1">
-              <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-border rounded-lg cursor-pointer hover:bg-card-hover transition-colors">
-                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                  <Upload className="w-6 h-6 text-muted-foreground mb-2" />
-                  <p className="text-xs text-muted-foreground">
-                    Cliquez pour remplacer la photo
-                  </p>
-                </div>
-                <input
-                  type="file"
-                  className="hidden"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                />
-              </label>
-              <input
-                type="text"
-                value={imageUrl}
-                onChange={(e) => setImageUrl(e.target.value)}
-                placeholder="Ou collez une URL directe ici..."
-                className="input-field text-[10px] mt-2 h-8"
-              />
-            </div>
-          </div>
-        </div>
-      </Section>
-
-      {/* ── SECTION : FAQ ── */}
-      <Section
-        title={`FAQ (${faq.length})`}
-        open={openSections.faq}
-        toggle={() => toggleSection("faq")}
-      >
-        <div className="space-y-3">
-          {faq.map((f, i) => (
-            <div
-              key={i}
-              className="p-3 bg-card/50 rounded-xl border border-border space-y-2"
-            >
-              <div className="flex justify-between">
-                <span className="text-xs text-accent">Q{i + 1}</span>
-                <button onClick={() => rmFaqItem(i)} className="text-error">
-                  <Trash2 className="w-3 h-3" />
-                </button>
-              </div>
-              <input
-                type="text"
-                value={f.question}
-                onChange={(e) => upFaqItem(i, { question: e.target.value })}
-                placeholder="Question"
-                className="input-field text-xs"
-              />
-              <textarea
-                value={f.reponse}
-                onChange={(e) => upFaqItem(i, { reponse: e.target.value })}
-                placeholder="Réponse"
-                rows={2}
-                className="input-field text-xs resize-none"
-              />
-            </div>
-          ))}
-          <button
-            onClick={addFaqItem}
-            className="text-accent text-xs hover:underline flex items-center gap-1"
-          >
-            <Plus className="w-3 h-3" /> Ajouter
-          </button>
-        </div>
-      </Section>
-
-      {/* Save button bottom */}
-      <div className="sticky bottom-6 flex justify-end">
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className={cn(
-            "flex items-center gap-2 px-8 py-3 rounded-xl font-bold shadow-2xl transition-all",
-            saved
-              ? "bg-sage text-white"
-              : "bg-accent text-black hover:bg-accent-hover",
-          )}
-        >
-          {saving ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : saved ? (
-            <Check className="w-4 h-4" />
-          ) : (
-            <Save className="w-4 h-4" />
-          )}
-          {saved ? "Sauvegardé !" : "Enregistrer les modifications"}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-/* ─── Section collapsible ─── */
-function Section({
-  title,
-  open,
-  toggle,
-  children,
-}: {
-  title: string;
-  open: boolean;
-  toggle: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="glass-card rounded-xl overflow-hidden">
-      <button
-        onClick={toggle}
-        className="w-full flex items-center justify-between px-6 py-4 hover:bg-card-hover transition-colors"
-      >
-        <span className="font-display font-bold text-sm">{title}</span>
-        <ChevronDown
-          className={cn("w-4 h-4 transition-transform", open && "rotate-180")}
-        />
-      </button>
-      {open && <div className="px-6 pb-6">{children}</div>}
-    </div>
-  );
 }
 </file>
 
@@ -24663,6 +25513,20 @@ export async function createComment(
 
   if (error) throw new Error(error.message);
 
+  // ── Notifications (non bloquantes) ──────────────────────
+  // Notifie l'auteur de la recette (si approuvée/publiée) et
+  // l'auteur du commentaire parent en cas de réponse.
+  if (data?.id) {
+    try {
+      const { notifyNewComment } = await import(
+        "@/app/actions/notifications"
+      );
+      await notifyNewComment(data.id);
+    } catch (err) {
+      console.error("[comments] notifyNewComment error:", err);
+    }
+  }
+
   revalidatePath(`/recettes/${recetteId}`);
   return data;
 }
@@ -24731,40 +25595,61 @@ export async function voteComment(
     .eq("comment_id", commentId)
     .single();
 
+  let isNewLike = false;
+
   if (existing) {
     if (existing.vote_type === voteType) {
-      // Supprimer le vote
+      // Supprimer le vote (toggle off)
       await supabase
         .from("comment_votes")
         .delete()
         .eq("user_id", user.id)
         .eq("comment_id", commentId);
     } else {
-      // Mettre à jour le vote
+      // Mettre à jour le vote (passer de dislike à like compte comme nouveau like)
       await supabase
         .from("comment_votes")
         .update({ vote_type: voteType })
         .eq("user_id", user.id)
         .eq("comment_id", commentId);
+      if (voteType === "like") isNewLike = true;
     }
   } else {
     // Ajouter un nouveau vote
     await supabase
       .from("comment_votes")
       .insert({ user_id: user.id, comment_id: commentId, vote_type: voteType });
+    if (voteType === "like") isNewLike = true;
   }
 
-  // Achievements — vérifier si l'auteur du commentaire a reçu des likes
-  if (voteType === "like") {
+  // ── Achievements + Notification (seulement si nouveau like) ──
+  if (isNewLike) {
     const { data: commentData } = await supabase
       .from("recipe_comments")
       .select("user_id")
       .eq("id", commentId)
       .single();
+
     if (commentData) {
-      const { checkAndUnlockAchievements } =
-        await import("@/app/actions/achievements");
-      await checkAndUnlockAchievements(commentData.user_id, "like_received");
+      // Achievement (trophée likes reçus)
+      try {
+        const { checkAndUnlockAchievements } = await import(
+          "@/app/actions/achievements"
+        );
+        await checkAndUnlockAchievements(commentData.user_id, "like_received");
+      } catch (err) {
+        console.error("[comments] achievement check error:", err);
+      }
+
+      // Notification à l'auteur du commentaire
+      try {
+        const { notifyCommentLike } = await import(
+          "@/app/actions/notifications"
+        );
+        await notifyCommentLike(commentId);
+      } catch (err) {
+        console.error("[comments] notifyCommentLike error:", err);
+      }
     }
   }
 
@@ -24794,6 +25679,17 @@ export async function rateRecipe(recetteId: string, rating: number) {
     throw new Error("Non autorisé");
   }
 
+  // Détecter si c'est une nouvelle note ou une mise à jour
+  // (pour n'envoyer une notification que la première fois)
+  const { data: existingRating } = await supabase
+    .from("recipe_ratings")
+    .select("id")
+    .eq("user_id", user.id)
+    .eq("recette_id", recetteId)
+    .maybeSingle();
+
+  const isNewRating = !existingRating;
+
   const { data, error } = await supabase
     .from("recipe_ratings")
     .upsert(
@@ -24808,9 +25704,27 @@ export async function rateRecipe(recetteId: string, rating: number) {
   }
 
   // Achievements
-  const { checkAndUnlockAchievements } =
-    await import("@/app/actions/achievements");
-  await checkAndUnlockAchievements(user.id, "rating_given");
+  try {
+    const { checkAndUnlockAchievements } = await import(
+      "@/app/actions/achievements"
+    );
+    await checkAndUnlockAchievements(user.id, "rating_given");
+  } catch (err) {
+    console.error("[ratings] achievement check error:", err);
+  }
+
+  // Notification à l'auteur de la recette (uniquement pour une nouvelle note,
+  // pas pour une simple modification d'une note existante).
+  if (isNewRating) {
+    try {
+      const { notifyRecipeRating } = await import(
+        "@/app/actions/notifications"
+      );
+      await notifyRecipeRating(recetteId, rating);
+    } catch (err) {
+      console.error("[ratings] notifyRecipeRating error:", err);
+    }
+  }
 
   // Revalider la page de la recette pour mettre à jour l'affichage
   revalidatePath("/recettes", "layout");
@@ -24884,6 +25798,816 @@ export async function soumettreRecette(rawData: unknown) {
 
   revalidatePath("/recettes");
   return { recette };
+}
+</file>
+
+<file path="app/admin/editer/[id]/page.tsx">
+"use client";
+
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import {
+  ArrowLeft,
+  Save,
+  Loader2,
+  Check,
+  Plus,
+  Trash2,
+  ChevronDown,
+} from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { createClient } from "@/lib/supabase/client";
+import {
+  CATEGORIES,
+  REGIMES,
+  MODELES_THERMOMIX,
+  DIFFICULTES,
+  INGREDIENT_CATEGORIES,
+} from "@/lib/constants";
+import { cn } from "@/lib/utils";
+import Link from "next/link";
+import type { Recette, Ingredient, EtapeThermomix, FAQItem } from "@/types";
+import { Upload, X, ImageIcon } from "lucide-react"; // Pour les icônes
+import imageCompression from "browser-image-compression";
+import { updateRecette } from "@/app/actions/admin";
+import { uploadImage } from "@/app/actions/upload";
+import Image from "next/image";
+
+interface PageProps {
+  params: Promise<{ id: string }>;
+}
+
+export default function AdminEditerPage({ params }: PageProps) {
+  const { user, isAdmin, loading: authLoading } = useAuth();
+  const router = useRouter();
+  const [supabase] = useState(() => createClient());
+
+  const [recette, setRecette] = useState<Recette | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState("");
+
+  // Form state
+  const [titre, setTitre] = useState("");
+  const [description, setDescription] = useState("");
+  const [difficulte, setDifficulte] = useState("facile");
+  const [tempsPrep, setTempsPrep] = useState(15);
+  const [tempsCuisson, setTempsCuisson] = useState(20);
+  const [portions, setPortions] = useState(4);
+  const [modeles, setModeles] = useState<string[]>([]);
+  const [cats, setCats] = useState<string[]>([]);
+  const [regimesState, setRegimesState] = useState<string[]>([]);
+  const [tagsStr, setTagsStr] = useState("");
+  const [nutriscore, setNutriscore] = useState("");
+  const [calories, setCalories] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
+  const [videoId, setVideoId] = useState("");
+  const [approuve, setApprouve] = useState(false);
+  const [ingredients, setIngredients] = useState<Ingredient[]>([]);
+  const [etapes, setEtapes] = useState<EtapeThermomix[]>([]);
+  const [faq, setFaq] = useState<FAQItem[]>([]);
+
+  // Sections ouvertes/fermées
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
+    infos: true,
+    ingredients: false,
+    etapes: false,
+    medias: false,
+    faq: false,
+    admin: true,
+  });
+
+  const toggleSection = (key: string) =>
+    setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
+
+  // Load recipe
+  useEffect(() => {
+    const load = async () => {
+      const { id } = await params;
+      const { data, error: err } = await supabase
+        .from("recettes")
+        .select("*")
+        .eq("id", id)
+        .single();
+
+      if (err || !data) {
+        setError("Recette introuvable");
+        setLoading(false);
+        return;
+      }
+
+      const r = data as Recette;
+      setRecette(r);
+      setTitre(r.titre);
+      setDescription(r.description);
+      setDifficulte(r.difficulte);
+      setTempsPrep(r.temps_preparation);
+      setTempsCuisson(r.temps_cuisson);
+      setPortions(r.nombre_portions);
+      setModeles(r.modele_thermomix);
+      setCats(r.categories);
+      setRegimesState(r.regime);
+      setTagsStr(r.tags.join(", "));
+      setNutriscore(r.nutriscore || "");
+      setCalories(r.calories_par_portion ? String(r.calories_par_portion) : "");
+      setImageUrl(r.image_url || "");
+      setVideoId(r.video_youtube_id || "");
+      setApprouve(r.approuve);
+      setIngredients(r.ingredients);
+      setEtapes(r.etapes);
+      setFaq(r.faq || []);
+      setLoading(false);
+    };
+
+    if (!authLoading) {
+      if (!user || !isAdmin) router.push("/");
+      else load();
+    }
+  }, [authLoading, user, isAdmin, params, supabase, router]);
+
+  // Save
+  const handleSave = async () => {
+    if (!recette) return;
+    setSaving(true);
+    setError("");
+    setSaved(false);
+
+    try {
+      const updates = {
+        titre,
+        description,
+        difficulte,
+        temps_preparation: tempsPrep,
+        temps_cuisson: tempsCuisson,
+        nombre_portions: portions,
+        modele_thermomix: modeles,
+        categories: cats,
+        regime: regimesState,
+        tags: tagsStr
+          .split(",")
+          .map((t) => t.trim())
+          .filter(Boolean),
+        nutriscore: nutriscore || null,
+        calories_par_portion: calories ? parseInt(calories) : null,
+        image_url: imageUrl || null,
+        video_youtube_id: videoId || null,
+        approuve,
+        ingredients,
+        etapes,
+        faq: faq.length > 0 ? faq : null,
+      };
+
+      await updateRecette(recette.id, updates);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Erreur");
+    } finally {
+      setSaving(false);
+    }
+  };
+  // Ingredient helpers
+  const addIng = () =>
+    setIngredients([...ingredients, { nom: "", quantite: 0, unite: "g" }]);
+  const rmIng = (i: number) =>
+    setIngredients(ingredients.filter((_, j) => j !== i));
+  const upIng = (i: number, updates: Partial<Ingredient>) => {
+    const a = [...ingredients];
+    a[i] = { ...a[i], ...updates };
+    setIngredients(a);
+  };
+
+  // Etape helpers
+  const addEtape = () =>
+    setEtapes([...etapes, { numero: etapes.length + 1, instruction: "" }]);
+  const rmEtape = (i: number) =>
+    setEtapes(
+      etapes.filter((_, j) => j !== i).map((e, j) => ({ ...e, numero: j + 1 })),
+    );
+  const upEtape = (i: number, updates: Partial<EtapeThermomix>) => {
+    const a = [...etapes];
+    a[i] = { ...a[i], ...updates };
+    setEtapes(a);
+  };
+
+  // FAQ helpers
+  const addFaqItem = () => setFaq([...faq, { question: "", reponse: "" }]);
+  const rmFaqItem = (i: number) => setFaq(faq.filter((_, j) => j !== i));
+  const upFaqItem = (i: number, updates: Partial<FAQItem>) => {
+    const a = [...faq];
+    a[i] = { ...a[i], ...updates };
+    setFaq(a);
+  };
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const imageFile = e.target.files?.[0];
+    if (!imageFile) return;
+
+    setSaving(true);
+    setError("");
+
+    try {
+      // Options de compression
+      const options = {
+        maxSizeMB: 0.4, // 400 Ko max
+        maxWidthOrHeight: 1200,
+        useWebWorker: true,
+        fileType: "image/webp",
+      };
+
+      const compressedFile = await imageCompression(imageFile, options);
+
+      const formData = new FormData();
+      formData.append("file", compressedFile);
+
+      const { url } = await uploadImage(formData);
+      setImageUrl(url);
+      setSaved(false);
+    } catch (err: unknown) {
+      console.error("Erreur upload:", err);
+      const message = err instanceof Error ? err.message : "Erreur inconnue";
+      setError(`Échec de l'upload : ${message}`);
+      alert(`Erreur : ${message}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+  const toggle = (arr: string[], v: string, set: (a: string[]) => void) =>
+    set(arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
+
+  if (loading || authLoading)
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-10 h-10 animate-spin text-accent" />
+      </div>
+    );
+
+  if (error && !recette)
+    return (
+      <div className="text-center py-20">
+        <p className="text-error mb-4">{error}</p>
+        <Link href="/admin" className="text-accent hover:underline">
+          ← Retour admin
+        </Link>
+      </div>
+    );
+
+  return (
+    <div className="max-w-4xl mx-auto p-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Link href="/admin" className="p-2 rounded-lg hover:bg-card-hover">
+            <ArrowLeft className="w-5 h-5" />
+          </Link>
+          <div>
+            <h1 className="font-display font-bold text-2xl">
+              Modifier la recette
+            </h1>
+            <p className="text-xs text-muted-foreground">{recette?.slug}</p>
+          </div>
+        </div>
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className={cn(
+            "flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all",
+            saved
+              ? "bg-sage text-white"
+              : "bg-accent text-black hover:bg-accent-hover",
+          )}
+        >
+          {saving ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : saved ? (
+            <Check className="w-4 h-4" />
+          ) : (
+            <Save className="w-4 h-4" />
+          )}
+          {saved ? "Sauvegardé !" : "Enregistrer"}
+        </button>
+      </div>
+
+      {error && (
+        <div className="p-3 rounded-xl bg-error/10 text-error text-sm">
+          {error}
+        </div>
+      )}
+
+      {/* ── SECTION : Admin ── */}
+      <Section
+        title="Statut"
+        open={openSections.admin}
+        toggle={() => toggleSection("admin")}
+      >
+        <div className="flex items-center gap-4">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={approuve}
+              onChange={(e) => setApprouve(e.target.checked)}
+              className="w-4 h-4 accent-accent"
+            />
+            <span className="text-sm font-medium">
+              Recette approuvée (visible sur le site)
+            </span>
+          </label>
+        </div>
+      </Section>
+
+      {/* ── SECTION : Infos ── */}
+      <Section
+        title="Informations générales"
+        open={openSections.infos}
+        toggle={() => toggleSection("infos")}
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">
+              Titre
+            </label>
+            <input
+              type="text"
+              value={titre}
+              onChange={(e) => setTitre(e.target.value)}
+              className="input-field mt-1"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">
+              Description
+            </label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={3}
+              className="input-field mt-1 resize-none"
+            />
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">
+                Difficulté
+              </label>
+              <select
+                value={difficulte}
+                onChange={(e) => setDifficulte(e.target.value)}
+                className="input-field mt-1"
+              >
+                {DIFFICULTES.map((d) => (
+                  <option key={d.value} value={d.value}>
+                    {d.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">
+                Prépa (min)
+              </label>
+              <input
+                type="number"
+                value={tempsPrep}
+                onChange={(e) => setTempsPrep(+e.target.value)}
+                className="input-field mt-1"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">
+                Cuisson (min)
+              </label>
+              <input
+                type="number"
+                value={tempsCuisson}
+                onChange={(e) => setTempsCuisson(+e.target.value)}
+                className="input-field mt-1"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">
+                Portions
+              </label>
+              <input
+                type="number"
+                value={portions}
+                onChange={(e) => setPortions(+e.target.value)}
+                className="input-field mt-1"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-2 block">
+              Modèles
+            </label>
+            <div className="flex gap-2">
+              {MODELES_THERMOMIX.map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => toggle(modeles, m, setModeles)}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
+                    modeles.includes(m)
+                      ? "bg-accent text-black"
+                      : "bg-card border border-border",
+                  )}
+                >
+                  {m}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-2 block">
+              Catégories
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {CATEGORIES.map((c) => (
+                <button
+                  key={c.value}
+                  type="button"
+                  onClick={() => toggle(cats, c.value, setCats)}
+                  className={cn(
+                    "px-3 py-1 rounded-full text-xs font-medium transition-colors",
+                    cats.includes(c.value)
+                      ? "bg-accent text-black"
+                      : "bg-card border border-border",
+                  )}
+                >
+                  {c.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-2 block">
+              Régimes
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {REGIMES.map((r) => (
+                <button
+                  key={r.value}
+                  type="button"
+                  onClick={() => toggle(regimesState, r.value, setRegimesState)}
+                  className={cn(
+                    "px-3 py-1 rounded-full text-xs font-medium transition-colors",
+                    regimesState.includes(r.value)
+                      ? "bg-[#7A9E7E] text-white"
+                      : "bg-card border border-border",
+                  )}
+                >
+                  {r.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">
+                Tags
+              </label>
+              <input
+                type="text"
+                value={tagsStr}
+                onChange={(e) => setTagsStr(e.target.value)}
+                className="input-field mt-1"
+                placeholder="tag1, tag2"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">
+                Nutri-Score
+              </label>
+              <select
+                value={nutriscore}
+                onChange={(e) => setNutriscore(e.target.value)}
+                className="input-field mt-1"
+              >
+                <option value="">—</option>
+                {["A", "B", "C", "D", "E"].map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">
+                Calories
+              </label>
+              <input
+                type="number"
+                value={calories}
+                onChange={(e) => setCalories(e.target.value)}
+                className="input-field mt-1"
+              />
+            </div>
+          </div>
+        </div>
+      </Section>
+
+      {/* ── SECTION : Ingrédients ── */}
+      <Section
+        title={`Ingrédients (${ingredients.length})`}
+        open={openSections.ingredients}
+        toggle={() => toggleSection("ingredients")}
+      >
+        <div className="space-y-2">
+          {ingredients.map((ing, i) => (
+            <div key={i} className="flex gap-2 items-center">
+              <input
+                type="text"
+                value={ing.nom}
+                onChange={(e) => upIng(i, { nom: e.target.value })}
+                placeholder="Nom"
+                className="input-field flex-1 text-xs"
+              />
+              <input
+                type="number"
+                value={ing.quantite}
+                onChange={(e) => upIng(i, { quantite: +e.target.value })}
+                className="input-field w-20 text-xs"
+              />
+              <input
+                type="text"
+                value={ing.unite}
+                onChange={(e) => upIng(i, { unite: e.target.value })}
+                className="input-field w-24 text-xs"
+              />
+              <select
+                value={ing.categorie || ""}
+                onChange={(e) => upIng(i, { categorie: e.target.value })}
+                className="input-field w-36 text-xs"
+              >
+                <option value="">Cat.</option>
+                {INGREDIENT_CATEGORIES.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+              <button onClick={() => rmIng(i)} className="text-error p-1">
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ))}
+          <button
+            onClick={addIng}
+            className="text-accent text-xs hover:underline flex items-center gap-1"
+          >
+            <Plus className="w-3 h-3" /> Ajouter
+          </button>
+        </div>
+      </Section>
+
+      {/* ── SECTION : Étapes ── */}
+      <Section
+        title={`Étapes (${etapes.length})`}
+        open={openSections.etapes}
+        toggle={() => toggleSection("etapes")}
+      >
+        <div className="space-y-4">
+          {etapes.map((et, i) => (
+            <div
+              key={i}
+              className="p-3 bg-card/50 rounded-xl border border-border space-y-2"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-accent">
+                  Étape {et.numero}
+                </span>
+                <button onClick={() => rmEtape(i)} className="text-error">
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              <textarea
+                value={et.instruction}
+                onChange={(e) => upEtape(i, { instruction: e.target.value })}
+                rows={2}
+                className="input-field text-xs resize-none"
+                placeholder="Instruction..."
+              />
+              <div className="grid grid-cols-4 gap-2">
+                <input
+                  type="number"
+                  value={et.vitesse ?? ""}
+                  onChange={(e) =>
+                    upEtape(i, {
+                      vitesse: e.target.value ? +e.target.value : undefined,
+                    })
+                  }
+                  placeholder="Vitesse"
+                  className="input-field text-xs"
+                />
+                <input
+                  type="number"
+                  value={et.temperature ?? ""}
+                  onChange={(e) =>
+                    upEtape(i, {
+                      temperature: e.target.value ? +e.target.value : undefined,
+                    })
+                  }
+                  placeholder="Temp °C"
+                  className="input-field text-xs"
+                />
+                <input
+                  type="number"
+                  value={et.duree ?? ""}
+                  onChange={(e) =>
+                    upEtape(i, {
+                      duree: e.target.value ? +e.target.value : undefined,
+                    })
+                  }
+                  placeholder="Durée (sec)"
+                  className="input-field text-xs"
+                />
+                <input
+                  type="text"
+                  value={et.accessoire ?? ""}
+                  onChange={(e) =>
+                    upEtape(i, { accessoire: e.target.value || undefined })
+                  }
+                  placeholder="Accessoire"
+                  className="input-field text-xs"
+                />
+              </div>
+              <input
+                type="text"
+                value={et.conseil ?? ""}
+                onChange={(e) =>
+                  upEtape(i, { conseil: e.target.value || undefined })
+                }
+                placeholder="Conseil (optionnel)"
+                className="input-field text-xs"
+              />
+            </div>
+          ))}
+          <button
+            onClick={addEtape}
+            className="text-accent text-xs hover:underline flex items-center gap-1"
+          >
+            <Plus className="w-3 h-3" /> Ajouter une étape
+          </button>
+        </div>
+      </Section>
+
+      {/* ── SECTION : Médias ── */}
+      <Section
+        title="Médias"
+        open={openSections.medias}
+        toggle={() => toggleSection("medias")}
+      >
+        <div className="space-y-4">
+          <label className="text-xs font-bold uppercase text-muted-foreground">
+            Image de la recette
+          </label>
+
+          <div className="flex items-start gap-4">
+            {/* Prévisualisation */}
+            {imageUrl ? (
+              <div className="relative w-40 h-24 rounded-lg overflow-hidden border border-border group">
+                <Image
+                  src={imageUrl}
+                  alt="Preview"
+                  fill
+                  className="object-cover"
+                />
+                <button
+                  onClick={() => setImageUrl("")}
+                  className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 ..."
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            ) : (
+              <div className="w-40 h-24 rounded-lg border-2 border-dashed border-border flex items-center justify-center bg-card">
+                <ImageIcon className="w-8 h-8 text-muted-foreground/20" />
+              </div>
+            )}
+
+            {/* Bouton d'upload physique */}
+            <div className="flex-1">
+              <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-border rounded-lg cursor-pointer hover:bg-card-hover transition-colors">
+                <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                  <Upload className="w-6 h-6 text-muted-foreground mb-2" />
+                  <p className="text-xs text-muted-foreground">
+                    Cliquez pour remplacer la photo
+                  </p>
+                </div>
+                <input
+                  type="file"
+                  className="hidden"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                />
+              </label>
+              <input
+                type="text"
+                value={imageUrl}
+                onChange={(e) => setImageUrl(e.target.value)}
+                placeholder="Ou collez une URL directe ici..."
+                className="input-field text-[10px] mt-2 h-8"
+              />
+            </div>
+          </div>
+        </div>
+      </Section>
+
+      {/* ── SECTION : FAQ ── */}
+      <Section
+        title={`FAQ (${faq.length})`}
+        open={openSections.faq}
+        toggle={() => toggleSection("faq")}
+      >
+        <div className="space-y-3">
+          {faq.map((f, i) => (
+            <div
+              key={i}
+              className="p-3 bg-card/50 rounded-xl border border-border space-y-2"
+            >
+              <div className="flex justify-between">
+                <span className="text-xs text-accent">Q{i + 1}</span>
+                <button onClick={() => rmFaqItem(i)} className="text-error">
+                  <Trash2 className="w-3 h-3" />
+                </button>
+              </div>
+              <input
+                type="text"
+                value={f.question}
+                onChange={(e) => upFaqItem(i, { question: e.target.value })}
+                placeholder="Question"
+                className="input-field text-xs"
+              />
+              <textarea
+                value={f.reponse}
+                onChange={(e) => upFaqItem(i, { reponse: e.target.value })}
+                placeholder="Réponse"
+                rows={2}
+                className="input-field text-xs resize-none"
+              />
+            </div>
+          ))}
+          <button
+            onClick={addFaqItem}
+            className="text-accent text-xs hover:underline flex items-center gap-1"
+          >
+            <Plus className="w-3 h-3" /> Ajouter
+          </button>
+        </div>
+      </Section>
+
+      {/* Save button bottom */}
+      <div className="sticky bottom-6 flex justify-end">
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className={cn(
+            "flex items-center gap-2 px-8 py-3 rounded-xl font-bold shadow-2xl transition-all",
+            saved
+              ? "bg-sage text-white"
+              : "bg-accent text-black hover:bg-accent-hover",
+          )}
+        >
+          {saving ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : saved ? (
+            <Check className="w-4 h-4" />
+          ) : (
+            <Save className="w-4 h-4" />
+          )}
+          {saved ? "Sauvegardé !" : "Enregistrer les modifications"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Section collapsible ─── */
+function Section({
+  title,
+  open,
+  toggle,
+  children,
+}: {
+  title: string;
+  open: boolean;
+  toggle: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="glass-card rounded-xl overflow-hidden">
+      <button
+        onClick={toggle}
+        className="w-full flex items-center justify-between px-6 py-4 hover:bg-card-hover transition-colors"
+      >
+        <span className="font-display font-bold text-sm">{title}</span>
+        <ChevronDown
+          className={cn("w-4 h-4 transition-transform", open && "rotate-180")}
+        />
+      </button>
+      {open && <div className="px-6 pb-6">{children}</div>}
+    </div>
+  );
 }
 </file>
 
@@ -28222,652 +29946,6 @@ export async function rechercherRecettes(
 }
 </file>
 
-<file path="app/admin/page.tsx">
-"use client";
-
-import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
-import {
-  Shield,
-  Check,
-  X,
-  MessageSquare,
-  History,
-  Loader2,
-  Pencil,
-  AlertTriangle,
-} from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
-import type { Recette, RecipeComment } from "@/types";
-import { formatDate, cn } from "@/lib/utils";
-import Link from "next/link";
-import {
-  approveRecette,
-  rejectRecette,
-  approveComment,
-  deleteComment,
-  deleteRecette,
-  getAdminPendingComments,
-  getAdminAllComments,
-  getAdminPendingRecettes,
-  getAdminAllRecettes,
-} from "@/app/actions/admin";
-import {
-  banUser,
-  unbanUser,
-  getBannedUsers,
-  getUsers,
-} from "@/app/actions/users";
-import { UserX, Users, Ban, Undo2, Trash2 } from "lucide-react";
-import Image from "next/image";
-import { useToast } from "@/components/ui/Toast";
-
-export default function AdminPage() {
-  const { user, loading: authLoading, isAdmin: authIsAdmin } = useAuth();
-  const router = useRouter();
-  const { toastSuccess, toastError } = useToast();
-
-  const [recettesEnAttente, setRecettesEnAttente] = useState<Recette[]>([]);
-  const [allRecettes, setAllRecettes] = useState<Recette[]>([]);
-  const [pendingComments, setPendingComments] = useState<RecipeComment[]>([]);
-  const [allComments, setAllComments] = useState<RecipeComment[]>([]);
-  const [tab, setTab] = useState<
-    | "recettes"
-    | "all_recettes"
-    | "pending_comments"
-    | "all_comments"
-    | "users"
-    | "banned"
-  >("recettes");
-  const [loadingData, setLoadingData] = useState(true);
-  const [users, setUsers] = useState<
-    { id: string; pseudo: string | null; email: string; created_at: string }[]
-  >([]);
-  const [bannedUsers, setBannedUsers] = useState<
-    { id: string; email: string; reason: string | null; banned_at: string }[]
-  >([]);
-  // Erreurs visibles dans l'UI pour le debug
-  const [loadErrors, setLoadErrors] = useState<string[]>([]);
-
-  const loadData = useCallback(async () => {
-    setLoadingData(true);
-    const errors: string[] = [];
-
-    // Chaque fetch est isolé — un échec ne fait pas tomber les autres
-    const [
-      pendingRecData,
-      allRecData,
-      pendingComData,
-      allComData,
-      usersData,
-      bannedData,
-    ] = await Promise.all([
-      getAdminPendingRecettes().catch((err) => {
-        errors.push(`Recettes en attente: ${err.message}`);
-        return [] as Recette[];
-      }),
-      getAdminAllRecettes().catch((err) => {
-        errors.push(`Toutes recettes: ${err.message}`);
-        return [] as Recette[];
-      }),
-      getAdminPendingComments().catch((err) => {
-        errors.push(`Commentaires en attente: ${err.message}`);
-        return [] as RecipeComment[];
-      }),
-      getAdminAllComments().catch((err) => {
-        errors.push(`Historique commentaires: ${err.message}`);
-        return [] as RecipeComment[];
-      }),
-      getUsers(50).catch((err) => {
-        errors.push(`Utilisateurs: ${err.message}`);
-        return [];
-      }),
-      getBannedUsers().catch((err) => {
-        errors.push(`Bannis: ${err.message}`);
-        return [];
-      }),
-    ]);
-
-    setRecettesEnAttente(pendingRecData as Recette[]);
-    setAllRecettes(allRecData as Recette[]);
-    setPendingComments(pendingComData as RecipeComment[]);
-    setAllComments(allComData as RecipeComment[]);
-    setUsers(usersData);
-    setBannedUsers(bannedData);
-    setLoadErrors(errors);
-    setLoadingData(false);
-  }, []);
-
-  useEffect(() => {
-    if (!authLoading) {
-      if (!user || !authIsAdmin) router.push("/");
-      else loadData();
-    }
-  }, [user, authLoading, authIsAdmin, router, loadData]);
-
-  const handleAction = async (action: string, id: string, raison?: string) => {
-    try {
-      switch (action) {
-        case "approve_recette":
-          await approveRecette(id);
-          break;
-        case "reject_recette":
-          if (!raison) throw new Error("Raison requise");
-          await rejectRecette(id, raison);
-          break;
-        case "approve_comment":
-          await approveComment(id);
-          break;
-        case "delete_comment":
-          await deleteComment(id);
-          break;
-        case "delete_recette":
-          await deleteRecette(id);
-          break;
-        default:
-          throw new Error("Action inconnue");
-      }
-      await loadData();
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Erreur inconnue";
-      toastError(message);
-    }
-  };
-  const handleBan = async (userId: string, pseudo: string | null) => {
-    const reason = prompt(
-      `Bannir ${pseudo || "cet utilisateur"} ?\n\nRaison du bannissement :`,
-    );
-    if (reason === null) return;
-    try {
-      const result = await banUser(
-        userId,
-        reason || "Comportement inapproprié",
-      );
-      toastSuccess(`${result.email} a été banni et supprimé.`);
-      await loadData();
-    } catch (err: unknown) {
-      toastError(err instanceof Error ? err.message : "Erreur inconnue");
-    }
-  };
-
-  const handleUnban = async (email: string) => {
-    if (!confirm(`Débannir ${email} ?`)) return;
-    try {
-      await unbanUser(email);
-      toastSuccess(`${email} a été débanni.`);
-      await loadData();
-    } catch (err: unknown) {
-      toastError(err instanceof Error ? err.message : "Erreur inconnue");
-    }
-  };
-
-  return (
-    <div className="max-w-6xl mx-auto p-6 space-y-8">
-      <div className="flex items-center gap-3">
-        <Shield className="w-8 h-8 text-accent" />
-        <h1 className="font-display font-bold text-3xl italic">
-          Administration Kitchen Mix
-        </h1>
-      </div>
-
-      {/* ── Erreurs de chargement (visibles pour l'admin) ── */}
-      {loadErrors.length > 0 && (
-        <div className="bg-error/10 border border-error/30 rounded-xl p-4 space-y-1">
-          <div className="flex items-center gap-2 text-error font-bold text-sm">
-            <AlertTriangle className="w-4 h-4" />
-            Erreurs de chargement :
-          </div>
-          {loadErrors.map((err, i) => (
-            <p key={i} className="text-xs text-error/80 ml-6">
-              • {err}
-            </p>
-          ))}
-        </div>
-      )}
-
-      {/* Tabs */}
-      <div className="flex flex-wrap gap-2 border-b border-border pb-4">
-        {(
-          [
-            {
-              key: "recettes",
-              label: `À modérer (${recettesEnAttente.length})`,
-            },
-            {
-              key: "all_recettes",
-              label: `Toutes les recettes (${allRecettes.length})`,
-            },
-            {
-              key: "pending_comments",
-              label: `Commentaires (${pendingComments.length})`,
-            },
-            { key: "all_comments", label: "Historique commentaires" },
-            { key: "users", label: `Utilisateurs (${users.length})` },
-            { key: "banned", label: `Bannis (${bannedUsers.length})` },
-          ] as const
-        ).map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            className={cn(
-              "px-4 py-2 rounded-lg text-sm font-medium transition-all",
-              tab === t.key ? "bg-accent text-black" : "hover:bg-card-hover",
-            )}
-          >
-            {t.key === "all_comments" && (
-              <History className="w-4 h-4 inline mr-2" />
-            )}
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      {/* ── Recettes en attente ── */}
-      {tab === "recettes" && (
-        <div className="grid gap-4">
-          {recettesEnAttente.length === 0 ? (
-            <EmptyState msg="Aucune recette en attente" />
-          ) : (
-            recettesEnAttente.map((r) => (
-              <div
-                key={r.id}
-                className="glass-card p-5 flex justify-between items-center border-l-4 border-accent"
-              >
-                <div className="min-w-0">
-                  <h3 className="font-bold text-lg truncate">{r.titre}</h3>
-                  <p className="text-sm text-muted-foreground italic line-clamp-1">
-                    {r.description}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {formatDate(r.created_at)}
-                  </p>
-                </div>
-                <div className="flex gap-2 shrink-0 ml-4">
-                  <button
-                    onClick={() => handleAction("approve_recette", r.id)}
-                    className="p-3 bg-sage/20 text-sage rounded-xl hover:scale-105 transition-transform"
-                    title="Approuver"
-                  >
-                    <Check className="w-5 h-5" />
-                  </button>
-                  <button
-                    onClick={() => {
-                      const rz = prompt("Pourquoi refuser ?");
-                      if (rz) handleAction("reject_recette", r.id, rz);
-                    }}
-                    className="p-3 bg-error/20 text-error rounded-xl hover:scale-105 transition-transform"
-                    title="Refuser"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                  <Link
-                    href={`/admin/editer/${r.id}`}
-                    className="p-3 bg-accent/20 text-accent rounded-xl hover:scale-105 transition-transform"
-                    title="Modifier"
-                  >
-                    <Pencil className="w-5 h-5" />
-                  </Link>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      )}
-
-      {/* ── Toutes les recettes (avec édition) ── */}
-      {tab === "all_recettes" && (
-        <div className="grid gap-3">
-          {allRecettes.map((r) => (
-            <div
-              key={r.id}
-              className="glass-card p-3 flex items-center gap-3 opacity-80 hover:opacity-100"
-            >
-              <Link
-                href={r.approuve ? `/recettes/${r.slug}` : "#"}
-                className="shrink-0"
-              >
-                {r.image_url ? (
-                  <div className="relative w-14 h-10 rounded-lg overflow-hidden">
-                    <Image
-                      src={r.image_url}
-                      alt={r.titre}
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-                ) : (
-                  <div className="w-14 h-10 rounded-lg bg-accent/10 flex items-center justify-center text-sm">
-                    🍽️
-                  </div>
-                )}
-              </Link>
-
-              <div className="text-sm min-w-0 flex-1 overflow-hidden">
-                <span
-                  className={cn(
-                    "text-[10px] px-2 py-0.5 rounded-full mr-2",
-                    r.approuve
-                      ? "bg-sage/20 text-sage"
-                      : r.raison_rejet
-                        ? "bg-error/20 text-error"
-                        : "bg-yellow-500/20 text-yellow-500",
-                  )}
-                >
-                  {r.approuve
-                    ? "En ligne"
-                    : r.raison_rejet
-                      ? "Refusée"
-                      : "En attente"}
-                </span>
-                <Link
-                  href={r.approuve ? `/recettes/${r.slug}` : "#"}
-                  className={cn(
-                    "block truncate font-medium",
-                    r.approuve && "hover:text-accent",
-                  )}
-                >
-                  {r.titre}
-                </Link>
-              </div>
-
-              <div className="flex gap-2 items-center shrink-0 ml-3">
-                {!r.approuve && !r.raison_rejet && (
-                  <button
-                    onClick={() => handleAction("approve_recette", r.id)}
-                    className="text-sage text-xs hover:underline p-2"
-                  >
-                    Approuver
-                  </button>
-                )}
-                <Link
-                  href={`/admin/editer/${r.id}`}
-                  className="flex items-center gap-1 text-accent text-xs hover:underline p-2"
-                >
-                  <Pencil className="w-3 h-3" /> Modifier
-                </Link>
-                <button
-                  onClick={() => {
-                    if (
-                      confirm(
-                        `Supprimer "${r.titre}" ? Cette action est irréversible.`,
-                      )
-                    ) {
-                      handleAction("delete_recette", r.id);
-                    }
-                  }}
-                  className="text-error text-xs hover:underline p-2"
-                >
-                  Supprimer
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* ── Commentaires en attente ── */}
-      {tab === "pending_comments" && (
-        <div className="grid gap-4">
-          {pendingComments.length === 0 ? (
-            <EmptyState msg="Tout est modéré ! Beau travail." />
-          ) : (
-            pendingComments.map((c) => {
-              const profil = (c as any).profils as {
-                pseudo: string | null;
-                avatar_url: string | null;
-              } | null;
-              const recette = (c as any).recettes as {
-                slug: string;
-                titre: string;
-              } | null;
-              return (
-                <div
-                  key={c.id}
-                  className="glass-card p-5 flex items-start gap-4 border-l-4 border-yellow-500"
-                >
-                  <Link href={`/profil/${c.user_id}`} className="shrink-0">
-                    {profil?.avatar_url ? (
-                      <Image
-                        src={profil.avatar_url}
-                        alt={profil.pseudo || ""}
-                        width={36}
-                        height={36}
-                        className="w-9 h-9 rounded-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-9 h-9 rounded-full bg-accent/20 flex items-center justify-center text-accent text-xs font-bold">
-                        {(profil?.pseudo || "?").charAt(0).toUpperCase()}
-                      </div>
-                    )}
-                  </Link>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Link
-                        href={`/profil/${c.user_id}`}
-                        className="text-sm font-bold text-accent hover:underline"
-                      >
-                        {profil?.pseudo || "Utilisateur"}
-                      </Link>
-                      {c.parent_id && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent/10 text-accent">
-                          réponse
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-sm italic line-clamp-2">
-                      &quot;{c.content}&quot;
-                    </p>
-                    <div className="flex items-center gap-3 mt-1.5 text-[10px] text-muted-foreground">
-                      <span>{formatDate(c.created_at)}</span>
-                      {recette && (
-                        <Link
-                          href={`/recettes/${recette.slug}`}
-                          className="text-accent hover:underline"
-                        >
-                          sur {recette.titre}
-                        </Link>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2 shrink-0">
-                    <button
-                      onClick={() => handleAction("approve_comment", c.id)}
-                      className="p-3 bg-sage/20 text-sage rounded-xl hover:scale-105 transition-transform"
-                    >
-                      <Check className="w-5 h-5" />
-                    </button>
-                    <button
-                      onClick={() => handleAction("delete_comment", c.id)}
-                      className="p-3 bg-error/20 text-error rounded-xl hover:scale-105 transition-transform"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
-      )}
-
-      {/* ── Historique commentaires ── */}
-      {tab === "all_comments" && (
-        <div className="grid gap-3">
-          {allComments.map((c) => {
-            const profil = (c as any).profils as {
-              pseudo: string | null;
-              avatar_url: string | null;
-            } | null;
-            const recette = (c as any).recettes as {
-              slug: string;
-              titre: string;
-            } | null;
-            return (
-              <div
-                key={c.id}
-                className="glass-card p-3 flex items-center gap-3 opacity-80 hover:opacity-100 overflow-hidden"
-              >
-                <Link href={`/profil/${c.user_id}`} className="shrink-0">
-                  {profil?.avatar_url ? (
-                    <Image
-                      src={profil.avatar_url}
-                      alt={profil.pseudo || ""}
-                      width={28}
-                      height={28}
-                      className="w-7 h-7 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-7 h-7 rounded-full bg-accent/20 flex items-center justify-center text-accent text-[10px] font-bold">
-                      {(profil?.pseudo || "?").charAt(0).toUpperCase()}
-                    </div>
-                  )}
-                </Link>
-
-                <div className="text-sm min-w-0 flex-1 overflow-hidden">
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={cn(
-                        "text-[10px] px-2 py-0.5 rounded-full shrink-0",
-                        c.approved
-                          ? "bg-sage/20 text-sage"
-                          : "bg-yellow-500/20 text-yellow-500",
-                      )}
-                    >
-                      {c.approved ? "En ligne" : "En attente"}
-                    </span>
-                    <Link
-                      href={`/profil/${c.user_id}`}
-                      className="text-accent text-xs font-bold hover:underline shrink-0"
-                    >
-                      {profil?.pseudo || "Utilisateur"}
-                    </Link>
-                    {recette && (
-                      <Link
-                        href={`/recettes/${recette.slug}`}
-                        className="text-[10px] text-muted-foreground hover:text-accent truncate"
-                      >
-                        sur {recette.titre}
-                      </Link>
-                    )}
-                  </div>
-                  <span className="block truncate mt-0.5">{c.content}</span>
-                </div>
-
-                <div className="flex gap-2 items-center shrink-0">
-                  {!c.approved && (
-                    <button
-                      onClick={() => handleAction("approve_comment", c.id)}
-                      className="text-sage text-xs hover:underline p-2"
-                    >
-                      Approuver
-                    </button>
-                  )}
-                  <button
-                    onClick={() => handleAction("delete_comment", c.id)}
-                    className="text-error text-xs hover:underline p-2"
-                  >
-                    Supprimer
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* ── Utilisateurs ── */}
-      {tab === "users" && (
-        <div className="grid gap-3">
-          {users.length === 0 ? (
-            <EmptyState msg="Aucun utilisateur" />
-          ) : (
-            users.map((u) => (
-              <div
-                key={u.id}
-                className="glass-card p-4 flex items-center justify-between"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-bold truncate">
-                    {u.pseudo || "Sans pseudo"}
-                  </p>
-                  <p className="text-xs text-muted-foreground">{u.email}</p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">
-                    Inscrit le{" "}
-                    {new Date(u.created_at).toLocaleDateString("fr-FR", {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                    })}
-                  </p>
-                </div>
-                <button
-                  onClick={() => handleBan(u.id, u.pseudo)}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium text-error bg-error/10 border border-error/20 hover:bg-error/20 transition-colors shrink-0 ml-3"
-                >
-                  <UserX className="w-3.5 h-3.5" />
-                  Bannir
-                </button>
-              </div>
-            ))
-          )}
-        </div>
-      )}
-
-      {/* ── Utilisateurs bannis ── */}
-      {tab === "banned" && (
-        <div className="grid gap-3">
-          {bannedUsers.length === 0 ? (
-            <EmptyState msg="Aucun utilisateur banni" />
-          ) : (
-            bannedUsers.map((b) => (
-              <div
-                key={b.id}
-                className="glass-card p-4 flex items-center justify-between border-l-4 border-error"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-bold text-error">{b.email}</p>
-                  {b.reason && (
-                    <p className="text-xs text-muted-foreground italic mt-0.5">
-                      Raison : {b.reason}
-                    </p>
-                  )}
-                  <p className="text-[10px] text-muted-foreground mt-0.5">
-                    Banni le{" "}
-                    {new Date(b.banned_at).toLocaleDateString("fr-FR", {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                    })}
-                  </p>
-                </div>
-                <button
-                  onClick={() => handleUnban(b.email)}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium text-sage bg-sage/10 border border-sage/20 hover:bg-sage/20 transition-colors shrink-0 ml-3"
-                >
-                  <Undo2 className="w-3.5 h-3.5" />
-                  Débannir
-                </button>
-              </div>
-            ))
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function EmptyState({ msg }: { msg: string }) {
-  return (
-    <div className="text-center py-16 bg-card/30 rounded-3xl border-2 border-dashed border-border">
-      <MessageSquare className="w-12 h-12 mx-auto text-muted-foreground/30 mb-4" />
-      <p className="text-muted-foreground">{msg}</p>
-    </div>
-  );
-}
-</file>
-
 <file path="components/layout/Navbar.tsx">
 "use client";
 
@@ -28890,9 +29968,11 @@ import {
   Heart,
   Calendar,
   Info,
+  Bell,
 } from "lucide-react";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 import Logo from "@/components/ui/Logo";
+import NotificationBell from "@/components/layout/NotificationBell";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 
@@ -29004,6 +30084,9 @@ export default function Navbar() {
           {/* Right side */}
           <div className="flex items-center gap-2">
             <ThemeToggle />
+
+            {/* Cloche de notifications (uniquement connecté) */}
+            {user && <NotificationBell />}
 
             {/* Admin button */}
             {isAdmin && (
@@ -29142,6 +30225,21 @@ export default function Navbar() {
                 {link.label}
               </Link>
             ))}
+            {user && (
+              <Link
+                href="/notifications"
+                onClick={() => setMobileOpen(false)}
+                className={cn(
+                  "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all",
+                  isActive("/notifications")
+                    ? "bg-accent/15 text-accent shadow-sm shadow-accent/10"
+                    : "bg-background/15 text-foreground/80 hover:text-foreground hover:bg-background/25 backdrop-blur-sm",
+                )}
+              >
+                <Bell className="w-4 h-4" />
+                Notifications
+              </Link>
+            )}
             {isAdmin && (
               <Link
                 href="/admin"
@@ -29665,6 +30763,41 @@ export interface UserPlanning {
   likes_count: number;
   created_at: string;
   updated_at: string;
+}
+
+// ─── Notifications ───────────────────────────────────────────
+
+export type NotificationType =
+  | "comment_like"
+  | "comment_reply"
+  | "recipe_comment"
+  | "recipe_favorite"
+  | "recipe_rating";
+
+export interface NotificationMetadata {
+  recette_titre?: string | null;
+  recette_slug?: string | null;
+  comment_preview?: string | null;
+  rating?: number | null;
+}
+
+export interface Notification {
+  id: string;
+  user_id: string;
+  actor_id: string | null;
+  type: NotificationType;
+  recette_id: string | null;
+  comment_id: string | null;
+  metadata: NotificationMetadata | null;
+  read_at: string | null;
+  created_at: string;
+}
+
+/** Notification enrichie des entités liées (jointures PostgREST). */
+export interface NotificationEnriched extends Notification {
+  actor: Pick<Profil, "pseudo" | "avatar_url"> | null;
+  recette: Pick<Recette, "slug" | "titre" | "approuve" | "publie"> | null;
+  comment: Pick<RecipeComment, "content" | "parent_id"> | null;
 }
 </file>
 
@@ -31412,6 +32545,729 @@ export function useRecettes(filters: RecetteFilters) {
 
 <file path="hooks/useAuth.ts">
 export { useAuth } from "@/contexts/AuthContext";
+</file>
+
+<file path="app/admin/page.tsx">
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import {
+  Shield,
+  Check,
+  X,
+  MessageSquare,
+  History,
+  Loader2,
+  Pencil,
+  AlertTriangle,
+  Search,
+} from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import type { Recette, RecipeComment } from "@/types";
+import { formatDate, cn } from "@/lib/utils";
+import Link from "next/link";
+import {
+  approveRecette,
+  rejectRecette,
+  approveComment,
+  deleteComment,
+  deleteRecette,
+  getAdminPendingComments,
+  getAdminAllComments,
+  getAdminPendingRecettes,
+  getAdminAllRecettes,
+} from "@/app/actions/admin";
+import {
+  banUser,
+  unbanUser,
+  getBannedUsers,
+  getUsers,
+} from "@/app/actions/users";
+import { UserX, Users, Ban, Undo2, Trash2 } from "lucide-react";
+import Image from "next/image";
+import { useToast } from "@/components/ui/Toast";
+
+export default function AdminPage() {
+  const { user, loading: authLoading, isAdmin: authIsAdmin } = useAuth();
+  const router = useRouter();
+  const { toastSuccess, toastError } = useToast();
+
+  const [recettesEnAttente, setRecettesEnAttente] = useState<Recette[]>([]);
+  const [allRecettes, setAllRecettes] = useState<Recette[]>([]);
+  const [pendingComments, setPendingComments] = useState<RecipeComment[]>([]);
+  const [allComments, setAllComments] = useState<RecipeComment[]>([]);
+  const [tab, setTab] = useState<
+    | "recettes"
+    | "all_recettes"
+    | "pending_comments"
+    | "all_comments"
+    | "users"
+    | "banned"
+  >("recettes");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [loadingData, setLoadingData] = useState(true);
+  const [users, setUsers] = useState<
+    { id: string; pseudo: string | null; email: string; created_at: string }[]
+  >([]);
+  const [bannedUsers, setBannedUsers] = useState<
+    { id: string; email: string; reason: string | null; banned_at: string }[]
+  >([]);
+  // Erreurs visibles dans l'UI pour le debug
+  const [loadErrors, setLoadErrors] = useState<string[]>([]);
+
+  const loadData = useCallback(async () => {
+    setLoadingData(true);
+    const errors: string[] = [];
+
+    const safeFetch = async <T,>(
+      fetcher: () => Promise<T>,
+      label: string,
+    ): Promise<T | null> => {
+      try {
+        return await fetcher();
+      } catch (err: any) {
+        const msg = `${label}: ${err?.message || "Erreur inconnue"}`;
+        console.error("❌ Admin loadData error", msg, err);
+        errors.push(msg);
+        return null;
+      }
+    };
+
+    const pendingRecData = (await safeFetch(
+      () => getAdminPendingRecettes(),
+      "Recettes en attente",
+    )) as Recette[] | null;
+    const allRecData = (await safeFetch(
+      () => getAdminAllRecettes(),
+      "Toutes les recettes",
+    )) as Recette[] | null;
+    const pendingComData = (await safeFetch(
+      () => getAdminPendingComments(),
+      "Commentaires en attente",
+    )) as RecipeComment[] | null;
+    const allComData = (await safeFetch(
+      () => getAdminAllComments(),
+      "Historique commentaires",
+    )) as RecipeComment[] | null;
+    const usersData = await safeFetch(
+      () => getUsers(50),
+      "Liste des utilisateurs",
+    );
+    const bannedData = await safeFetch(
+      () => getBannedUsers(),
+      "Utilisateurs bannis",
+    );
+
+    setRecettesEnAttente(pendingRecData || []);
+    setAllRecettes(allRecData || []);
+    setPendingComments(pendingComData || []);
+    setAllComments(allComData || []);
+    setUsers((usersData as any[]) || []);
+    setBannedUsers((bannedData as any[]) || []);
+    setLoadErrors(errors);
+    setLoadingData(false);
+
+    if (errors.length > 0) {
+      console.warn("⚠️ Certains chargements admin ont échoué :", errors);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!authLoading) {
+      if (!user || !authIsAdmin) router.push("/");
+      else loadData();
+    }
+  }, [user, authLoading, authIsAdmin, router, loadData]);
+
+  const handleAction = async (action: string, id: string, raison?: string) => {
+    try {
+      switch (action) {
+        case "approve_recette":
+          await approveRecette(id);
+          break;
+        case "reject_recette":
+          if (!raison) throw new Error("Raison requise");
+          await rejectRecette(id, raison);
+          break;
+        case "approve_comment":
+          await approveComment(id);
+          break;
+        case "delete_comment":
+          await deleteComment(id);
+          break;
+        case "delete_recette":
+          await deleteRecette(id);
+          break;
+        default:
+          throw new Error("Action inconnue");
+      }
+      await loadData();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Erreur inconnue";
+      toastError(message);
+    }
+  };
+  const handleBan = async (userId: string, pseudo: string | null) => {
+    const reason = prompt(
+      `Bannir ${pseudo || "cet utilisateur"} ?\n\nRaison du bannissement :`,
+    );
+    if (reason === null) return;
+    try {
+      const result = await banUser(
+        userId,
+        reason || "Comportement inapproprié",
+      );
+      toastSuccess(`${result.email} a été banni et supprimé.`);
+      await loadData();
+    } catch (err: unknown) {
+      toastError(err instanceof Error ? err.message : "Erreur inconnue");
+    }
+  };
+
+  const handleUnban = async (email: string) => {
+    if (!confirm(`Débannir ${email} ?`)) return;
+    try {
+      await unbanUser(email);
+      toastSuccess(`${email} a été débanni.`);
+      await loadData();
+    } catch (err: unknown) {
+      toastError(err instanceof Error ? err.message : "Erreur inconnue");
+    }
+  };
+
+  return (
+    <div className="max-w-6xl mx-auto p-6 space-y-8">
+      <div className="flex items-center gap-3">
+        <Shield className="w-8 h-8 text-accent" />
+        <h1 className="font-display font-bold text-3xl italic">
+          Administration Kitchen Mix
+        </h1>
+      </div>
+
+      {/* ── Erreurs de chargement (visibles pour l'admin) ── */}
+      {loadErrors.length > 0 && (
+        <div className="bg-error/10 border border-error/30 rounded-xl p-4 space-y-1">
+          <div className="flex items-center gap-2 text-error font-bold text-sm">
+            <AlertTriangle className="w-4 h-4" />
+            Erreurs de chargement :
+          </div>
+          {loadErrors.map((err, i) => (
+            <p key={i} className="text-xs text-error/80 ml-6">
+              • {err}
+            </p>
+          ))}
+        </div>
+      )}
+
+      {/* Tabs */}
+      <div className="flex flex-wrap gap-2 border-b border-border pb-4">
+        {(
+          [
+            {
+              key: "recettes",
+              label: `À modérer (${recettesEnAttente.length})`,
+            },
+            {
+              key: "all_recettes",
+              label: `Toutes les recettes (${allRecettes.length})`,
+            },
+            {
+              key: "pending_comments",
+              label: `Commentaires (${pendingComments.length})`,
+            },
+            { key: "all_comments", label: "Historique commentaires" },
+            { key: "users", label: `Utilisateurs (${users.length})` },
+            { key: "banned", label: `Bannis (${bannedUsers.length})` },
+          ] as const
+        ).map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setTab(t.key)}
+            className={cn(
+              "px-4 py-2 rounded-lg text-sm font-medium transition-all",
+              tab === t.key ? "bg-accent text-black" : "hover:bg-card-hover",
+            )}
+          >
+            {t.key === "all_comments" && (
+              <History className="w-4 h-4 inline mr-2" />
+            )}
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Recettes en attente ── */}
+      {tab === "recettes" && (
+        <div className="grid gap-4">
+          {recettesEnAttente.length === 0 ? (
+            <EmptyState msg="Aucune recette en attente" />
+          ) : (
+            recettesEnAttente.map((r) => (
+              <div
+                key={r.id}
+                className="glass-card p-5 flex justify-between items-center border-l-4 border-accent"
+              >
+                <div className="min-w-0">
+                  <h3 className="font-bold text-lg truncate">{r.titre}</h3>
+                  <p className="text-sm text-muted-foreground italic line-clamp-1">
+                    {r.description}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {formatDate(r.created_at)}
+                  </p>
+                </div>
+                <div className="flex gap-2 shrink-0 ml-4">
+                  <button
+                    onClick={() => handleAction("approve_recette", r.id)}
+                    className="p-3 bg-sage/20 text-sage rounded-xl hover:scale-105 transition-transform"
+                    title="Approuver"
+                  >
+                    <Check className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={() => {
+                      const rz = prompt("Pourquoi refuser ?");
+                      if (rz) handleAction("reject_recette", r.id, rz);
+                    }}
+                    className="p-3 bg-error/20 text-error rounded-xl hover:scale-105 transition-transform"
+                    title="Refuser"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                  <Link
+                    href={`/admin/editer/${r.id}`}
+                    className="p-3 bg-accent/20 text-accent rounded-xl hover:scale-105 transition-transform"
+                    title="Modifier"
+                  >
+                    <Pencil className="w-5 h-5" />
+                  </Link>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
+      {/* ── Toutes les recettes (avec édition) ── */}
+      {tab === "all_recettes" && (
+        <div className="space-y-4">
+          {/* Champ de recherche */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <input
+              type="text"
+              name="admin-recipe-search"
+              placeholder="Rechercher une recette par titre ou slug..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full bg-card border border-border rounded-xl pl-10 pr-4 py-2.5 text-sm"
+            />
+          </div>
+
+          {/* Liste des recettes filtrées */}
+          <div className="grid gap-3">
+            {(() => {
+              const recettesFiltrees = (allRecettes || []).filter(
+                (r) =>
+                  r.titre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                  r.slug?.toLowerCase().includes(searchTerm.toLowerCase()),
+              );
+              if (recettesFiltrees.length === 0) {
+                return (
+                  <p className="text-center text-muted-foreground py-8">
+                    Aucune recette trouvée.
+                  </p>
+                );
+              }
+              return recettesFiltrees.map((r) => (
+                <div
+                  key={r.id}
+                  className="glass-card p-3 flex items-center gap-3 opacity-80 hover:opacity-100"
+                >
+                  <Link
+                    href={r.approuve ? `/recettes/${r.slug}` : "#"}
+                    className="shrink-0"
+                  >
+                    {r.image_url ? (
+                      <div className="relative w-14 h-10 rounded-lg overflow-hidden">
+                        <Image
+                          src={r.image_url}
+                          alt={r.titre}
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                    ) : (
+                      <div className="w-14 h-10 rounded-lg bg-accent/10 flex items-center justify-center text-sm">
+                        🍽️
+                      </div>
+                    )}
+                  </Link>
+
+                  <div className="text-sm min-w-0 flex-1 overflow-hidden">
+                    <span
+                      className={cn(
+                        "text-[10px] px-2 py-0.5 rounded-full mr-2",
+                        r.approuve
+                          ? "bg-sage/20 text-sage"
+                          : r.raison_rejet
+                            ? "bg-error/20 text-error"
+                            : "bg-yellow-500/20 text-yellow-500",
+                      )}
+                    >
+                      {r.approuve
+                        ? "En ligne"
+                        : r.raison_rejet
+                          ? "Refusée"
+                          : "En attente"}
+                    </span>
+                    <Link
+                      href={r.approuve ? `/recettes/${r.slug}` : "#"}
+                      className={cn(
+                        "block truncate font-medium",
+                        r.approuve && "hover:text-accent",
+                      )}
+                    >
+                      {r.titre}
+                    </Link>
+                  </div>
+
+                  <div className="flex gap-2 items-center shrink-0 ml-3">
+                    {!r.approuve && !r.raison_rejet && (
+                      <button
+                        onClick={() => handleAction("approve_recette", r.id)}
+                        className="text-sage text-xs hover:underline p-2"
+                      >
+                        Approuver
+                      </button>
+                    )}
+                    <Link
+                      href={`/admin/editer/${r.id}`}
+                      className="flex items-center gap-1 text-accent text-xs hover:underline p-2"
+                    >
+                      <Pencil className="w-3 h-3" /> Modifier
+                    </Link>
+                    <button
+                      onClick={() => {
+                        if (
+                          confirm(
+                            `Supprimer "${r.titre}" ? Cette action est irréversible.`,
+                          )
+                        ) {
+                          handleAction("delete_recette", r.id);
+                        }
+                      }}
+                      className="text-error text-xs hover:underline p-2"
+                    >
+                      Supprimer
+                    </button>
+                  </div>
+                </div>
+              ));
+            })()}
+          </div>
+        </div>
+      )}
+
+      {/* ── Commentaires en attente ── */}
+      {tab === "all_recettes" && (
+        <div className="space-y-4">
+          {/* Barre de recherche */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <input
+              type="text"
+              name="admin-recipe-search"
+              placeholder="Rechercher une recette par titre ou slug..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full bg-card border border-border rounded-xl pl-10 pr-4 py-2.5 text-sm"
+            />
+          </div>
+
+          {/* Liste filtrée */}
+          <div className="grid gap-3">
+            {(() => {
+              const recettesFiltrees = (allRecettes || []).filter(
+                (r) =>
+                  r.titre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                  r.slug?.toLowerCase().includes(searchTerm.toLowerCase()),
+              );
+              if (recettesFiltrees.length === 0) {
+                return (
+                  <p className="text-center text-muted-foreground py-8">
+                    Aucune recette trouvée.
+                  </p>
+                );
+              }
+              return recettesFiltrees.map((r) => (
+                <div
+                  key={r.id}
+                  className="glass-card p-3 flex items-center gap-3 opacity-80 hover:opacity-100"
+                >
+                  {/* Miniature */}
+                  <Link
+                    href={r.approuve ? `/recettes/${r.slug}` : "#"}
+                    className="shrink-0"
+                  >
+                    {r.image_url ? (
+                      <div className="relative w-14 h-10 rounded-lg overflow-hidden">
+                        <Image
+                          src={r.image_url}
+                          alt={r.titre}
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                    ) : (
+                      <div className="w-14 h-10 rounded-lg bg-accent/10 flex items-center justify-center text-sm">
+                        🍽️
+                      </div>
+                    )}
+                  </Link>
+
+                  {/* Titre et statut */}
+                  <div className="text-sm min-w-0 flex-1 overflow-hidden">
+                    <span
+                      className={cn(
+                        "text-[10px] px-2 py-0.5 rounded-full mr-2",
+                        r.approuve
+                          ? "bg-sage/20 text-sage"
+                          : r.raison_rejet
+                            ? "bg-error/20 text-error"
+                            : "bg-yellow-500/20 text-yellow-500",
+                      )}
+                    >
+                      {r.approuve
+                        ? "En ligne"
+                        : r.raison_rejet
+                          ? "Refusée"
+                          : "En attente"}
+                    </span>
+                    <Link
+                      href={r.approuve ? `/recettes/${r.slug}` : "#"}
+                      className={cn(
+                        "block truncate font-medium",
+                        r.approuve && "hover:text-accent",
+                      )}
+                    >
+                      {r.titre}
+                    </Link>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex gap-2 items-center shrink-0 ml-3">
+                    {!r.approuve && !r.raison_rejet && (
+                      <button
+                        onClick={() => handleAction("approve_recette", r.id)}
+                        className="text-sage text-xs hover:underline p-2"
+                      >
+                        Approuver
+                      </button>
+                    )}
+                    <Link
+                      href={`/admin/editer/${r.id}`}
+                      className="flex items-center gap-1 text-accent text-xs hover:underline p-2"
+                    >
+                      <Pencil className="w-3 h-3" /> Modifier
+                    </Link>
+                    <button
+                      onClick={() => {
+                        if (
+                          confirm(
+                            `Supprimer "${r.titre}" ? Cette action est irréversible.`,
+                          )
+                        ) {
+                          handleAction("delete_recette", r.id);
+                        }
+                      }}
+                      className="text-error text-xs hover:underline p-2"
+                    >
+                      Supprimer
+                    </button>
+                  </div>
+                </div>
+              ));
+            })()}
+          </div>
+        </div>
+      )}
+
+      {/* ── Historique commentaires ── */}
+      {tab === "all_comments" && (
+        <div className="grid gap-3">
+          {allComments.map((c) => {
+            const profil = (c as any).profils as {
+              pseudo: string | null;
+              avatar_url: string | null;
+            } | null;
+            const recette = (c as any).recettes as {
+              slug: string;
+              titre: string;
+            } | null;
+            return (
+              <div
+                key={c.id}
+                className="glass-card p-3 flex items-center gap-3 opacity-80 hover:opacity-100 overflow-hidden"
+              >
+                <Link href={`/profil/${c.user_id}`} className="shrink-0">
+                  {profil?.avatar_url ? (
+                    <Image
+                      src={profil.avatar_url}
+                      alt={profil.pseudo || ""}
+                      width={28}
+                      height={28}
+                      className="w-7 h-7 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-7 h-7 rounded-full bg-accent/20 flex items-center justify-center text-accent text-[10px] font-bold">
+                      {(profil?.pseudo || "?").charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                </Link>
+
+                <div className="text-sm min-w-0 flex-1 overflow-hidden">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={cn(
+                        "text-[10px] px-2 py-0.5 rounded-full shrink-0",
+                        c.approved
+                          ? "bg-sage/20 text-sage"
+                          : "bg-yellow-500/20 text-yellow-500",
+                      )}
+                    >
+                      {c.approved ? "En ligne" : "En attente"}
+                    </span>
+                    <Link
+                      href={`/profil/${c.user_id}`}
+                      className="text-accent text-xs font-bold hover:underline shrink-0"
+                    >
+                      {profil?.pseudo || "Utilisateur"}
+                    </Link>
+                    {recette && (
+                      <Link
+                        href={`/recettes/${recette.slug}`}
+                        className="text-[10px] text-muted-foreground hover:text-accent truncate"
+                      >
+                        sur {recette.titre}
+                      </Link>
+                    )}
+                  </div>
+                  <span className="block truncate mt-0.5">{c.content}</span>
+                </div>
+
+                <div className="flex gap-2 items-center shrink-0">
+                  {!c.approved && (
+                    <button
+                      onClick={() => handleAction("approve_comment", c.id)}
+                      className="text-sage text-xs hover:underline p-2"
+                    >
+                      Approuver
+                    </button>
+                  )}
+                  <button
+                    onClick={() => handleAction("delete_comment", c.id)}
+                    className="text-error text-xs hover:underline p-2"
+                  >
+                    Supprimer
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ── Utilisateurs ── */}
+      {tab === "users" && (
+        <div className="grid gap-3">
+          {users.length === 0 ? (
+            <EmptyState msg="Aucun utilisateur" />
+          ) : (
+            users.map((u) => (
+              <div
+                key={u.id}
+                className="glass-card p-4 flex items-center justify-between"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-bold truncate">
+                    {u.pseudo || "Sans pseudo"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{u.email}</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    Inscrit le{" "}
+                    {new Date(u.created_at).toLocaleDateString("fr-FR", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </p>
+                </div>
+                <button
+                  onClick={() => handleBan(u.id, u.pseudo)}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium text-error bg-error/10 border border-error/20 hover:bg-error/20 transition-colors shrink-0 ml-3"
+                >
+                  <UserX className="w-3.5 h-3.5" />
+                  Bannir
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
+      {/* ── Utilisateurs bannis ── */}
+      {tab === "banned" && (
+        <div className="grid gap-3">
+          {bannedUsers.length === 0 ? (
+            <EmptyState msg="Aucun utilisateur banni" />
+          ) : (
+            bannedUsers.map((b) => (
+              <div
+                key={b.id}
+                className="glass-card p-4 flex items-center justify-between border-l-4 border-error"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-bold text-error">{b.email}</p>
+                  {b.reason && (
+                    <p className="text-xs text-muted-foreground italic mt-0.5">
+                      Raison : {b.reason}
+                    </p>
+                  )}
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    Banni le{" "}
+                    {new Date(b.banned_at).toLocaleDateString("fr-FR", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </p>
+                </div>
+                <button
+                  onClick={() => handleUnban(b.email)}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium text-sage bg-sage/10 border border-sage/20 hover:bg-sage/20 transition-colors shrink-0 ml-3"
+                >
+                  <Undo2 className="w-3.5 h-3.5" />
+                  Débannir
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EmptyState({ msg }: { msg: string }) {
+  return (
+    <div className="text-center py-16 bg-card/30 rounded-3xl border-2 border-dashed border-border">
+      <MessageSquare className="w-12 h-12 mx-auto text-muted-foreground/30 mb-4" />
+      <p className="text-muted-foreground">{msg}</p>
+    </div>
+  );
+}
 </file>
 
 <file path="app/planificateur/page.tsx">

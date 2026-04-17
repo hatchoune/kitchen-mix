@@ -50,6 +50,20 @@ export async function createComment(
 
   if (error) throw new Error(error.message);
 
+  // ── Notifications (non bloquantes) ──────────────────────
+  // Notifie l'auteur de la recette (si approuvée/publiée) et
+  // l'auteur du commentaire parent en cas de réponse.
+  if (data?.id) {
+    try {
+      const { notifyNewComment } = await import(
+        "@/app/actions/notifications"
+      );
+      await notifyNewComment(data.id);
+    } catch (err) {
+      console.error("[comments] notifyNewComment error:", err);
+    }
+  }
+
   revalidatePath(`/recettes/${recetteId}`);
   return data;
 }
@@ -118,40 +132,61 @@ export async function voteComment(
     .eq("comment_id", commentId)
     .single();
 
+  let isNewLike = false;
+
   if (existing) {
     if (existing.vote_type === voteType) {
-      // Supprimer le vote
+      // Supprimer le vote (toggle off)
       await supabase
         .from("comment_votes")
         .delete()
         .eq("user_id", user.id)
         .eq("comment_id", commentId);
     } else {
-      // Mettre à jour le vote
+      // Mettre à jour le vote (passer de dislike à like compte comme nouveau like)
       await supabase
         .from("comment_votes")
         .update({ vote_type: voteType })
         .eq("user_id", user.id)
         .eq("comment_id", commentId);
+      if (voteType === "like") isNewLike = true;
     }
   } else {
     // Ajouter un nouveau vote
     await supabase
       .from("comment_votes")
       .insert({ user_id: user.id, comment_id: commentId, vote_type: voteType });
+    if (voteType === "like") isNewLike = true;
   }
 
-  // Achievements — vérifier si l'auteur du commentaire a reçu des likes
-  if (voteType === "like") {
+  // ── Achievements + Notification (seulement si nouveau like) ──
+  if (isNewLike) {
     const { data: commentData } = await supabase
       .from("recipe_comments")
       .select("user_id")
       .eq("id", commentId)
       .single();
+
     if (commentData) {
-      const { checkAndUnlockAchievements } =
-        await import("@/app/actions/achievements");
-      await checkAndUnlockAchievements(commentData.user_id, "like_received");
+      // Achievement (trophée likes reçus)
+      try {
+        const { checkAndUnlockAchievements } = await import(
+          "@/app/actions/achievements"
+        );
+        await checkAndUnlockAchievements(commentData.user_id, "like_received");
+      } catch (err) {
+        console.error("[comments] achievement check error:", err);
+      }
+
+      // Notification à l'auteur du commentaire
+      try {
+        const { notifyCommentLike } = await import(
+          "@/app/actions/notifications"
+        );
+        await notifyCommentLike(commentId);
+      } catch (err) {
+        console.error("[comments] notifyCommentLike error:", err);
+      }
     }
   }
 
