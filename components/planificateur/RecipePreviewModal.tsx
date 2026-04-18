@@ -1,16 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {
-  X,
-  Clock,
-  Users,
-  Zap,
-  Star,
-  Plus,
-  Loader2,
-  Heart,
-} from "lucide-react";
+import { X, Clock, Users, Zap, Star, Plus, Loader2, Heart } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
@@ -54,6 +45,7 @@ interface RecipePreviewModalProps {
   recetteId: string;
   onAdd: () => void;
   onClose: () => void;
+  onFavorisChange?: () => void;
 }
 
 /* ─── Helpers ─────────────────────────────────────────────── */
@@ -80,6 +72,7 @@ export default function RecipePreviewModal({
   recetteId,
   onAdd,
   onClose,
+  onFavorisChange,
 }: RecipePreviewModalProps) {
   const [supabase] = useState(() => createClient());
   const [recette, setRecette] = useState<RecettePreview | null>(null);
@@ -122,6 +115,7 @@ export default function RecipePreviewModal({
     checkFav();
   }, [user, recetteId, supabase]);
 
+  // APRÈS
   const toggleFavoris = async () => {
     if (!user || !recette) return;
     setFavLoading(true);
@@ -142,6 +136,8 @@ export default function RecipePreviewModal({
         setIsFavoris(true);
         toastSuccess("Ajouté aux favoris !");
       }
+      // Notifie le parent pour qu'il resynchronise sa liste de favoris
+      onFavorisChange?.();
     } catch {
       toastError("Erreur lors de la mise à jour des favoris");
     } finally {
@@ -149,9 +145,7 @@ export default function RecipePreviewModal({
     }
   };
 
-  const total = recette
-    ? recette.temps_preparation + recette.temps_cuisson
-    : 0;
+  const total = recette ? recette.temps_preparation + recette.temps_cuisson : 0;
 
   return (
     // z-[110] : DOIT passer AU-DESSUS du modal "Ajouter" (z-[100]).

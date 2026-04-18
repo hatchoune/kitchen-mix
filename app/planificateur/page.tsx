@@ -25,6 +25,8 @@ import RecipePreviewModal from "@/components/planificateur/RecipePreviewModal";
 import { useMealPlans } from "@/hooks/useMealPlans";
 import { useToast } from "@/components/ui/Toast";
 import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
+import { useQueryClient } from "@tanstack/react-query";
+import type { MealPlanRow } from "@/hooks/useMealPlans";
 
 /* ─── Types ───────────────────────────────────────────────── */
 
@@ -70,6 +72,11 @@ export default function PlanificateurPage() {
   const [plan, setPlan] = useState<WeekPlan>({});
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [supabase] = useState(() => createClient());
+  const queryClient = useQueryClient();
+  const localStorageKey = useMemo(
+    () => (user ? `kmx-plan-${user.id}-${semaine}` : null),
+    [user, semaine],
+  );
 
   // ═══ Chargement des données avec React Query ═══
   const {
@@ -80,6 +87,7 @@ export default function PlanificateurPage() {
   } = useMealPlans(user?.id, semaine);
 
   // Construction du WeekPlan
+  // APRÈS
   useEffect(() => {
     if (!mealPlanRows) return;
 
@@ -92,8 +100,37 @@ export default function PlanificateurPage() {
         loaded[row.day_index][row.slot] = recette;
       }
     }
+
+    // Garde-fou : si la DB renvoie vide mais qu'on a déjà un plan non-vide
+    // en mémoire (hydraté depuis localStorage), on ne l'écrase pas. Ça couvre
+    // le cas d'un cache RQ stale qui renverrait [] avant refetch.
+    const dbIsEmpty = mealPlanRows.length === 0;
+    const stateHasData = Object.values(plan).some((slots) =>
+      slots.some((s) => s !== null),
+    );
+    if (dbIsEmpty && stateHasData) return;
+
     setPlan(loaded);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mealPlanRows]);
+
+  // Hydrate le plan depuis localStorage en priorité (avant que la DB réponde).
+  // Ça évite le "flash de planning vide" quand on revient sur la page et
+  // fait office de filet de secours si l'écriture DB a foiré.
+  useEffect(() => {
+    if (!localStorageKey) return;
+    try {
+      const cached = localStorage.getItem(localStorageKey);
+      if (cached) {
+        const parsed = JSON.parse(cached) as WeekPlan;
+        if (parsed && typeof parsed === "object") {
+          setPlan(parsed);
+        }
+      }
+    } catch {
+      // localStorage indispo ou JSON corrompu : on ignore
+    }
+  }, [localStorageKey]);
 
   // Gestion des erreurs
   useEffect(() => {
@@ -138,23 +175,44 @@ export default function PlanificateurPage() {
 
   /* ─── Save plan ─────────────────────────────────────────── */
 
+  // APRÈS
   const savePlan = useCallback(
     async (newPlan: WeekPlan) => {
       if (!user) return;
       setPlan(newPlan);
 
-      await supabase
-        .from("meal_plans")
-        .delete()
-        .eq("user_id", user.id)
-        .eq("week_start", semaine);
+      // 1) Backup localStorage : survit aux navigations + aux pannes réseau
+      if (localStorageKey) {
+        try {
+          localStorage.setItem(localStorageKey, JSON.stringify(newPlan));
+        } catch {
+          // quota plein ou mode privé : on ignore, la DB reste la source
+        }
+      }
 
-      const rows = [];
+      // 2) Synchronise le cache React Query pour que les prochaines lectures
+      //    (retour sur la page avant expiration du staleTime) voient les nouvelles
+      //    données au lieu du cache périmé.
+      const mealPlanRowsCache: MealPlanRow[] = [];
+      const dbRows: {
+        user_id: string;
+        week_start: string;
+        day_index: number;
+        slot: number;
+        recette_id: string;
+      }[] = [];
+
       for (let d = 0; d < 7; d++) {
         for (let s = 0; s < MAX_SLOTS; s++) {
           const r = newPlan[d]?.[s];
           if (r) {
-            rows.push({
+            mealPlanRowsCache.push({
+              day_index: d,
+              slot: s,
+              recette_id: r.id,
+              recettes: r,
+            });
+            dbRows.push({
               user_id: user.id,
               week_start: semaine,
               day_index: d,
@@ -164,11 +222,24 @@ export default function PlanificateurPage() {
           }
         }
       }
-      if (rows.length > 0) {
-        await supabase.from("meal_plans").insert(rows);
+
+      queryClient.setQueryData(
+        ["meal_plans", user.id, semaine],
+        mealPlanRowsCache,
+      );
+
+      // 3) Persist DB
+      await supabase
+        .from("meal_plans")
+        .delete()
+        .eq("user_id", user.id)
+        .eq("week_start", semaine);
+
+      if (dbRows.length > 0) {
+        await supabase.from("meal_plans").insert(dbRows);
       }
     },
-    [user, semaine, supabase],
+    [user, semaine, supabase, queryClient, localStorageKey],
   );
 
   /* ─── Charger un planning sauvegardé ──── */
@@ -247,23 +318,36 @@ export default function PlanificateurPage() {
     setSearchResults((data || []) as RecetteMin[]);
   };
 
-  const loadFavoris = async () => {
-    if (favorisLoaded || !user) return;
-    setFavorisLoading(true);
+  // APRÈS
+  const loadFavoris = useCallback(
+    async (force = false) => {
+      if ((favorisLoaded && !force) || !user) return;
+      setFavorisLoading(true);
 
-    const { data } = await supabase
-      .from("favoris")
-      .select("recette_id, recettes(id, slug, titre, ingredients, image_url)")
-      .eq("user_id", user.id);
+      const { data } = await supabase
+        .from("favoris")
+        .select("recette_id, recettes(id, slug, titre, ingredients, image_url)")
+        .eq("user_id", user.id);
 
-    const fav = (data || [])
-      .map((f) => f.recettes as unknown as RecetteMin)
-      .filter(Boolean);
+      const fav = (data || [])
+        .map((f) => f.recettes as unknown as RecetteMin)
+        .filter(Boolean);
 
-    setFavoris(fav);
-    setFavorisLoaded(true);
-    setFavorisLoading(false);
-  };
+      setFavoris(fav);
+      setFavorisLoaded(true);
+      setFavorisLoading(false);
+    },
+    [favorisLoaded, user, supabase],
+  );
+
+  // Handler appelé par RecipePreviewModal quand les favoris changent
+  const handleFavorisChange = useCallback(() => {
+    setFavorisLoaded(false);
+    // Si l'onglet Favoris est déjà affiché, on recharge immédiatement
+    if (activeTab === "favoris") {
+      loadFavoris(true);
+    }
+  }, [activeTab, loadFavoris]);
 
   const assignRecipe = (
     dayIndex: number,
@@ -1087,6 +1171,7 @@ export default function PlanificateurPage() {
             setPreviewRecipe(null);
           }}
           onClose={() => setPreviewRecipe(null)}
+          onFavorisChange={handleFavorisChange}
         />
       )}
 
