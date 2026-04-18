@@ -15,7 +15,9 @@
     "reset:recettes": "npx tsx scripts/reset-recettes.ts",
     "type-check": "tsc --noEmit",
     "seed:mega": "npx tsx scripts/seed-mega.ts",
-    "images": "npx tsx scripts/upload-images.ts"
+    "seed:one": "npx tsx scripts/seed-one.ts",
+    "images": "npx tsx scripts/upload-images.ts",
+    "images:one": "npx tsx scripts/upload-image-one.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

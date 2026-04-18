@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { createPortal } from "react-dom";
 import {
   ChevronLeft,
   ChevronRight,
@@ -13,7 +14,6 @@ import {
   X,
 } from "lucide-react";
 import type { EtapeThermomix } from "@/types";
-import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 import { useWakeLock } from "@/hooks/useWakeLock";
 
 interface SimulateurProps {
@@ -31,12 +31,37 @@ export default function SimulateurThermomix({
 }: SimulateurProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [isPortrait, setIsPortrait] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const { request: requestWakeLock, release: releaseWakeLock } = useWakeLock();
   const touchStartX = useRef<number | null>(null);
   const pushedHistoryRef = useRef(false);
 
-  // Lock scroll du body tant que la fenêtre est ouverte
-  useBodyScrollLock(isOpen);
+  // ─── Portal mount guard (évite hydration mismatch SSR) ─────────────
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // ─── Scroll lock ALLÉGÉ (overflow:hidden sans body:fixed) ──────────
+  // Évite le bug des fixed-descendants qui se décalent vers le bas
+  // quand body passe en position:fixed avec un scrollY élevé.
+  useEffect(() => {
+    if (!isOpen) return;
+    const body = document.body;
+    const html = document.documentElement;
+    const prev = {
+      bodyOverflow: body.style.overflow,
+      htmlOverflow: html.style.overflow,
+      htmlOverscroll: html.style.overscrollBehavior,
+    };
+    body.style.overflow = "hidden";
+    html.style.overflow = "hidden";
+    html.style.overscrollBehavior = "none";
+    return () => {
+      body.style.overflow = prev.bodyOverflow;
+      html.style.overflow = prev.htmlOverflow;
+      html.style.overscrollBehavior = prev.htmlOverscroll;
+    };
+  }, [isOpen]);
 
   // ─── Détection orientation (mobile portrait → alerte rotation) ───
   useEffect(() => {
@@ -59,7 +84,7 @@ export default function SimulateurThermomix({
     if (isOpen) setCurrentStep(0);
   }, [isOpen]);
 
-  // ─── WakeLock : maintient l'écran allumé pendant la cuisson ───────
+  // ─── WakeLock ──────────────────────────────────────────────────────
   useEffect(() => {
     if (!isOpen) return;
     requestWakeLock();
@@ -68,7 +93,7 @@ export default function SimulateurThermomix({
     };
   }, [isOpen, requestWakeLock, releaseWakeLock]);
 
-  // ─── Bouton RETOUR Android : empile un state, popstate = fermeture ─
+  // ─── Bouton RETOUR Android ────────────────────────────────────────
   useEffect(() => {
     if (!isOpen) return;
 
@@ -76,7 +101,6 @@ export default function SimulateurThermomix({
     pushedHistoryRef.current = true;
 
     const onPop = () => {
-      // Le back a déjà consommé notre state, on ne doit pas refaire history.back()
       pushedHistoryRef.current = false;
       onClose();
     };
@@ -84,8 +108,6 @@ export default function SimulateurThermomix({
     window.addEventListener("popstate", onPop);
     return () => {
       window.removeEventListener("popstate", onPop);
-      // Si fermeture via croix/escape, on consomme notre state pour ne pas
-      // laisser une entrée fantôme dans l'historique
       if (pushedHistoryRef.current) {
         pushedHistoryRef.current = false;
         window.history.back();
@@ -102,7 +124,7 @@ export default function SimulateurThermomix({
     setCurrentStep((s) => Math.max(0, s - 1));
   }, []);
 
-  // ─── Raccourcis clavier (desktop) ──────────────────────────────────
+  // ─── Raccourcis clavier ────────────────────────────────────────────
   useEffect(() => {
     if (!isOpen) return;
     const onKey = (e: KeyboardEvent) => {
@@ -114,7 +136,7 @@ export default function SimulateurThermomix({
     return () => document.removeEventListener("keydown", onKey);
   }, [isOpen, onClose, goNext, goPrev]);
 
-  // ─── Swipe horizontal (mobile) ─────────────────────────────────────
+  // ─── Swipe horizontal ──────────────────────────────────────────────
   const onTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
   };
@@ -127,7 +149,7 @@ export default function SimulateurThermomix({
     touchStartX.current = null;
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
   const etape = etapes[currentStep];
   const isLastStep = currentStep === etapes.length - 1;
@@ -140,16 +162,37 @@ export default function SimulateurThermomix({
     return `${m}:${s.toString().padStart(2, "0")}`;
   };
 
-  return (
+  const content = (
     <div
-      className="fixed inset-0 z-[100] h-[100dvh] w-[100vw] bg-neutral-950 text-white overscroll-none flex flex-col"
+      // Position via styles inline : pas d'ambiguïté, ni de h-[100dvh]
+      // qui pourrait mal s'interpréter. top:0 + bottom:0 définissent
+      // naturellement la hauteur depuis le containing block (viewport).
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 100,
+      }}
+      className="bg-neutral-950 text-white overscroll-none flex flex-col"
       role="dialog"
       aria-modal="true"
       aria-label="Mode cuisine guidée"
     >
       {/* ─── Overlay rotation (mobile portrait uniquement) ─────────── */}
       {isPortrait && (
-        <div className="absolute inset-0 z-[110] bg-black flex flex-col items-center justify-center p-6 text-center overscroll-none">
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 110,
+          }}
+          className="bg-black flex flex-col items-center justify-center p-6 text-center overscroll-none"
+        >
           <button
             onClick={onClose}
             className="absolute top-4 right-4 p-3 bg-accent text-black hover:bg-accent-hover active:scale-95 rounded-full transition-all shadow-lg shadow-accent/30"
@@ -170,11 +213,9 @@ export default function SimulateurThermomix({
         </div>
       )}
 
-      {/* ─── HEADER : tout en haut (croix + titre + étape + nav) ───── */}
+      {/* ─── HEADER ─────────────────────────────────────────────────── */}
       <header className="shrink-0 bg-black/80 backdrop-blur-sm border-b border-white/10">
-        {/* Ligne de contrôles */}
         <div className="flex items-center gap-2 px-2 py-2 sm:px-3">
-          {/* Croix sortie */}
           <button
             onClick={onClose}
             className="shrink-0 p-2 bg-accent text-black hover:bg-accent-hover active:scale-95 rounded-full transition-all shadow-md shadow-accent/20"
@@ -183,17 +224,14 @@ export default function SimulateurThermomix({
             <X className="w-5 h-5" strokeWidth={3} />
           </button>
 
-          {/* Titre (tronqué) */}
           <h3 className="flex-1 font-display font-bold text-xs sm:text-sm truncate min-w-0">
             {titre}
           </h3>
 
-          {/* Compteur étape X / Y */}
           <div className="shrink-0 text-[10px] sm:text-xs font-mono bg-accent/20 text-accent px-2.5 py-1 rounded-full border border-accent/30 whitespace-nowrap">
             {currentStep + 1} / {etapes.length}
           </div>
 
-          {/* Précédent */}
           <button
             onClick={goPrev}
             disabled={currentStep === 0}
@@ -204,7 +242,6 @@ export default function SimulateurThermomix({
             <span className="hidden sm:inline">Précédent</span>
           </button>
 
-          {/* Suivant / Terminer */}
           <button
             onClick={() => (isLastStep ? onClose() : goNext())}
             className="shrink-0 flex items-center gap-1 px-2 sm:px-3 py-1.5 rounded-full bg-accent text-black hover:scale-105 active:scale-95 transition-all text-xs font-bold shadow-md shadow-accent/20"
@@ -221,7 +258,6 @@ export default function SimulateurThermomix({
           </button>
         </div>
 
-        {/* Barre de progression (pleine largeur, sous les contrôles) */}
         <div className="h-1 w-full bg-white/10 overflow-hidden">
           <div
             className="h-full bg-accent shadow-[0_0_10px_rgba(var(--accent-rgb),0.4)] transition-all duration-500 ease-out"
@@ -230,13 +266,12 @@ export default function SimulateurThermomix({
         </div>
       </header>
 
-      {/* ─── ZONE CENTRALE : étape courante ─────────────────────────── */}
+      {/* ─── ZONE CENTRALE ──────────────────────────────────────────── */}
       <main
         className="flex-1 overflow-y-auto overscroll-contain p-3 lg:p-8 flex flex-col items-center justify-center gap-3 lg:gap-10"
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
       >
-        {/* 3 ronds Thermomix : Temps | Temp | Vitesse */}
         <div className="flex gap-3 sm:gap-12 justify-center w-full">
           <CircleParam
             icon={Timer}
@@ -256,7 +291,6 @@ export default function SimulateurThermomix({
           />
         </div>
 
-        {/* Instruction */}
         <div className="max-w-4xl w-full text-center px-2">
           <p className="text-sm sm:text-xl font-medium leading-relaxed text-balance">
             {etape.instruction}
@@ -273,6 +307,10 @@ export default function SimulateurThermomix({
       </main>
     </div>
   );
+
+  // Render via Portal pour sortir complètement de la hiérarchie React
+  // et devenir enfant direct de <body>
+  return createPortal(content, document.body);
 }
 
 function CircleParam({ icon: Icon, value, unit, label }: any) {
