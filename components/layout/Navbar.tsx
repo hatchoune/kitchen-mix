@@ -23,7 +23,9 @@ import {
 } from "lucide-react";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 import Logo from "@/components/ui/Logo";
-import NotificationBell from "@/components/layout/NotificationBell";
+import NotificationBell, {
+  type NotificationBellRef,
+} from "@/components/layout/NotificationBell";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 
@@ -37,6 +39,7 @@ const NAV_LINKS = [
   { href: "/favoris", label: "Favoris", icon: Heart },
   { href: "/a-propos", label: "À propos", icon: Info },
 ];
+
 export default function Navbar() {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -45,6 +48,7 @@ export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const notificationBellRef = useRef<NotificationBellRef>(null);
   const lastScrollY = useRef(0);
   const ticking = useRef(false);
 
@@ -63,7 +67,6 @@ export default function Navbar() {
   }, []);
 
   // Hide on scroll down, show on scroll up
-  // APRÈS
   useEffect(() => {
     const handleScroll = () => {
       if (ticking.current) return;
@@ -71,10 +74,6 @@ export default function Navbar() {
       requestAnimationFrame(() => {
         const currentY = window.scrollY;
 
-        // Si un menu est ouvert (burger mobile ou avatar), on force la navbar
-        // visible et on ne ferme rien. L'utilisateur a ouvert le menu
-        // volontairement — un micro-scroll (inertie tactile, reflow) ne doit
-        // pas l'interrompre.
         if (mobileOpen || userMenuOpen) {
           setVisible(true);
           lastScrollY.current = currentY;
@@ -103,7 +102,6 @@ export default function Navbar() {
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
-  // Avatar URL
   const avatarUrl = profil?.avatar_url;
 
   return (
@@ -115,7 +113,6 @@ export default function Navbar() {
     >
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
           {/* Logo */}
           <Link
             href="/"
@@ -147,8 +144,18 @@ export default function Navbar() {
           <div className="flex items-center gap-2">
             <ThemeToggle />
 
-            {/* Cloche de notifications (uniquement connecté) */}
-            {user && <NotificationBell />}
+            {/* Cloche de notifications */}
+            {user && (
+              <NotificationBell
+                ref={notificationBellRef}
+                onToggle={(open) => {
+                  if (open) {
+                    setMobileOpen(false);
+                    setUserMenuOpen(false);
+                  }
+                }}
+              />
+            )}
 
             {/* Admin button */}
             {isAdmin && (
@@ -170,10 +177,13 @@ export default function Navbar() {
             {user ? (
               <div className="relative" ref={userMenuRef}>
                 <button
-                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  onClick={() => {
+                    setUserMenuOpen(!userMenuOpen);
+                    setMobileOpen(false);
+                    notificationBellRef.current?.close();
+                  }}
                   className="flex items-center gap-2 p-1 rounded-full hover:bg-card-hover transition-colors border border-transparent hover:border-border"
                 >
-                  {/* Avatar ou icône par défaut */}
                   {avatarUrl ? (
                     <Image
                       src={avatarUrl}
@@ -255,7 +265,11 @@ export default function Navbar() {
 
             {/* Mobile burger */}
             <button
-              onClick={() => setMobileOpen(!mobileOpen)}
+              onClick={() => {
+                setMobileOpen(!mobileOpen);
+                setUserMenuOpen(false);
+                notificationBellRef.current?.close();
+              }}
               className="lg:hidden p-2 rounded-lg hover:bg-card-hover transition-colors"
               aria-label={mobileOpen ? "Fermer" : "Menu"}
             >
@@ -270,52 +284,54 @@ export default function Navbar() {
 
         {/* Mobile menu */}
         {mobileOpen && (
-          <div className="lg:hidden pb-4 border-t border-border mt-2 pt-3 animate-fade-in bg-background backdrop-blur-md rounded-b-2xl shadow-lg">
-            {NAV_LINKS.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                onClick={() => setMobileOpen(false)}
-                className={cn(
-                  "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all",
-                  isActive(link.href)
-                    ? "bg-accent/20 text-accent shadow-sm shadow-accent/10"
-                    : "bg-card/80 text-foreground hover:bg-card hover:text-accent",
-                )}
-              >
-                <link.icon className="w-4 h-4" />
-                {link.label}
-              </Link>
-            ))}
-            {user && (
-              <Link
-                href="/notifications"
-                onClick={() => setMobileOpen(false)}
-                className={cn(
-                  "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all",
-                  isActive("/notifications")
-                    ? "bg-accent/20 text-accent shadow-sm shadow-accent/10"
-                    : "bg-card/80 text-foreground hover:bg-card hover:text-accent",
-                )}
-              >
-                <Bell className="w-4 h-4" />
-                Notifications
-              </Link>
-            )}
-            {isAdmin && (
-              <Link
-                href="/admin"
-                onClick={() => setMobileOpen(false)}
-                className={cn(
-                  "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold transition-all",
-                  isActive("/admin")
-                    ? "bg-accent/20 text-accent shadow-sm shadow-accent/10"
-                    : "bg-card/80 text-foreground hover:bg-card hover:text-accent",
-                )}
-              >
-                <Shield className="w-4 h-4" /> Administration
-              </Link>
-            )}
+          <div className="lg:hidden absolute top-16 left-0 right-0 z-50 bg-background border-t border-border shadow-2xl animate-slide-up max-h-[calc(100dvh-4rem)] overflow-y-auto overscroll-contain">
+            <div className="px-4 py-4 space-y-1">
+              {NAV_LINKS.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={() => setMobileOpen(false)}
+                  className={cn(
+                    "flex items-center gap-3 px-4 py-3 rounded-xl text-base font-medium transition-all",
+                    isActive(link.href)
+                      ? "bg-accent/20 text-accent shadow-sm"
+                      : "bg-card text-foreground hover:bg-card-hover",
+                  )}
+                >
+                  <link.icon className="w-5 h-5" />
+                  {link.label}
+                </Link>
+              ))}
+              {user && (
+                <Link
+                  href="/notifications"
+                  onClick={() => setMobileOpen(false)}
+                  className={cn(
+                    "flex items-center gap-3 px-4 py-3 rounded-xl text-base font-medium transition-all",
+                    isActive("/notifications")
+                      ? "bg-accent/20 text-accent shadow-sm"
+                      : "bg-card text-foreground hover:bg-card-hover",
+                  )}
+                >
+                  <Bell className="w-5 h-5" />
+                  Notifications
+                </Link>
+              )}
+              {isAdmin && (
+                <Link
+                  href="/admin"
+                  onClick={() => setMobileOpen(false)}
+                  className={cn(
+                    "flex items-center gap-3 px-4 py-3 rounded-xl text-base font-bold transition-all",
+                    isActive("/admin")
+                      ? "bg-accent/20 text-accent shadow-sm"
+                      : "bg-card text-foreground hover:bg-card-hover",
+                  )}
+                >
+                  <Shield className="w-5 h-5" /> Administration
+                </Link>
+              )}
+            </div>
           </div>
         )}
       </nav>
