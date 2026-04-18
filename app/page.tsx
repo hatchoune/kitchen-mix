@@ -15,6 +15,7 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import { SITE_URL } from "@/lib/constants";
 import MonAppareilFilter from "@/components/ui/MonAppareilFilter";
+import RotatingTypewriter from "@/components/ui/RotatingTypewriter";
 
 export const metadata: Metadata = {
   title: "Kitchen Mix | Recettes pour Thermomix, Companion & Cook Expert",
@@ -40,11 +41,7 @@ export default function HomePage() {
       />
       {/* Hero */}
       <section className="text-center pt-12 pb-8 space-y-6">
-        <h1 className="font-display font-bold max-w-3xl mx-auto text-3xl sm:text-4xl">
-          Des recettes <span className="text-accent">savoureuses</span> pour
-          votre Robot Cuiseur Multifonction
-        </h1>
-
+        <RotatingTypewriter />
         <p className="text-muted-foreground text-lg max-w-xl mx-auto leading-relaxed">
           Découvrez, cuisinez et partagez 🍛 Simulateur intégré, planificateur
           de repas 📆 et communauté passionnée.

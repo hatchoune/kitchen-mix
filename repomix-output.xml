@@ -1150,207 +1150,6 @@ export async function uploadImage(formData: FormData) {
 }
 </file>
 
-<file path="app/actions/users.ts">
-"use server";
-
-import {
-  createAdminSupabase,
-  createServerSupabase,
-} from "@/lib/supabase/server";
-import { isAdmin } from "@/lib/supabase/queries";
-
-/* =============================================================
-   Kitchen Mix — Actions admin : Gestion utilisateurs
-   ============================================================= */
-
-// ─── Helper interne ──────────────────────────────────────────
-
-async function requireAdmin() {
-  const supabase = await createServerSupabase();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Non autorisé");
-  const admin = await isAdmin(user.id);
-  if (!admin) throw new Error("Accès refusé");
-  return user;
-}
-
-// ─── Bannir un utilisateur ───────────────────────────────────
-
-export async function banUser(userId: string, reason: string) {
-  const adminUser = await requireAdmin();
-  const adminClient = createAdminSupabase();
-
-  // 1. Récupérer l'email de l'utilisateur via auth.admin
-  const { data: targetUser, error: userError } =
-    await adminClient.auth.admin.getUserById(userId);
-
-  if (userError || !targetUser?.user?.email) {
-    throw new Error("Utilisateur introuvable");
-  }
-
-  const email = targetUser.user.email.toLowerCase().trim();
-
-  // 2. Vérifier que ce n'est pas un admin
-  const { data: isTargetAdmin } = await adminClient
-    .from("admins")
-    .select("user_id")
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  if (isTargetAdmin) {
-    throw new Error("Impossible de bannir un administrateur");
-  }
-
-  // 3. Ajouter l'email à la liste des bannis
-  const { error: banError } = await adminClient.from("banned_users").upsert(
-    {
-      email,
-      user_id: userId,
-      reason: reason || "Comportement inapproprié",
-      banned_by: adminUser.id,
-    },
-    { onConflict: "email" },
-  );
-
-  if (banError) throw new Error(banError.message);
-
-  // 4. Supprimer toutes les données de l'utilisateur
-  // Commentaires
-  await adminClient.from("recipe_comments").delete().eq("user_id", userId);
-  // Votes
-  await adminClient.from("comment_votes").delete().eq("user_id", userId);
-  // Favoris
-  await adminClient.from("favoris").delete().eq("user_id", userId);
-  // Notes
-  await adminClient.from("recipe_ratings").delete().eq("user_id", userId);
-  // Meal plans
-  await adminClient.from("meal_plans").delete().eq("user_id", userId);
-  // User plannings + likes/favorites associés
-  const { data: userPlannings } = await adminClient
-    .from("user_plannings")
-    .select("id")
-    .eq("user_id", userId);
-  if (userPlannings && userPlannings.length > 0) {
-    const planIds = userPlannings.map((p) => p.id);
-    await adminClient.from("planning_likes").delete().in("planning_id", planIds);
-    await adminClient
-      .from("planning_favorites")
-      .delete()
-      .in("planning_id", planIds);
-    await adminClient.from("user_plannings").delete().eq("user_id", userId);
-  }
-  // Planning likes/favorites qu'il a donnés
-  await adminClient.from("planning_likes").delete().eq("user_id", userId);
-  await adminClient.from("planning_favorites").delete().eq("user_id", userId);
-  // Achievements
-  await adminClient.from("user_achievements").delete().eq("user_id", userId);
-  // Submission log
-  await adminClient.from("submission_log").delete().eq("user_id", userId);
-  // Recettes (mettre auteur_id à null plutôt que supprimer)
-  await adminClient
-    .from("recettes")
-    .update({ auteur_id: null })
-    .eq("auteur_id", userId);
-  // Profil
-  await adminClient.from("profils").delete().eq("id", userId);
-  // Newsletter
-  await adminClient
-    .from("newsletter_subscribers")
-    .delete()
-    .eq("email", email);
-
-  // 5. Supprimer le compte auth (dernière étape)
-  const { error: deleteError } =
-    await adminClient.auth.admin.deleteUser(userId);
-
-  if (deleteError) {
-    console.error("Erreur suppression auth:", deleteError.message);
-    // On ne throw pas — le ban est déjà en place
-  }
-
-  return { success: true, email };
-}
-
-// ─── Débannir un email ───────────────────────────────────────
-
-export async function unbanUser(email: string) {
-  await requireAdmin();
-  const adminClient = createAdminSupabase();
-
-  const { error } = await adminClient
-    .from("banned_users")
-    .delete()
-    .eq("email", email.toLowerCase().trim());
-
-  if (error) throw new Error(error.message);
-  return { success: true };
-}
-
-// ─── Liste des utilisateurs bannis ───────────────────────────
-
-export async function getBannedUsers() {
-  await requireAdmin();
-  const supabase = await createServerSupabase();
-
-  const { data, error } = await supabase
-    .from("banned_users")
-    .select("*")
-    .order("banned_at", { ascending: false });
-
-  if (error) throw new Error(error.message);
-  return data || [];
-}
-
-// ─── Liste des utilisateurs (pour le panel admin) ────────────
-
-export async function getUsers(limit = 50) {
-  await requireAdmin();
-  const adminClient = createAdminSupabase();
-
-  // Récupérer les profils avec les infos utiles
-  const { data: profils } = await adminClient
-    .from("profils")
-    .select("id, pseudo, avatar_url, created_at")
-    .order("created_at", { ascending: false })
-    .limit(limit);
-
-  if (!profils) return [];
-
-  // Récupérer les emails depuis auth
-  const userIds = profils.map((p) => p.id);
-  const usersWithEmail = [];
-
-  for (const profil of profils) {
-    try {
-      const { data } = await adminClient.auth.admin.getUserById(profil.id);
-      usersWithEmail.push({
-        ...profil,
-        email: data?.user?.email || "—",
-      });
-    } catch {
-      usersWithEmail.push({ ...profil, email: "—" });
-    }
-  }
-
-  return usersWithEmail;
-}
-
-// ─── Vérifier si un email est banni (pour l'auth) ────────────
-
-export async function checkBannedEmail(email: string): Promise<boolean> {
-  const adminClient = createAdminSupabase();
-  const { data } = await adminClient
-    .from("banned_users")
-    .select("id")
-    .eq("email", email.toLowerCase().trim())
-    .maybeSingle();
-
-  return !!data;
-}
-</file>
-
 <file path="app/admin/layout.tsx">
 import type { Metadata } from "next";
 
@@ -10807,205 +10606,6 @@ async function seed() {
 }
 
 seed().catch(console.error);
-</file>
-
-<file path="scripts/upload-image-one.ts">
-/* =============================================================
-   Kitchen Mix — Upload d'UNE seule image de recette
-   
-   Usage :
-
-   Option A — le fichier porte exactement le nom du slug :
-     (ex: images-recettes/gratin-blettes-bechamel-thermomix.jpg)
-     npm run images:one -- --slug gratin-blettes-bechamel-thermomix
-
-   Option B — le fichier a un nom quelconque :
-     npm run images:one -- --slug gratin-blettes-bechamel-thermomix --file images-recettes/mon-gratin.jpg
-
-   Ce que fait le script :
-     - Compresse l'image en WebP (max 1200×800, 80% qualité)
-     - L'uploade dans le bucket Supabase "recettes-images"
-     - Met à jour image_url de la recette ciblée en BDD
-
-   Prérequis : sharp installé + .env.local configuré
-   ============================================================= */
-
-import { readFileSync, readdirSync, existsSync } from "fs";
-import { resolve, extname, join } from "path";
-import { createClient } from "@supabase/supabase-js";
-import sharp from "sharp";
-
-// ─── Config (identique à upload-images.ts) ───────────────────
-const IMAGES_DIR = resolve(process.cwd(), "images-recettes");
-const BUCKET = "recettes-images";
-const MAX_WIDTH = 1200;
-const MAX_HEIGHT = 800;
-const QUALITY = 80;
-const IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".tiff"];
-
-// ─── Charger .env.local ──────────────────────────────────────
-try {
-  const envPath = resolve(process.cwd(), ".env.local");
-  const envFile = readFileSync(envPath, "utf-8");
-  for (const line of envFile.split("\n")) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-    const eqIndex = trimmed.indexOf("=");
-    if (eqIndex === -1) continue;
-    const key = trimmed.slice(0, eqIndex).trim();
-    const value = trimmed.slice(eqIndex + 1).trim();
-    if (!process.env[key]) process.env[key] = value;
-  }
-} catch {
-  console.error("⚠️  .env.local introuvable.");
-}
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-if (!supabaseUrl || !serviceRoleKey) {
-  console.error("❌ Variables manquantes dans .env.local");
-  process.exit(1);
-}
-
-const supabase = createClient(supabaseUrl, serviceRoleKey);
-
-// ─── Arguments CLI ───────────────────────────────────────────
-const args = process.argv.slice(2);
-
-function getArg(name: string): string | null {
-  const i = args.indexOf(name);
-  return i !== -1 && args[i + 1] ? args[i + 1] : null;
-}
-
-const targetSlug = getArg("--slug");
-const targetFile = getArg("--file"); // chemin relatif ou absolu, optionnel
-
-if (!targetSlug) {
-  console.error("❌ Slug manquant.");
-  console.error("   Usage : npm run images:one -- --slug <slug> [--file images-recettes/photo.jpg]");
-  process.exit(1);
-}
-
-// ─── Trouver le fichier image ────────────────────────────────
-function findImageFile(slug: string, explicitFile: string | null): string {
-  // Option B : fichier explicitement fourni
-  if (explicitFile) {
-    const absPath = resolve(process.cwd(), explicitFile);
-    if (!existsSync(absPath)) {
-      console.error(`❌ Fichier introuvable : ${absPath}`);
-      process.exit(1);
-    }
-    return absPath;
-  }
-
-  // Option A : chercher dans images-recettes/ un fichier dont le nom (sans extension) = slug exact
-  if (!existsSync(IMAGES_DIR)) {
-    console.error(`❌ Dossier images-recettes/ introuvable.`);
-    console.error(`   Créez-le et placez-y votre image : mkdir images-recettes`);
-    process.exit(1);
-  }
-
-  const files = readdirSync(IMAGES_DIR);
-  const match = files.find((f) => {
-    const ext = extname(f).toLowerCase();
-    if (!IMAGE_EXTENSIONS.includes(ext)) return false;
-    const nameWithoutExt = f.slice(0, f.length - ext.length);
-    return nameWithoutExt === slug;
-  });
-
-  if (!match) {
-    console.error(`❌ Aucun fichier nommé "${slug}.[jpg|png|webp|...]" trouvé dans images-recettes/`);
-    console.error(`\n   Solutions :`);
-    console.error(`   1. Renommez votre fichier : ${slug}.jpg`);
-    console.error(`   2. Ou précisez le chemin : npm run images:one -- --slug ${slug} --file images-recettes/votre-photo.jpg`);
-    process.exit(1);
-  }
-
-  return join(IMAGES_DIR, match);
-}
-
-// ─── Main ────────────────────────────────────────────────────
-async function main() {
-  console.log(`\n🖼️  Upload image — slug : "${targetSlug}"\n`);
-
-  // 1. Vérifier que la recette existe en BDD
-  const { data: recette, error: dbError } = await supabase
-    .from("recettes")
-    .select("slug, titre, image_url")
-    .eq("slug", targetSlug)
-    .maybeSingle();
-
-  if (dbError) {
-    console.error(`❌ Erreur BDD : ${dbError.message}`);
-    process.exit(1);
-  }
-
-  if (!recette) {
-    console.error(`❌ Aucune recette trouvée avec le slug "${targetSlug}" en base de données.`);
-    console.error(`   Vérifiez le slug ou insérez d'abord la recette avec : npm run seed:one -- --slug ${targetSlug}`);
-    process.exit(1);
-  }
-
-  console.log(`✅ Recette trouvée : "${recette.titre}"`);
-
-  if (recette.image_url) {
-    console.log(`   ⚠️  Une image existe déjà : ${recette.image_url}`);
-    console.log(`   Elle sera remplacée.\n`);
-  }
-
-  // 2. Trouver le fichier
-  const filePath = findImageFile(targetSlug, targetFile);
-  console.log(`📁 Fichier source : ${filePath}`);
-
-  // 3. Compresser en WebP
-  console.log(`⚙️  Compression WebP en cours...`);
-  const compressed = await sharp(filePath)
-    .resize(MAX_WIDTH, MAX_HEIGHT, { fit: "inside", withoutEnlargement: true })
-    .webp({ quality: QUALITY })
-    .toBuffer();
-
-  const originalSize = Math.round(readFileSync(filePath).length / 1024);
-  const compressedSize = Math.round(compressed.length / 1024);
-  console.log(`   ${originalSize} KB → ${compressedSize} KB WebP`);
-
-  // 4. Uploader dans le bucket Supabase
-  const fileName = `${targetSlug}.webp`;
-  console.log(`☁️  Upload dans le bucket "${BUCKET}"...`);
-
-  const { error: uploadError } = await supabase.storage
-    .from(BUCKET)
-    .upload(fileName, compressed, {
-      contentType: "image/webp",
-      upsert: true, // remplace si déjà présent
-    });
-
-  if (uploadError) {
-    console.error(`❌ Erreur upload : ${uploadError.message}`);
-    process.exit(1);
-  }
-
-  // 5. Récupérer l'URL publique
-  const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(fileName);
-  const publicUrl = urlData.publicUrl;
-  console.log(`   URL publique : ${publicUrl}`);
-
-  // 6. Mettre à jour image_url en BDD
-  console.log(`💾 Mise à jour de image_url en base de données...`);
-  const { error: updateError } = await supabase
-    .from("recettes")
-    .update({ image_url: publicUrl })
-    .eq("slug", targetSlug);
-
-  if (updateError) {
-    console.error(`❌ Erreur mise à jour BDD : ${updateError.message}`);
-    process.exit(1);
-  }
-
-  console.log(`\n🎉 Image uploadée et liée avec succès à "${recette.titre}" !\n`);
-}
-
-main().catch(console.error);
 </file>
 
 <file path="supabase/.temp/cli-latest">
@@ -20545,6 +20145,285 @@ export async function getUserAchievements(userId: string) {
 }
 </file>
 
+<file path="app/actions/users.ts">
+"use server";
+
+import {
+  createAdminSupabase,
+  createServerSupabase,
+} from "@/lib/supabase/server";
+import { isAdmin } from "@/lib/supabase/queries";
+
+/* =============================================================
+   Kitchen Mix — Actions admin : Gestion utilisateurs
+   ============================================================= */
+
+// ─── Helper interne ──────────────────────────────────────────
+
+async function requireAdmin() {
+  const supabase = await createServerSupabase();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Non autorisé");
+  const admin = await isAdmin(user.id);
+  if (!admin) throw new Error("Accès refusé");
+  return user;
+}
+
+// ─── Bannir un utilisateur ───────────────────────────────────
+
+export async function banUser(userId: string, reason: string) {
+  const adminUser = await requireAdmin();
+  const adminClient = createAdminSupabase();
+
+  // 1. Récupérer l'email de l'utilisateur via auth.admin
+  const { data: targetUser, error: userError } =
+    await adminClient.auth.admin.getUserById(userId);
+
+  if (userError || !targetUser?.user?.email) {
+    throw new Error("Utilisateur introuvable");
+  }
+
+  const email = targetUser.user.email.toLowerCase().trim();
+
+  // 2. Vérifier que ce n'est pas un admin
+  const { data: isTargetAdmin } = await adminClient
+    .from("admins")
+    .select("user_id")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (isTargetAdmin) {
+    throw new Error("Impossible de bannir un administrateur");
+  }
+
+  // 3. Ajouter l'email à la liste des bannis
+  const { error: banError } = await adminClient.from("banned_users").upsert(
+    {
+      email,
+      user_id: userId,
+      reason: reason || "Comportement inapproprié",
+      banned_by: adminUser.id,
+    },
+    { onConflict: "email" },
+  );
+
+  if (banError) throw new Error(banError.message);
+
+  // 4. Supprimer toutes les données de l'utilisateur
+  // Commentaires
+  await adminClient.from("recipe_comments").delete().eq("user_id", userId);
+  // Votes
+  await adminClient.from("comment_votes").delete().eq("user_id", userId);
+  // Favoris
+  await adminClient.from("favoris").delete().eq("user_id", userId);
+  // Notes
+  await adminClient.from("recipe_ratings").delete().eq("user_id", userId);
+  // Meal plans
+  await adminClient.from("meal_plans").delete().eq("user_id", userId);
+  // User plannings + likes/favorites associés
+  const { data: userPlannings } = await adminClient
+    .from("user_plannings")
+    .select("id")
+    .eq("user_id", userId);
+  if (userPlannings && userPlannings.length > 0) {
+    const planIds = userPlannings.map((p) => p.id);
+    await adminClient
+      .from("planning_likes")
+      .delete()
+      .in("planning_id", planIds);
+    await adminClient
+      .from("planning_favorites")
+      .delete()
+      .in("planning_id", planIds);
+    await adminClient.from("user_plannings").delete().eq("user_id", userId);
+  }
+  // Planning likes/favorites qu'il a donnés
+  await adminClient.from("planning_likes").delete().eq("user_id", userId);
+  await adminClient.from("planning_favorites").delete().eq("user_id", userId);
+  // Achievements
+  await adminClient.from("user_achievements").delete().eq("user_id", userId);
+  // Submission log
+  await adminClient.from("submission_log").delete().eq("user_id", userId);
+  // Recettes (mettre auteur_id à null plutôt que supprimer)
+  await adminClient
+    .from("recettes")
+    .update({ auteur_id: null })
+    .eq("auteur_id", userId);
+  // Profil
+  await adminClient.from("profils").delete().eq("id", userId);
+  // Newsletter
+  await adminClient.from("newsletter_subscribers").delete().eq("email", email);
+
+  // 5. Supprimer le compte auth (dernière étape)
+  const { error: deleteError } =
+    await adminClient.auth.admin.deleteUser(userId);
+
+  if (deleteError) {
+    console.error("Erreur suppression auth:", deleteError.message);
+    // On ne throw pas — le ban est déjà en place
+  }
+
+  return { success: true, email };
+}
+
+// ─── Débannir un email ───────────────────────────────────────
+
+export async function unbanUser(email: string) {
+  await requireAdmin();
+  const adminClient = createAdminSupabase();
+
+  const { error } = await adminClient
+    .from("banned_users")
+    .delete()
+    .eq("email", email.toLowerCase().trim());
+
+  if (error) throw new Error(error.message);
+  return { success: true };
+}
+
+// ─── Liste des utilisateurs bannis ───────────────────────────
+
+export async function getBannedUsers() {
+  await requireAdmin();
+  const supabase = await createServerSupabase();
+
+  const { data, error } = await supabase
+    .from("banned_users")
+    .select("*")
+    .order("banned_at", { ascending: false });
+
+  if (error) throw new Error(error.message);
+  return data || [];
+}
+
+// ─── Liste des utilisateurs (pour le panel admin) ────────────
+
+export async function getUsers(limit = 50) {
+  await requireAdmin();
+  const adminClient = createAdminSupabase();
+
+  // Récupérer les profils avec les infos utiles
+  const { data: profils } = await adminClient
+    .from("profils")
+    .select("id, pseudo, avatar_url, created_at")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (!profils) return [];
+
+  // Récupérer les emails depuis auth
+  const userIds = profils.map((p) => p.id);
+  const usersWithEmail = [];
+
+  for (const profil of profils) {
+    try {
+      const { data } = await adminClient.auth.admin.getUserById(profil.id);
+      usersWithEmail.push({
+        ...profil,
+        email: data?.user?.email || "—",
+      });
+    } catch {
+      usersWithEmail.push({ ...profil, email: "—" });
+    }
+  }
+
+  return usersWithEmail;
+}
+
+// ─── Vérifier si un email est banni (pour l'auth) ────────────
+
+export async function checkBannedEmail(email: string): Promise<boolean> {
+  const adminClient = createAdminSupabase();
+  const { data } = await adminClient
+    .from("banned_users")
+    .select("id")
+    .eq("email", email.toLowerCase().trim())
+    .maybeSingle();
+
+  return !!data;
+}
+
+// ═══ Mise à jour du pseudo ───────────────────────────────────
+
+export async function updatePseudo(newPseudo: string) {
+  const supabase = await createServerSupabase();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) throw new Error("Non autorisé");
+
+  if (!newPseudo || newPseudo.trim().length < 2) {
+    throw new Error("Le pseudo doit contenir au moins 2 caractères.");
+  }
+  if (newPseudo.length > 30) {
+    throw new Error("Le pseudo ne doit pas dépasser 30 caractères.");
+  }
+
+  // Vérifier l'unicité du pseudo (optionnel mais recommandé)
+  const { data: existing } = await supabase
+    .from("profils")
+    .select("id")
+    .eq("pseudo", newPseudo.trim())
+    .neq("id", user.id)
+    .maybeSingle();
+
+  if (existing) {
+    throw new Error("Ce pseudo est déjà utilisé.");
+  }
+
+  const { error } = await supabase
+    .from("profils")
+    .update({ pseudo: newPseudo.trim(), updated_at: new Date().toISOString() })
+    .eq("id", user.id);
+
+  if (error) throw new Error(error.message);
+
+  return { success: true };
+}
+
+// ═══ Changement de mot de passe ──────────────────────────────
+
+export async function changePassword(oldPassword: string, newPassword: string) {
+  const supabase = await createServerSupabase();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) throw new Error("Non autorisé");
+
+  if (!oldPassword || !newPassword) {
+    throw new Error("Les deux champs sont requis.");
+  }
+  if (newPassword.length < 6) {
+    throw new Error(
+      "Le nouveau mot de passe doit contenir au moins 6 caractères.",
+    );
+  }
+
+  // Vérifier l'ancien mot de passe via signIn (éphémère)
+  const { error: signInError } = await supabase.auth.signInWithPassword({
+    email: user.email!,
+    password: oldPassword,
+  });
+
+  if (signInError) {
+    throw new Error("L'ancien mot de passe est incorrect.");
+  }
+
+  // Mettre à jour le mot de passe
+  const { error: updateError } = await supabase.auth.updateUser({
+    password: newPassword,
+  });
+
+  if (updateError) throw new Error(updateError.message);
+
+  return { success: true };
+}
+</file>
+
 <file path="app/planificateur/layout.tsx">
 import type { Metadata } from "next";
 import { Suspense } from "react";
@@ -26584,6 +26463,212 @@ async function seed() {
 seed().catch(console.error);
 </file>
 
+<file path="scripts/upload-image-one.ts">
+/* =============================================================
+   Kitchen Mix — Upload d'UNE seule image de recette
+   ============================================================= */
+
+import { readFileSync, readdirSync, existsSync } from "fs";
+import { resolve, extname, join } from "path";
+import { createClient } from "@supabase/supabase-js";
+import sharp from "sharp";
+
+const IMAGES_DIR = resolve(process.cwd(), "images-recettes");
+const BUCKET = "recettes-images";
+const MAX_WIDTH = 1200;
+const MAX_HEIGHT = 800;
+const QUALITY = 80;
+const IMAGE_EXTENSIONS = [
+  ".jpg",
+  ".jpeg",
+  ".png",
+  ".webp",
+  ".gif",
+  ".bmp",
+  ".tiff",
+];
+
+// Charger .env.local
+try {
+  const envPath = resolve(process.cwd(), ".env.local");
+  const envFile = readFileSync(envPath, "utf-8");
+  for (const line of envFile.split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const eqIndex = trimmed.indexOf("=");
+    if (eqIndex === -1) continue;
+    const key = trimmed.slice(0, eqIndex).trim();
+    const value = trimmed.slice(eqIndex + 1).trim();
+    if (!process.env[key]) process.env[key] = value;
+  }
+} catch {
+  console.error("⚠️  .env.local introuvable.");
+}
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!supabaseUrl || !serviceRoleKey) {
+  console.error("❌ Variables manquantes dans .env.local");
+  process.exit(1);
+}
+
+const supabase = createClient(supabaseUrl, serviceRoleKey);
+
+// Arguments CLI
+const args = process.argv.slice(2);
+
+function getArg(name: string): string | null {
+  const i = args.indexOf(name);
+  return i !== -1 && args[i + 1] ? args[i + 1] : null;
+}
+
+const targetSlug = getArg("--slug");
+const targetFile = getArg("--file");
+
+if (!targetSlug) {
+  console.error("❌ Slug manquant.");
+  console.error(
+    "   Usage : npm run images:one -- --slug <slug> [--file images-recettes/photo.jpg]",
+  );
+  process.exit(1);
+}
+
+// Garantie que targetSlug est une string
+const slug: string = targetSlug;
+
+// Trouver le fichier image
+function findImageFile(slug: string, explicitFile: string | null): string {
+  if (explicitFile) {
+    const absPath = resolve(process.cwd(), explicitFile);
+    if (!existsSync(absPath)) {
+      console.error(`❌ Fichier introuvable : ${absPath}`);
+      process.exit(1);
+    }
+    return absPath;
+  }
+
+  if (!existsSync(IMAGES_DIR)) {
+    console.error(`❌ Dossier images-recettes/ introuvable.`);
+    console.error(
+      `   Créez-le et placez-y votre image : mkdir images-recettes`,
+    );
+    process.exit(1);
+  }
+
+  const files = readdirSync(IMAGES_DIR);
+  const match = files.find((f) => {
+    const ext = extname(f).toLowerCase();
+    if (!IMAGE_EXTENSIONS.includes(ext)) return false;
+    const nameWithoutExt = f.slice(0, f.length - ext.length);
+    return nameWithoutExt === slug;
+  });
+
+  if (!match) {
+    console.error(
+      `❌ Aucun fichier nommé "${slug}.[jpg|png|webp|...]" trouvé dans images-recettes/`,
+    );
+    console.error(`\n   Solutions :`);
+    console.error(`   1. Renommez votre fichier : ${slug}.jpg`);
+    console.error(
+      `   2. Ou précisez le chemin : npm run images:one -- --slug ${slug} --file images-recettes/votre-photo.jpg`,
+    );
+    process.exit(1);
+  }
+
+  return join(IMAGES_DIR, match);
+}
+
+async function main() {
+  console.log(`\n🖼️  Upload image — slug : "${slug}"\n`);
+
+  // 1. Vérifier que la recette existe
+  const { data: recette, error: dbError } = await supabase
+    .from("recettes")
+    .select("slug, titre, image_url")
+    .eq("slug", slug)
+    .maybeSingle();
+
+  if (dbError) {
+    console.error(`❌ Erreur BDD : ${dbError.message}`);
+    process.exit(1);
+  }
+
+  if (!recette) {
+    console.error(
+      `❌ Aucune recette trouvée avec le slug "${slug}" en base de données.`,
+    );
+    console.error(
+      `   Vérifiez le slug ou insérez d'abord la recette avec : npm run seed:one -- --slug ${slug}`,
+    );
+    process.exit(1);
+  }
+
+  console.log(`✅ Recette trouvée : "${recette.titre}"`);
+
+  if (recette.image_url) {
+    console.log(`   ⚠️  Une image existe déjà : ${recette.image_url}`);
+    console.log(`   Elle sera remplacée.\n`);
+  }
+
+  // 2. Trouver le fichier
+  const filePath = findImageFile(slug, targetFile);
+  console.log(`📁 Fichier source : ${filePath}`);
+
+  // 3. Compresser en WebP
+  console.log(`⚙️  Compression WebP en cours...`);
+  const compressed = await sharp(filePath)
+    .resize(MAX_WIDTH, MAX_HEIGHT, { fit: "inside", withoutEnlargement: true })
+    .webp({ quality: QUALITY })
+    .toBuffer();
+
+  const originalSize = Math.round(readFileSync(filePath).length / 1024);
+  const compressedSize = Math.round(compressed.length / 1024);
+  console.log(`   ${originalSize} KB → ${compressedSize} KB WebP`);
+
+  // 4. Uploader dans Supabase
+  const fileName = `${slug}.webp`;
+  console.log(`☁️  Upload dans le bucket "${BUCKET}"...`);
+
+  const { error: uploadError } = await supabase.storage
+    .from(BUCKET)
+    .upload(fileName, compressed, {
+      contentType: "image/webp",
+      upsert: true,
+    });
+
+  if (uploadError) {
+    console.error(`❌ Erreur upload : ${uploadError.message}`);
+    process.exit(1);
+  }
+
+  // 5. Récupérer l'URL publique
+  const { data: urlData } = supabase.storage
+    .from(BUCKET)
+    .getPublicUrl(fileName);
+  const publicUrl = urlData.publicUrl;
+  console.log(`   URL publique : ${publicUrl}`);
+
+  // 6. Mettre à jour image_url en BDD
+  console.log(`💾 Mise à jour de image_url en base de données...`);
+  const { error: updateError } = await supabase
+    .from("recettes")
+    .update({ image_url: publicUrl })
+    .eq("slug", slug);
+
+  if (updateError) {
+    console.error(`❌ Erreur mise à jour BDD : ${updateError.message}`);
+    process.exit(1);
+  }
+
+  console.log(
+    `\n🎉 Image uploadée et liée avec succès à "${recette.titre}" !\n`,
+  );
+}
+
+main().catch(console.error);
+</file>
+
 <file path="scripts/upload-images.ts">
 /* =============================================================
    Kitchen Mix — Upload automatique d'images de recettes
@@ -28666,377 +28751,6 @@ function PlanningRow({
 }
 </file>
 
-<file path="app/parametres/page.tsx">
-"use client";
-
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/hooks/useAuth";
-import { useTheme } from "@/hooks/useTheme";
-import { createClient } from "@/lib/supabase/client";
-import {
-  Settings,
-  Moon,
-  Sun,
-  Monitor,
-  Bell,
-  Lock,
-  Trash2,
-  Save,
-  CheckCircle2,
-  Shield,
-  AlertTriangle,
-  Loader2,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
-
-export default function ParametresPage() {
-  const { user, isAdmin, profil, signOut } = useAuth();
-  const { theme, setTheme } = useTheme();
-  const router = useRouter();
-  const [supabase] = useState(() => createClient());
-  const [notifs, setNotifs] = useState({ replies: true, moderation: true });
-  const [loading, setLoading] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [deleteConfirmInput, setDeleteConfirmInput] = useState("");
-  const [deleteReason, setDeleteReason] = useState("");
-
-  useEffect(() => {
-    if (profil) {
-      setNotifs({
-        replies: profil.notify_replies ?? true,
-        moderation: profil.notify_moderation ?? true,
-      });
-    }
-  }, [profil]);
-
-  const handleSavePreferences = async () => {
-    if (!user) return;
-    setLoading(true);
-    const { error } = await supabase
-      .from("profils")
-      .update({
-        notify_replies: notifs.replies,
-        notify_moderation: notifs.moderation,
-        theme_preference: theme,
-      })
-      .eq("id", user.id);
-    setLoading(false);
-    if (error) {
-      alert("Erreur lors de la sauvegarde. Réessayez.");
-      return;
-    }
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
-  };
-
-  const handleFinalDelete = async () => {
-    if (deleteConfirmInput !== "supprimer mon compte") return;
-    setLoading(true);
-
-    try {
-      // 1. Feedback optionnel
-      if (deleteReason) {
-        await supabase
-          .from("suppression_feedbacks")
-          .insert({ raison: deleteReason });
-      }
-
-      // 2. Suppression du compte (nécessite une session valide)
-      const { error: deleteError } = await supabase.rpc("delete_user_account");
-      if (deleteError) {
-        alert("Erreur technique lors de la suppression. Contactez l'admin.");
-        setLoading(false);
-        return;
-      }
-
-      // 3. Déconnexion pour invalider les cookies
-      await signOut();
-
-      // 4. Redirection
-      router.push("/");
-    } catch (err) {
-      console.error("Erreur suppression:", err);
-      alert("Une erreur est survenue. Veuillez réessayer.");
-      setLoading(false);
-    }
-  };
-
-  if (!user) return null;
-
-  return (
-    <div className="max-w-4xl mx-auto p-6 space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      {/* HEADER */}
-      <div className="flex items-center justify-between border-b border-border pb-8">
-        <div className="flex items-center gap-4">
-          <div className="p-3 bg-accent/10 rounded-2xl text-accent">
-            <Settings className="w-8 h-8" />
-          </div>
-          <div>
-            <h1 className="font-display font-bold text-3xl italic text-foreground uppercase tracking-tight">
-              Paramètres
-            </h1>
-            <p className="text-xs text-muted-foreground">
-              Gérez vos préférences et la sécurité de votre compte
-            </p>
-          </div>
-        </div>
-        {isAdmin && (
-          <div className="flex items-center gap-2 px-4 py-1.5 bg-accent/20 text-accent border border-accent/30 rounded-full text-[10px] font-bold tracking-widest">
-            <Shield className="w-3 h-3" /> ADMIN
-          </div>
-        )}
-      </div>
-
-      <div className="grid gap-12">
-        {/* SECTION 1 : APPARENCE */}
-        <section className="space-y-6">
-          <div className="flex items-center gap-2 text-accent font-bold">
-            <Monitor className="w-5 h-5" />
-            <h2 className="text-lg uppercase tracking-wider">
-              Apparence du site
-            </h2>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <ThemeButton
-              active={theme === "light"}
-              onClick={() => setTheme("light")}
-              icon={<Sun className="w-6 h-6" />}
-              label="Clair"
-            />
-            <ThemeButton
-              active={theme === "dark"}
-              onClick={() => setTheme("dark")}
-              icon={<Moon className="w-6 h-6" />}
-              label="Sombre"
-            />
-            <ThemeButton
-              active={theme === "grey"}
-              onClick={() => setTheme("grey")}
-              icon={<Monitor className="w-6 h-6" />}
-              label="Gris"
-            />
-          </div>
-          <p className="text-xs text-muted-foreground italic">
-            Le thème est sauvegardé sur votre profil. Il vous suivra sur tous
-            vos appareils.
-          </p>
-        </section>
-
-        {/* SECTION 2 : NOTIFICATIONS */}
-        <section className="space-y-6">
-          <div className="flex items-center gap-2 text-accent font-bold">
-            <Bell className="w-5 h-5" />
-            <h2 className="text-lg uppercase tracking-wider">Notifications</h2>
-          </div>
-          <div className="glass-card p-6 space-y-6 rounded-[2rem] border border-border/40 shadow-inner">
-            <ToggleOption
-              label="Réponses aux commentaires"
-              description="Recevoir une alerte quand un utilisateur répond à l'un de vos messages."
-              checked={notifs.replies}
-              onChange={() =>
-                setNotifs({ ...notifs, replies: !notifs.replies })
-              }
-            />
-            <div className="h-px bg-border/40 w-full" />
-            <ToggleOption
-              label="Suivi de modération"
-              description="Être informé dès qu'un de vos commentaires ou recettes est validé."
-              checked={notifs.moderation}
-              onChange={() =>
-                setNotifs({ ...notifs, moderation: !notifs.moderation })
-              }
-            />
-          </div>
-        </section>
-
-        {/* SECTION 3 : SÉCURITÉ */}
-        <section className="space-y-6">
-          <div className="flex items-center gap-2 text-error font-bold">
-            <Lock className="w-5 h-5" />
-            <h2 className="text-lg uppercase tracking-wider">Sécurité</h2>
-          </div>
-          <div className="p-8 bg-error/5 rounded-[2rem] border border-error/20 space-y-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <div>
-                <p className="font-bold text-foreground">
-                  Suppression du compte
-                </p>
-                <p className="text-xs text-muted-foreground max-w-md">
-                  Cette action est définitive. Toutes vos données seront
-                  anonymisées et vos favoris perdus.
-                </p>
-              </div>
-              <button
-                onClick={() => setShowDeleteModal(true)}
-                className="px-6 py-3 bg-error/10 text-error border border-error/20 rounded-xl font-bold hover:bg-error hover:text-white transition-all text-sm"
-              >
-                Supprimer mon compte
-              </button>
-            </div>
-          </div>
-        </section>
-      </div>
-
-      {/* BOUTON SAUVEGARDER */}
-      <div className="sticky bottom-6 flex justify-end">
-        <button
-          onClick={handleSavePreferences}
-          disabled={loading}
-          className={cn(
-            "flex items-center gap-3 px-10 py-4 rounded-2xl font-bold shadow-2xl transition-all hover:scale-105 active:scale-95",
-            saved ? "bg-sage text-white" : "btn-primary",
-          )}
-        >
-          {loading ? (
-            <Loader2 className="animate-spin w-5 h-5" />
-          ) : saved ? (
-            <CheckCircle2 className="w-5 h-5" />
-          ) : (
-            <Save className="w-5 h-5" />
-          )}
-          {saved ? "Modifications enregistrées !" : "Sauvegarder les réglages"}
-        </button>
-      </div>
-
-      {/* MODALE SUPPRESSION */}
-      {showDeleteModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
-          <div className="bg-card border border-error/30 p-8 rounded-[2.5rem] max-w-md w-full space-y-6 shadow-2xl scale-in-center">
-            <div className="flex items-center gap-4 text-error">
-              <div className="p-3 bg-error/10 rounded-2xl">
-                <AlertTriangle className="w-8 h-8" />
-              </div>
-              <h3 className="font-display font-bold text-2xl tracking-tighter">
-                Action Critique
-              </h3>
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase text-muted-foreground">
-                Pourquoi nous quittez-vous ?
-              </label>
-              <textarea
-                className="w-full bg-background border border-border rounded-2xl p-4 text-sm focus:ring-2 ring-error/20 outline-none transition-all"
-                placeholder="Optionnel..."
-                rows={3}
-                value={deleteReason}
-                onChange={(e) => setDeleteReason(e.target.value)}
-              />
-            </div>
-            <div className="space-y-3 p-4 bg-error/5 rounded-2xl border border-error/10">
-              <p className="text-xs text-center font-bold italic">
-                Tapez exactement la phrase ci-dessous :
-              </p>
-              <p className="text-center text-error font-mono text-sm font-bold">
-                supprimer mon compte
-              </p>
-              <input
-                type="text"
-                className="w-full bg-background border border-border rounded-xl p-3 text-center font-mono text-error focus:ring-2 ring-error/20 outline-none"
-                value={deleteConfirmInput}
-                onChange={(e) =>
-                  setDeleteConfirmInput(e.target.value.toLowerCase())
-                }
-              />
-            </div>
-            <div className="flex gap-4">
-              <button
-                onClick={() => setShowDeleteModal(false)}
-                className="flex-1 py-4 rounded-2xl border border-border font-bold hover:bg-card-hover transition-colors"
-              >
-                Annuler
-              </button>
-              <button
-                disabled={
-                  deleteConfirmInput !== "supprimer mon compte" || loading
-                }
-                onClick={handleFinalDelete}
-                className="flex-1 py-4 rounded-2xl bg-error text-white font-bold disabled:opacity-20 transition-all hover:brightness-110 shadow-lg shadow-error/20"
-              >
-                {loading ? (
-                  <Loader2 className="animate-spin w-5 h-5 mx-auto" />
-                ) : (
-                  "Confirmer"
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function ThemeButton({
-  active,
-  onClick,
-  icon,
-  label,
-}: {
-  active: boolean;
-  onClick: () => void;
-  icon: React.ReactNode;
-  label: string;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "flex flex-col items-center p-6 rounded-[1.5rem] border-2 transition-all duration-300",
-        active
-          ? "border-accent bg-accent/10 text-accent scale-100 shadow-lg shadow-accent/10"
-          : "border-border bg-card/40 text-muted-foreground hover:border-accent/30 hover:text-foreground scale-95 opacity-70 hover:opacity-100",
-      )}
-    >
-      {icon}
-      <span className="text-[10px] font-bold mt-3 uppercase tracking-[0.2em]">
-        {label}
-      </span>
-    </button>
-  );
-}
-
-function ToggleOption({
-  label,
-  description,
-  checked,
-  onChange,
-}: {
-  label: string;
-  description: string;
-  checked: boolean;
-  onChange: () => void;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-6 group">
-      <div className="space-y-1">
-        <p className="text-sm font-bold group-hover:text-accent transition-colors">
-          {label}
-        </p>
-        <p className="text-[11px] text-muted-foreground leading-relaxed">
-          {description}
-        </p>
-      </div>
-      <button
-        onClick={onChange}
-        className={cn(
-          "w-14 h-7 rounded-full transition-all duration-500 relative shrink-0",
-          checked ? "bg-accent shadow-lg shadow-accent/20" : "bg-muted",
-        )}
-      >
-        <div
-          className={cn(
-            "absolute top-1 w-5 h-5 bg-white rounded-full transition-all duration-300 shadow-md",
-            checked ? "left-8" : "left-1",
-          )}
-        />
-      </button>
-    </div>
-  );
-}
-</file>
-
 <file path="app/soumettre/page.tsx">
 "use client";
 
@@ -30187,393 +29901,6 @@ export default function Footer() {
 }
 </file>
 
-<file path="components/layout/NotificationBell.tsx">
-"use client";
-
-import { useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
-import Image from "next/image";
-import { useRouter } from "next/navigation";
-import { Bell, Check, CheckCheck, Loader2, User } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
-import { cn } from "@/lib/utils";
-import {
-  buildNotificationDisplay,
-  formatRelativeTime,
-  NOTIFICATION_TYPE_ICONS,
-} from "@/lib/notifications";
-import type { NotificationEnriched } from "@/types";
-import {
-  getRecentNotifications,
-  getUnreadNotificationsCount,
-  markAllNotificationsRead,
-  markNotificationRead,
-} from "@/app/actions/notifications";
-
-/* =============================================================
-   Cloche de notifications (Navbar).
-   - Badge = nombre de non-lues (poll toutes les 60s).
-   - Au clic, le dropdown charge les 10 dernières.
-   - Click sur une notif = marquage lu + navigation vers la cible.
-   ============================================================= */
-
-const POLL_INTERVAL_MS = 60_000;
-const DROPDOWN_LIMIT = 10;
-
-export default function NotificationBell() {
-  const { user } = useAuth();
-  const router = useRouter();
-  const [open, setOpen] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [items, setItems] = useState<NotificationEnriched[]>([]);
-  const [listLoading, setListLoading] = useState(false);
-  const [markingAll, setMarkingAll] = useState(false);
-  const wrapRef = useRef<HTMLDivElement>(null);
-
-  // ── Poll du compteur ─────────────────────────────────────
-  const refreshCount = useCallback(async () => {
-    if (!user) return;
-    try {
-      const count = await getUnreadNotificationsCount();
-      setUnreadCount(count);
-    } catch {
-      // silent fail
-    }
-  }, [user]);
-
-  useEffect(() => {
-    if (!user) {
-      setUnreadCount(0);
-      setItems([]);
-      return;
-    }
-    refreshCount();
-    const id = setInterval(refreshCount, POLL_INTERVAL_MS);
-    const onFocus = () => refreshCount();
-    window.addEventListener("focus", onFocus);
-    return () => {
-      clearInterval(id);
-      window.removeEventListener("focus", onFocus);
-    };
-  }, [user, refreshCount]);
-
-  // ── Chargement de la liste à l'ouverture ────────────────
-  const loadList = useCallback(async () => {
-    if (!user) return;
-    setListLoading(true);
-    try {
-      const data = await getRecentNotifications(DROPDOWN_LIMIT);
-      setItems(data);
-    } finally {
-      setListLoading(false);
-    }
-  }, [user]);
-
-  useEffect(() => {
-    if (open) loadList();
-  }, [open, loadList]);
-
-  // ── Fermer au clic extérieur ─────────────────────────────
-  useEffect(() => {
-    if (!open) return;
-    const onClick = (e: MouseEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", onClick);
-    return () => document.removeEventListener("mousedown", onClick);
-  }, [open]);
-
-  // ── Fermer avec Escape ──────────────────────────────────
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [open]);
-
-  // ── Actions ──────────────────────────────────────────────
-  const handleItemClick = async (
-    notif: NotificationEnriched,
-    href: string | null,
-  ) => {
-    // Marquage lu optimiste
-    if (!notif.read_at) {
-      setItems((prev) =>
-        prev.map((n) =>
-          n.id === notif.id ? { ...n, read_at: new Date().toISOString() } : n,
-        ),
-      );
-      setUnreadCount((c) => Math.max(0, c - 1));
-      try {
-        await markNotificationRead(notif.id);
-      } catch {
-        // silent — on rafraîchira au prochain poll
-      }
-    }
-    setOpen(false);
-    if (href) router.push(href);
-  };
-
-  const handleMarkAll = async () => {
-    if (markingAll || unreadCount === 0) return;
-    setMarkingAll(true);
-    const now = new Date().toISOString();
-    setItems((prev) =>
-      prev.map((n) => (n.read_at ? n : { ...n, read_at: now })),
-    );
-    setUnreadCount(0);
-    try {
-      await markAllNotificationsRead();
-    } catch {
-      // refresh fallback
-      refreshCount();
-    } finally {
-      setMarkingAll(false);
-    }
-  };
-
-  if (!user) return null;
-
-  return (
-    <div className="relative" ref={wrapRef}>
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className={cn(
-          "relative p-2 rounded-lg transition-colors",
-          open
-            ? "bg-accent/15 text-accent"
-            : "text-foreground/70 hover:text-foreground hover:bg-card-hover",
-        )}
-        aria-label={
-          unreadCount > 0
-            ? `Notifications (${unreadCount} non lue${unreadCount > 1 ? "s" : ""})`
-            : "Notifications"
-        }
-      >
-        <Bell className="w-5 h-5" />
-        {unreadCount > 0 && (
-          <span
-            className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-accent text-[10px] font-bold text-black flex items-center justify-center shadow-sm"
-            aria-hidden="true"
-          >
-            {unreadCount > 99 ? "99+" : unreadCount}
-          </span>
-        )}
-      </button>
-
-      {open && (
-        <div
-          className="fixed sm:absolute top-14 sm:top-auto left-1/2 sm:left-auto -translate-x-1/2 sm:translate-x-0 sm:right-0 sm:mt-2 w-[calc(100vw-1.5rem)] max-w-[22rem] sm:w-[22rem] rounded-xl shadow-2xl border border-border overflow-hidden animate-in fade-in zoom-in duration-200"
-          style={{ backgroundColor: "var(--color-bg)" }}
-          role="dialog"
-          aria-label="Notifications"
-        >
-          {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-            <h2 className="font-display font-bold text-sm">Notifications</h2>
-            <button
-              onClick={handleMarkAll}
-              disabled={markingAll || unreadCount === 0}
-              className={cn(
-                "flex items-center gap-1 text-xs font-medium transition-colors",
-                unreadCount === 0
-                  ? "text-muted-foreground/50 cursor-default"
-                  : "text-accent hover:text-accent-hover",
-                markingAll && "opacity-50 cursor-wait",
-              )}
-              title="Tout marquer comme lu"
-            >
-              <CheckCheck className="w-3.5 h-3.5" />
-              Tout lire
-            </button>
-          </div>
-
-          {/* Liste */}
-          <div className="max-h-[60vh] overflow-y-auto">
-            {listLoading ? (
-              <div className="flex items-center justify-center py-10">
-                <Loader2 className="w-5 h-5 animate-spin text-accent" />
-              </div>
-            ) : items.length === 0 ? (
-              <div className="px-6 py-10 text-center text-sm text-muted-foreground">
-                Aucune notification pour le moment.
-              </div>
-            ) : (
-              <ul className="divide-y divide-border">
-                {items.map((notif) => (
-                  <NotificationRow
-                    key={notif.id}
-                    notif={notif}
-                    onActivate={handleItemClick}
-                  />
-                ))}
-              </ul>
-            )}
-          </div>
-
-          {/* Footer */}
-          <div className="border-t border-border px-4 py-2.5 text-center">
-            <Link
-              href="/notifications"
-              onClick={() => setOpen(false)}
-              className="text-xs font-medium text-accent hover:underline"
-            >
-              Voir toutes les notifications
-            </Link>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ─── Ligne individuelle ─────────────────────────────────── */
-
-function NotificationRow({
-  notif,
-  onActivate,
-}: {
-  notif: NotificationEnriched;
-  onActivate: (n: NotificationEnriched, href: string | null) => void;
-}) {
-  const d = buildNotificationDisplay(notif);
-  const unread = !notif.read_at;
-
-  const content = (
-    <div
-      className={cn(
-        "flex items-start gap-3 px-4 py-3 transition-colors text-left w-full",
-        unread ? "bg-accent/5" : "bg-transparent",
-        "hover:bg-card-hover",
-      )}
-    >
-      {/* Avatar */}
-      <div className="relative shrink-0">
-        {d.actorAvatar ? (
-          <Image
-            src={d.actorAvatar}
-            alt={d.actorPseudo}
-            width={36}
-            height={36}
-            className="w-9 h-9 rounded-full object-cover"
-          />
-        ) : (
-          <div className="w-9 h-9 rounded-full bg-accent/20 flex items-center justify-center text-accent">
-            <User className="w-4 h-4" />
-          </div>
-        )}
-        <span
-          className="absolute -bottom-0.5 -right-0.5 text-xs bg-background rounded-full px-1 leading-none py-0.5 border border-border"
-          aria-hidden="true"
-        >
-          {NOTIFICATION_TYPE_ICONS[notif.type]}
-        </span>
-      </div>
-
-      {/* Contenu */}
-      <div className="flex-1 min-w-0">
-        <p className="text-sm leading-snug">
-          <span className="font-semibold">{d.actorPseudo}</span>{" "}
-          <span className="text-foreground/80">{d.actionLabel}</span>
-          {d.rating != null && (
-            <span className="text-foreground/80"> {d.rating}/5</span>
-          )}
-        </p>
-
-        {d.contextTitle && (
-          <p
-            className={cn(
-              "text-xs mt-0.5 truncate",
-              d.isDeleted
-                ? "text-muted-foreground italic line-through"
-                : "text-muted-foreground",
-            )}
-          >
-            {d.isDeleted ? "Contenu supprimé" : d.contextTitle}
-          </p>
-        )}
-
-        {!d.isDeleted && d.commentPreview && (
-          <p className="text-xs mt-1 text-muted-foreground italic line-clamp-2">
-            « {d.commentPreview} »
-          </p>
-        )}
-
-        <p className="text-[11px] text-muted-foreground/80 mt-1">
-          {formatRelativeTime(notif.created_at)}
-        </p>
-      </div>
-
-      {/* Pastille non-lu */}
-      {unread && (
-        <span
-          className="shrink-0 mt-1.5 w-2 h-2 rounded-full bg-accent"
-          aria-hidden="true"
-        />
-      )}
-    </div>
-  );
-
-  return (
-    <li>
-      {d.isDeleted || !d.href ? (
-        <button
-          type="button"
-          onClick={() => onActivate(notif, null)}
-          className="w-full block"
-          aria-label="Notification (contenu supprimé)"
-        >
-          {content}
-        </button>
-      ) : (
-        <button
-          type="button"
-          onClick={() => onActivate(notif, d.href)}
-          className="w-full block"
-        >
-          {content}
-        </button>
-      )}
-    </li>
-  );
-}
-
-/* ─── Export complémentaire : bouton « marquer lu » isolé ── */
-/* (non utilisé ici, mais exporté au cas où on voudrait le réutiliser) */
-export function MarkReadButton({
-  notifId,
-  onDone,
-}: {
-  notifId: string;
-  onDone?: () => void;
-}) {
-  const [busy, setBusy] = useState(false);
-  return (
-    <button
-      type="button"
-      disabled={busy}
-      onClick={async () => {
-        setBusy(true);
-        try {
-          await markNotificationRead(notifId);
-          onDone?.();
-        } finally {
-          setBusy(false);
-        }
-      }}
-      className="inline-flex items-center gap-1 text-xs text-accent hover:underline disabled:opacity-50"
-    >
-      <Check className="w-3 h-3" /> Marquer comme lu
-    </button>
-  );
-}
-</file>
-
 <file path="components/ui/ImageUploader.tsx">
 "use client";
 
@@ -31599,6 +30926,934 @@ export async function rechercherRecettes(
     limit,
   };
 }
+</file>
+
+<file path="app/parametres/page.tsx">
+"use client";
+
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
+import { useTheme } from "@/hooks/useTheme";
+import { createClient } from "@/lib/supabase/client";
+import {
+  Settings,
+  Moon,
+  Sun,
+  Monitor,
+  Bell,
+  Lock,
+  Trash2,
+  Save,
+  CheckCircle2,
+  Shield,
+  AlertTriangle,
+  Loader2,
+  User as UserIcon,
+  KeyRound,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { updatePseudo, changePassword } from "@/app/actions/users";
+import { useToast } from "@/components/ui/Toast";
+
+export default function ParametresPage() {
+  const { user, isAdmin, profil, signOut, refreshProfil } = useAuth();
+  const { theme, setTheme } = useTheme();
+  const router = useRouter();
+  const { toastSuccess, toastError } = useToast();
+  const [supabase] = useState(() => createClient());
+
+  const [notifs, setNotifs] = useState({ replies: true, moderation: true });
+  const [loading, setLoading] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirmInput, setDeleteConfirmInput] = useState("");
+  const [deleteReason, setDeleteReason] = useState("");
+
+  // États pour le pseudo
+  const [pseudo, setPseudo] = useState("");
+  const [pseudoLoading, setPseudoLoading] = useState(false);
+  const [pseudoError, setPseudoError] = useState("");
+
+  // États pour le mot de passe
+  const [oldPassword, setOldPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
+  const [showOldPassword, setShowOldPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  useEffect(() => {
+    if (profil) {
+      setNotifs({
+        replies: profil.notify_replies ?? true,
+        moderation: profil.notify_moderation ?? true,
+      });
+      setPseudo(profil.pseudo || "");
+    }
+  }, [profil]);
+
+  const handleSavePreferences = async () => {
+    if (!user) return;
+    setLoading(true);
+    const { error } = await supabase
+      .from("profils")
+      .update({
+        notify_replies: notifs.replies,
+        notify_moderation: notifs.moderation,
+        theme_preference: theme,
+      })
+      .eq("id", user.id);
+    setLoading(false);
+    if (error) {
+      toastError("Erreur lors de la sauvegarde. Réessayez.");
+      return;
+    }
+    setSaved(true);
+    setTimeout(() => setSaved(false), 3000);
+  };
+
+  const handlePseudoSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pseudo.trim() || pseudo === profil?.pseudo) return;
+    setPseudoLoading(true);
+    setPseudoError("");
+    try {
+      await updatePseudo(pseudo);
+      await refreshProfil();
+      toastSuccess("Pseudo mis à jour !");
+    } catch (err: any) {
+      setPseudoError(err.message);
+      toastError(err.message);
+    } finally {
+      setPseudoLoading(false);
+    }
+  };
+
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!oldPassword || !newPassword || !confirmPassword) {
+      setPasswordError("Tous les champs sont requis.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError("Les nouveaux mots de passe ne correspondent pas.");
+      return;
+    }
+    if (newPassword.length < 6) {
+      setPasswordError("Le mot de passe doit contenir au moins 6 caractères.");
+      return;
+    }
+    setPasswordLoading(true);
+    setPasswordError("");
+    try {
+      await changePassword(oldPassword, newPassword);
+      toastSuccess("Mot de passe modifié avec succès.");
+      setOldPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (err: any) {
+      setPasswordError(err.message);
+      toastError(err.message);
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
+  const handleFinalDelete = async () => {
+    if (deleteConfirmInput !== "supprimer mon compte") return;
+    setLoading(true);
+    try {
+      if (deleteReason) {
+        await supabase
+          .from("suppression_feedbacks")
+          .insert({ raison: deleteReason });
+      }
+      const { error: deleteError } = await supabase.rpc("delete_user_account");
+      if (deleteError) {
+        toastError("Erreur technique lors de la suppression.");
+        setLoading(false);
+        return;
+      }
+      await signOut();
+      router.push("/");
+    } catch (err) {
+      console.error("Erreur suppression:", err);
+      toastError("Une erreur est survenue. Veuillez réessayer.");
+      setLoading(false);
+    }
+  };
+
+  if (!user) return null;
+
+  return (
+    <div className="max-w-4xl mx-auto p-6 space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      {/* HEADER */}
+      <div className="flex items-center justify-between border-b border-border pb-8">
+        <div className="flex items-center gap-4">
+          <div className="p-3 bg-accent/10 rounded-2xl text-accent">
+            <Settings className="w-8 h-8" />
+          </div>
+          <div>
+            <h1 className="font-display font-bold text-3xl italic text-foreground uppercase tracking-tight">
+              Paramètres
+            </h1>
+            <p className="text-xs text-muted-foreground">
+              Gérez vos préférences et la sécurité de votre compte
+            </p>
+          </div>
+        </div>
+        {isAdmin && (
+          <div className="flex items-center gap-2 px-4 py-1.5 bg-accent/20 text-accent border border-accent/30 rounded-full text-[10px] font-bold tracking-widest">
+            <Shield className="w-3 h-3" /> ADMIN
+          </div>
+        )}
+      </div>
+
+      <div className="grid gap-12">
+        {/* SECTION 1 : APPARENCE */}
+        <section className="space-y-6">
+          <div className="flex items-center gap-2 text-accent font-bold">
+            <Monitor className="w-5 h-5" />
+            <h2 className="text-lg uppercase tracking-wider">
+              Apparence du site
+            </h2>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <ThemeButton
+              active={theme === "light"}
+              onClick={() => setTheme("light")}
+              icon={<Sun className="w-6 h-6" />}
+              label="Clair"
+            />
+            <ThemeButton
+              active={theme === "dark"}
+              onClick={() => setTheme("dark")}
+              icon={<Moon className="w-6 h-6" />}
+              label="Sombre"
+            />
+            <ThemeButton
+              active={theme === "grey"}
+              onClick={() => setTheme("grey")}
+              icon={<Monitor className="w-6 h-6" />}
+              label="Gris"
+            />
+          </div>
+          <p className="text-xs text-muted-foreground italic">
+            Le thème est sauvegardé sur votre profil. Il vous suivra sur tous
+            vos appareils.
+          </p>
+        </section>
+
+        {/* SECTION 2 : NOTIFICATIONS */}
+        <section className="space-y-6">
+          <div className="flex items-center gap-2 text-accent font-bold">
+            <Bell className="w-5 h-5" />
+            <h2 className="text-lg uppercase tracking-wider">Notifications</h2>
+          </div>
+          <div className="glass-card p-6 space-y-6 rounded-[2rem] border border-border/40 shadow-inner">
+            <ToggleOption
+              label="Réponses aux commentaires"
+              description="Recevoir une alerte quand un utilisateur répond à l'un de vos messages."
+              checked={notifs.replies}
+              onChange={() =>
+                setNotifs({ ...notifs, replies: !notifs.replies })
+              }
+            />
+            <div className="h-px bg-border/40 w-full" />
+            <ToggleOption
+              label="Suivi de modération"
+              description="Être informé dès qu'un de vos commentaires ou recettes est validé."
+              checked={notifs.moderation}
+              onChange={() =>
+                setNotifs({ ...notifs, moderation: !notifs.moderation })
+              }
+            />
+          </div>
+        </section>
+
+        {/* SECTION 3 : COMPTE (Pseudo & Mot de passe) */}
+        <section className="space-y-6">
+          <div className="flex items-center gap-2 text-accent font-bold">
+            <UserIcon className="w-5 h-5" />
+            <h2 className="text-lg uppercase tracking-wider">
+              Informations personnelles
+            </h2>
+          </div>
+
+          <div className="glass-card p-6 space-y-6 rounded-[2rem] border border-border/40">
+            {/* Pseudo */}
+            <div>
+              <h3 className="text-sm font-bold mb-3 flex items-center gap-2">
+                <UserIcon className="w-4 h-4 text-accent/70" />
+                Pseudo
+              </h3>
+              <form onSubmit={handlePseudoSubmit} className="space-y-3">
+                <input
+                  type="text"
+                  value={pseudo}
+                  onChange={(e) => setPseudo(e.target.value)}
+                  placeholder="Votre pseudo"
+                  className="input-field"
+                  disabled={pseudoLoading}
+                />
+                {pseudoError && (
+                  <p className="text-xs text-error">{pseudoError}</p>
+                )}
+                <button
+                  type="submit"
+                  disabled={pseudoLoading || pseudo === profil?.pseudo}
+                  className="text-sm px-4 py-2 rounded-lg bg-accent/10 text-accent border border-accent/20 hover:bg-accent/20 transition-colors disabled:opacity-40"
+                >
+                  {pseudoLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    "Mettre à jour le pseudo"
+                  )}
+                </button>
+              </form>
+            </div>
+
+            <div className="h-px bg-border/40 w-full" />
+
+            {/* Mot de passe */}
+            <div>
+              <h3 className="text-sm font-bold mb-3 flex items-center gap-2">
+                <KeyRound className="w-4 h-4 text-accent/70" />
+                Changer le mot de passe
+              </h3>
+              <form onSubmit={handlePasswordSubmit} className="space-y-3">
+                <div className="relative">
+                  <input
+                    type={showOldPassword ? "text" : "password"}
+                    value={oldPassword}
+                    onChange={(e) => setOldPassword(e.target.value)}
+                    placeholder="Mot de passe actuel"
+                    className="input-field pr-10"
+                    disabled={passwordLoading}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowOldPassword(!showOldPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                  >
+                    {showOldPassword ? "🙈" : "👁️"}
+                  </button>
+                </div>
+                <div className="relative">
+                  <input
+                    type={showNewPassword ? "text" : "password"}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Nouveau mot de passe"
+                    className="input-field pr-10"
+                    disabled={passwordLoading}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                  >
+                    {showNewPassword ? "🙈" : "👁️"}
+                  </button>
+                </div>
+                <div className="relative">
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Confirmer le nouveau mot de passe"
+                    className="input-field pr-10"
+                    disabled={passwordLoading}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                  >
+                    {showConfirmPassword ? "🙈" : "👁️"}
+                  </button>
+                </div>
+                {passwordError && (
+                  <p className="text-xs text-error">{passwordError}</p>
+                )}
+                <button
+                  type="submit"
+                  disabled={passwordLoading}
+                  className="text-sm px-4 py-2 rounded-lg bg-accent/10 text-accent border border-accent/20 hover:bg-accent/20 transition-colors disabled:opacity-40"
+                >
+                  {passwordLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    "Modifier le mot de passe"
+                  )}
+                </button>
+              </form>
+            </div>
+          </div>
+        </section>
+
+        {/* SECTION 4 : SÉCURITÉ */}
+        <section className="space-y-6">
+          <div className="flex items-center gap-2 text-error font-bold">
+            <Lock className="w-5 h-5" />
+            <h2 className="text-lg uppercase tracking-wider">Sécurité</h2>
+          </div>
+          <div className="p-8 bg-error/5 rounded-[2rem] border border-error/20 space-y-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <p className="font-bold text-foreground">
+                  Suppression du compte
+                </p>
+                <p className="text-xs text-muted-foreground max-w-md">
+                  Cette action est définitive. Toutes vos données seront
+                  anonymisées et vos favoris perdus.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowDeleteModal(true)}
+                className="px-6 py-3 bg-error/10 text-error border border-error/20 rounded-xl font-bold hover:bg-error hover:text-white transition-all text-sm"
+              >
+                Supprimer mon compte
+              </button>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      {/* BOUTON SAUVEGARDER PRÉFÉRENCES */}
+      <div className="sticky bottom-6 flex justify-end">
+        <button
+          onClick={handleSavePreferences}
+          disabled={loading}
+          className={cn(
+            "flex items-center gap-3 px-10 py-4 rounded-2xl font-bold shadow-2xl transition-all hover:scale-105 active:scale-95",
+            saved ? "bg-sage text-white" : "btn-primary",
+          )}
+        >
+          {loading ? (
+            <Loader2 className="animate-spin w-5 h-5" />
+          ) : saved ? (
+            <CheckCircle2 className="w-5 h-5" />
+          ) : (
+            <Save className="w-5 h-5" />
+          )}
+          {saved ? "Modifications enregistrées !" : "Sauvegarder les réglages"}
+        </button>
+      </div>
+
+      {/* MODALE SUPPRESSION (inchangée) */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="bg-card border border-error/30 p-8 rounded-[2.5rem] max-w-md w-full space-y-6 shadow-2xl scale-in-center">
+            <div className="flex items-center gap-4 text-error">
+              <div className="p-3 bg-error/10 rounded-2xl">
+                <AlertTriangle className="w-8 h-8" />
+              </div>
+              <h3 className="font-display font-bold text-2xl tracking-tighter">
+                Action Critique
+              </h3>
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase text-muted-foreground">
+                Pourquoi nous quittez-vous ?
+              </label>
+              <textarea
+                className="w-full bg-background border border-border rounded-2xl p-4 text-sm focus:ring-2 ring-error/20 outline-none transition-all"
+                placeholder="Optionnel..."
+                rows={3}
+                value={deleteReason}
+                onChange={(e) => setDeleteReason(e.target.value)}
+              />
+            </div>
+            <div className="space-y-3 p-4 bg-error/5 rounded-2xl border border-error/10">
+              <p className="text-xs text-center font-bold italic">
+                Tapez exactement la phrase ci-dessous :
+              </p>
+              <p className="text-center text-error font-mono text-sm font-bold">
+                supprimer mon compte
+              </p>
+              <input
+                type="text"
+                className="w-full bg-background border border-border rounded-xl p-3 text-center font-mono text-error focus:ring-2 ring-error/20 outline-none"
+                value={deleteConfirmInput}
+                onChange={(e) =>
+                  setDeleteConfirmInput(e.target.value.toLowerCase())
+                }
+              />
+            </div>
+            <div className="flex gap-4">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="flex-1 py-4 rounded-2xl border border-border font-bold hover:bg-card-hover transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                disabled={
+                  deleteConfirmInput !== "supprimer mon compte" || loading
+                }
+                onClick={handleFinalDelete}
+                className="flex-1 py-4 rounded-2xl bg-error text-white font-bold disabled:opacity-20 transition-all hover:brightness-110 shadow-lg shadow-error/20"
+              >
+                {loading ? (
+                  <Loader2 className="animate-spin w-5 h-5 mx-auto" />
+                ) : (
+                  "Confirmer"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ThemeButton({
+  active,
+  onClick,
+  icon,
+  label,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "flex flex-col items-center p-6 rounded-[1.5rem] border-2 transition-all duration-300",
+        active
+          ? "border-accent bg-accent/10 text-accent scale-100 shadow-lg shadow-accent/10"
+          : "border-border bg-card/40 text-muted-foreground hover:border-accent/30 hover:text-foreground scale-95 opacity-70 hover:opacity-100",
+      )}
+    >
+      {icon}
+      <span className="text-[10px] font-bold mt-3 uppercase tracking-[0.2em]">
+        {label}
+      </span>
+    </button>
+  );
+}
+
+function ToggleOption({
+  label,
+  description,
+  checked,
+  onChange,
+}: {
+  label: string;
+  description: string;
+  checked: boolean;
+  onChange: () => void;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-6 group">
+      <div className="space-y-1">
+        <p className="text-sm font-bold group-hover:text-accent transition-colors">
+          {label}
+        </p>
+        <p className="text-[11px] text-muted-foreground leading-relaxed">
+          {description}
+        </p>
+      </div>
+      <button
+        onClick={onChange}
+        className={cn(
+          "w-14 h-7 rounded-full transition-all duration-500 relative shrink-0",
+          checked ? "bg-accent shadow-lg shadow-accent/20" : "bg-muted",
+        )}
+      >
+        <div
+          className={cn(
+            "absolute top-1 w-5 h-5 bg-white rounded-full transition-all duration-300 shadow-md",
+            checked ? "left-8" : "left-1",
+          )}
+        />
+      </button>
+    </div>
+  );
+}
+</file>
+
+<file path="components/layout/NotificationBell.tsx">
+"use client";
+
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  forwardRef,
+  useImperativeHandle,
+} from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { Bell, Check, CheckCheck, Loader2, User } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { cn } from "@/lib/utils";
+import {
+  buildNotificationDisplay,
+  formatRelativeTime,
+  NOTIFICATION_TYPE_ICONS,
+} from "@/lib/notifications";
+import type { NotificationEnriched } from "@/types";
+import {
+  getRecentNotifications,
+  getUnreadNotificationsCount,
+  markAllNotificationsRead,
+  markNotificationRead,
+} from "@/app/actions/notifications";
+
+export interface NotificationBellRef {
+  close: () => void;
+}
+
+interface NotificationBellProps {
+  onToggle?: (open: boolean) => void;
+}
+
+const POLL_INTERVAL_MS = 60_000;
+const DROPDOWN_LIMIT = 10;
+
+const NotificationBell = forwardRef<NotificationBellRef, NotificationBellProps>(
+  ({ onToggle }, ref) => {
+    const { user } = useAuth();
+    const router = useRouter();
+    const [open, setOpen] = useState(false);
+    const [unreadCount, setUnreadCount] = useState(0);
+    const [items, setItems] = useState<NotificationEnriched[]>([]);
+    const [listLoading, setListLoading] = useState(false);
+    const [markingAll, setMarkingAll] = useState(false);
+    const wrapRef = useRef<HTMLDivElement>(null);
+
+    // Expose la méthode close au parent
+    useImperativeHandle(ref, () => ({
+      close: () => setOpen(false),
+    }));
+
+    const refreshCount = useCallback(async () => {
+      if (!user) return;
+      try {
+        const count = await getUnreadNotificationsCount();
+        setUnreadCount(count);
+      } catch {
+        // silent fail
+      }
+    }, [user]);
+
+    useEffect(() => {
+      if (!user) {
+        setUnreadCount(0);
+        setItems([]);
+        return;
+      }
+      refreshCount();
+      const id = setInterval(refreshCount, POLL_INTERVAL_MS);
+      const onFocus = () => refreshCount();
+      window.addEventListener("focus", onFocus);
+      return () => {
+        clearInterval(id);
+        window.removeEventListener("focus", onFocus);
+      };
+    }, [user, refreshCount]);
+
+    const loadList = useCallback(async () => {
+      if (!user) return;
+      setListLoading(true);
+      try {
+        const data = await getRecentNotifications(DROPDOWN_LIMIT);
+        setItems(data);
+      } finally {
+        setListLoading(false);
+      }
+    }, [user]);
+
+    useEffect(() => {
+      if (open) loadList();
+    }, [open, loadList]);
+
+    useEffect(() => {
+      if (!open) return;
+      const onClick = (e: MouseEvent) => {
+        if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
+          setOpen(false);
+        }
+      };
+      document.addEventListener("mousedown", onClick);
+      return () => document.removeEventListener("mousedown", onClick);
+    }, [open]);
+
+    useEffect(() => {
+      if (!open) return;
+      const onKey = (e: KeyboardEvent) => {
+        if (e.key === "Escape") setOpen(false);
+      };
+      document.addEventListener("keydown", onKey);
+      return () => document.removeEventListener("keydown", onKey);
+    }, [open]);
+
+    const handleToggle = () => {
+      const newOpen = !open;
+      setOpen(newOpen);
+      onToggle?.(newOpen);
+    };
+
+    const handleItemClick = async (
+      notif: NotificationEnriched,
+      href: string | null,
+    ) => {
+      if (!notif.read_at) {
+        setItems((prev) =>
+          prev.map((n) =>
+            n.id === notif.id ? { ...n, read_at: new Date().toISOString() } : n,
+          ),
+        );
+        setUnreadCount((c) => Math.max(0, c - 1));
+        try {
+          await markNotificationRead(notif.id);
+        } catch {
+          // silent
+        }
+      }
+      setOpen(false);
+      if (href) router.push(href);
+    };
+
+    const handleMarkAll = async () => {
+      if (markingAll || unreadCount === 0) return;
+      setMarkingAll(true);
+      const now = new Date().toISOString();
+      setItems((prev) =>
+        prev.map((n) => (n.read_at ? n : { ...n, read_at: now })),
+      );
+      setUnreadCount(0);
+      try {
+        await markAllNotificationsRead();
+      } catch {
+        refreshCount();
+      } finally {
+        setMarkingAll(false);
+      }
+    };
+
+    if (!user) return null;
+
+    return (
+      <div className="relative" ref={wrapRef}>
+        <button
+          type="button"
+          onClick={handleToggle}
+          className={cn(
+            "relative p-2 rounded-lg transition-colors",
+            open
+              ? "bg-accent/15 text-accent"
+              : "text-foreground/70 hover:text-foreground hover:bg-card-hover",
+          )}
+          aria-label={
+            unreadCount > 0
+              ? `Notifications (${unreadCount} non lue${unreadCount > 1 ? "s" : ""})`
+              : "Notifications"
+          }
+        >
+          <Bell className="w-5 h-5" />
+          {unreadCount > 0 && (
+            <span
+              className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-accent text-[10px] font-bold text-black flex items-center justify-center shadow-sm"
+              aria-hidden="true"
+            >
+              {unreadCount > 99 ? "99+" : unreadCount}
+            </span>
+          )}
+        </button>
+
+        {open && (
+          <div
+            className="fixed sm:absolute top-14 sm:top-auto left-1/2 sm:left-auto -translate-x-1/2 sm:translate-x-0 sm:right-0 sm:mt-2 w-[calc(100vw-1.5rem)] max-w-[22rem] sm:w-[22rem] rounded-xl shadow-2xl border border-border overflow-hidden animate-in fade-in zoom-in duration-200"
+            style={{ backgroundColor: "var(--color-bg)" }}
+            role="dialog"
+            aria-label="Notifications"
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+              <h2 className="font-display font-bold text-sm">Notifications</h2>
+              <button
+                onClick={handleMarkAll}
+                disabled={markingAll || unreadCount === 0}
+                className={cn(
+                  "flex items-center gap-1 text-xs font-medium transition-colors",
+                  unreadCount === 0
+                    ? "text-muted-foreground/50 cursor-default"
+                    : "text-accent hover:text-accent-hover",
+                  markingAll && "opacity-50 cursor-wait",
+                )}
+                title="Tout marquer comme lu"
+              >
+                <CheckCheck className="w-3.5 h-3.5" />
+                Tout lire
+              </button>
+            </div>
+
+            {/* Liste */}
+            <div className="max-h-[60vh] overflow-y-auto">
+              {listLoading ? (
+                <div className="flex items-center justify-center py-10">
+                  <Loader2 className="w-5 h-5 animate-spin text-accent" />
+                </div>
+              ) : items.length === 0 ? (
+                <div className="px-6 py-10 text-center text-sm text-muted-foreground">
+                  Aucune notification pour le moment.
+                </div>
+              ) : (
+                <ul className="divide-y divide-border">
+                  {items.map((notif) => (
+                    <NotificationRow
+                      key={notif.id}
+                      notif={notif}
+                      onActivate={handleItemClick}
+                    />
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="border-t border-border px-4 py-2.5 text-center">
+              <Link
+                href="/notifications"
+                onClick={() => setOpen(false)}
+                className="text-xs font-medium text-accent hover:underline"
+              >
+                Voir toutes les notifications
+              </Link>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  },
+);
+
+NotificationBell.displayName = "NotificationBell";
+
+/* ─── Ligne individuelle (inchangée) ─────────────────────────────────── */
+
+function NotificationRow({
+  notif,
+  onActivate,
+}: {
+  notif: NotificationEnriched;
+  onActivate: (n: NotificationEnriched, href: string | null) => void;
+}) {
+  const d = buildNotificationDisplay(notif);
+  const unread = !notif.read_at;
+
+  const content = (
+    <div
+      className={cn(
+        "flex items-start gap-3 px-4 py-3 transition-colors text-left w-full",
+        unread ? "bg-accent/5" : "bg-transparent",
+        "hover:bg-card-hover",
+      )}
+    >
+      {/* Avatar */}
+      <div className="relative shrink-0">
+        {d.actorAvatar ? (
+          <Image
+            src={d.actorAvatar}
+            alt={d.actorPseudo}
+            width={36}
+            height={36}
+            className="w-9 h-9 rounded-full object-cover"
+          />
+        ) : (
+          <div className="w-9 h-9 rounded-full bg-accent/20 flex items-center justify-center text-accent">
+            <User className="w-4 h-4" />
+          </div>
+        )}
+        <span
+          className="absolute -bottom-0.5 -right-0.5 text-xs bg-background rounded-full px-1 leading-none py-0.5 border border-border"
+          aria-hidden="true"
+        >
+          {NOTIFICATION_TYPE_ICONS[notif.type]}
+        </span>
+      </div>
+
+      {/* Contenu */}
+      <div className="flex-1 min-w-0">
+        <p className="text-sm leading-snug">
+          <span className="font-semibold">{d.actorPseudo}</span>{" "}
+          <span className="text-foreground/80">{d.actionLabel}</span>
+          {d.rating != null && (
+            <span className="text-foreground/80"> {d.rating}/5</span>
+          )}
+        </p>
+
+        {d.contextTitle && (
+          <p
+            className={cn(
+              "text-xs mt-0.5 truncate",
+              d.isDeleted
+                ? "text-muted-foreground italic line-through"
+                : "text-muted-foreground",
+            )}
+          >
+            {d.isDeleted ? "Contenu supprimé" : d.contextTitle}
+          </p>
+        )}
+
+        {!d.isDeleted && d.commentPreview && (
+          <p className="text-xs mt-1 text-muted-foreground italic line-clamp-2">
+            « {d.commentPreview} »
+          </p>
+        )}
+
+        <p className="text-[11px] text-muted-foreground/80 mt-1">
+          {formatRelativeTime(notif.created_at)}
+        </p>
+      </div>
+
+      {/* Pastille non-lu */}
+      {unread && (
+        <span
+          className="shrink-0 mt-1.5 w-2 h-2 rounded-full bg-accent"
+          aria-hidden="true"
+        />
+      )}
+    </div>
+  );
+
+  return (
+    <li>
+      {d.isDeleted || !d.href ? (
+        <button
+          type="button"
+          onClick={() => onActivate(notif, null)}
+          className="w-full block"
+          aria-label="Notification (contenu supprimé)"
+        >
+          {content}
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={() => onActivate(notif, d.href)}
+          className="w-full block"
+        >
+          {content}
+        </button>
+      )}
+    </li>
+  );
+}
+
+export default NotificationBell;
 </file>
 
 <file path="components/planificateur/RecipePreviewModal.tsx">
@@ -33993,333 +34248,6 @@ export interface NotificationEnriched extends Notification {
 }
 </file>
 
-<file path="components/layout/Navbar.tsx">
-"use client";
-
-import { useState, useEffect, useRef } from "react";
-import Link from "next/link";
-import Image from "next/image";
-import { usePathname, useRouter } from "next/navigation";
-import {
-  User,
-  LogOut,
-  Settings,
-  ChevronDown,
-  Shield,
-  Menu,
-  X,
-  Home,
-  BookOpen,
-  Search,
-  PlusCircle,
-  Heart,
-  Calendar,
-  Info,
-  Bell,
-} from "lucide-react";
-import ThemeToggle from "@/components/ui/ThemeToggle";
-import Logo from "@/components/ui/Logo";
-import NotificationBell from "@/components/layout/NotificationBell";
-import { useAuth } from "@/hooks/useAuth";
-import { cn } from "@/lib/utils";
-
-const NAV_LINKS = [
-  { href: "/", label: "Accueil", icon: Home },
-  { href: "/recettes", label: "Recettes", icon: BookOpen },
-  { href: "/recherche", label: "Recherche", icon: Search },
-  { href: "/planificateur", label: "Planning", icon: Calendar },
-  { href: "/mes-plannings", label: "Mes plannings", icon: Calendar },
-  { href: "/soumettre", label: "Proposer", icon: PlusCircle },
-  { href: "/favoris", label: "Favoris", icon: Heart },
-  { href: "/a-propos", label: "À propos", icon: Info },
-];
-export default function Navbar() {
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [visible, setVisible] = useState(true);
-  const { isAdmin, user, signOut, profil } = useAuth();
-  const pathname = usePathname();
-  const router = useRouter();
-  const userMenuRef = useRef<HTMLDivElement>(null);
-  const lastScrollY = useRef(0);
-  const ticking = useRef(false);
-
-  // Fermer dropdown clic extérieur
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        userMenuRef.current &&
-        !userMenuRef.current.contains(event.target as Node)
-      ) {
-        setUserMenuOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  // Hide on scroll down, show on scroll up
-  // APRÈS
-  useEffect(() => {
-    const handleScroll = () => {
-      if (ticking.current) return;
-      ticking.current = true;
-      requestAnimationFrame(() => {
-        const currentY = window.scrollY;
-
-        // Si un menu est ouvert (burger mobile ou avatar), on force la navbar
-        // visible et on ne ferme rien. L'utilisateur a ouvert le menu
-        // volontairement — un micro-scroll (inertie tactile, reflow) ne doit
-        // pas l'interrompre.
-        if (mobileOpen || userMenuOpen) {
-          setVisible(true);
-          lastScrollY.current = currentY;
-          ticking.current = false;
-          return;
-        }
-
-        if (currentY < 60) setVisible(true);
-        else if (currentY - lastScrollY.current > 10) {
-          setVisible(false);
-        } else if (lastScrollY.current - currentY > 10) setVisible(true);
-        lastScrollY.current = currentY;
-        ticking.current = false;
-      });
-    };
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [mobileOpen, userMenuOpen]);
-
-  const handleLogout = async () => {
-    await signOut();
-    setUserMenuOpen(false);
-    router.push("/");
-  };
-
-  const isActive = (href: string) =>
-    href === "/" ? pathname === "/" : pathname.startsWith(href);
-
-  // Avatar URL
-  const avatarUrl = profil?.avatar_url;
-
-  return (
-    <header
-      className={cn(
-        "sticky top-0 z-50 bg-background/99 backdrop-blur-[1px] border-b border-border transition-transform duration-300",
-        visible ? "translate-y-0" : "-translate-y-full",
-      )}
-    >
-      <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          {/* Logo */}
-          <Link
-            href="/"
-            className="flex items-center gap-2 font-display text-xl font-bold text-accent shrink-0 group"
-          >
-            <Logo className="h-10 w-auto md:h-12" />
-            <span className="hidden sm:inline">Kitchen Mix</span>
-          </Link>
-
-          {/* Desktop Nav Links */}
-          <div className="hidden lg:flex items-center gap-1">
-            {NAV_LINKS.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={cn(
-                  "px-3 py-2 rounded-lg text-sm font-medium transition-all",
-                  isActive(link.href)
-                    ? "bg-accent/15 text-accent shadow-sm shadow-accent/10"
-                    : "bg-background/15 text-foreground/80 hover:text-foreground hover:bg-background/25 backdrop-blur-sm",
-                )}
-              >
-                {link.label}
-              </Link>
-            ))}
-          </div>
-
-          {/* Right side */}
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-
-            {/* Cloche de notifications (uniquement connecté) */}
-            {user && <NotificationBell />}
-
-            {/* Admin button */}
-            {isAdmin && (
-              <Link
-                href="/admin"
-                className={cn(
-                  "p-2 rounded-lg transition-colors hidden sm:flex",
-                  isActive("/admin")
-                    ? "bg-accent/15 text-accent"
-                    : "text-accent/60 hover:text-accent hover:bg-accent/10",
-                )}
-                title="Administration"
-              >
-                <Shield className="w-5 h-5" />
-              </Link>
-            )}
-
-            {/* Profile / Login */}
-            {user ? (
-              <div className="relative" ref={userMenuRef}>
-                <button
-                  onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="flex items-center gap-2 p-1 rounded-full hover:bg-card-hover transition-colors border border-transparent hover:border-border"
-                >
-                  {/* Avatar ou icône par défaut */}
-                  {avatarUrl ? (
-                    <Image
-                      src={avatarUrl}
-                      alt={profil?.pseudo || "Avatar"}
-                      width={32}
-                      height={32}
-                      className="w-8 h-8 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-accent">
-                      <User className="w-5 h-5" />
-                    </div>
-                  )}
-                  <ChevronDown
-                    className={cn(
-                      "w-4 h-4 text-muted-foreground transition-transform",
-                      userMenuOpen && "rotate-180",
-                    )}
-                  />
-                </button>
-
-                {userMenuOpen && (
-                  <div
-                    className="absolute right-0 mt-2 w-52 rounded-xl shadow-2xl py-1 animate-in fade-in zoom-in duration-200 border border-border"
-                    style={{ backgroundColor: "var(--color-bg)" }}
-                  >
-                    <div className="px-4 py-2.5 border-b border-border mb-1">
-                      <p className="text-xs text-muted-foreground">
-                        Connecté en tant que
-                      </p>
-                      <p className="text-sm font-bold truncate">
-                        {profil?.pseudo || user.email}
-                      </p>
-                    </div>
-                    <Link
-                      href="/profil"
-                      onClick={() => setUserMenuOpen(false)}
-                      className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-accent/10 hover:text-accent transition-colors"
-                    >
-                      <User className="w-4 h-4" /> Mon Profil
-                    </Link>
-                    <Link
-                      href={`/profil/${user.id}`}
-                      onClick={() => setUserMenuOpen(false)}
-                      className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-accent/10 hover:text-accent transition-colors"
-                    >
-                      <User className="w-4 h-4 opacity-50" /> Profil public
-                    </Link>
-                    <Link
-                      href="/parametres"
-                      onClick={() => setUserMenuOpen(false)}
-                      className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-accent/10 hover:text-accent transition-colors"
-                    >
-                      <Settings className="w-4 h-4" /> Paramètres
-                    </Link>
-                    {isAdmin && (
-                      <Link
-                        href="/admin"
-                        onClick={() => setUserMenuOpen(false)}
-                        className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-accent hover:bg-accent/10 transition-colors"
-                      >
-                        <Shield className="w-4 h-4" /> Administration
-                      </Link>
-                    )}
-                    <button
-                      onClick={handleLogout}
-                      className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-error hover:bg-error/10 transition-colors border-t border-border mt-1"
-                    >
-                      <LogOut className="w-4 h-4" /> Se déconnecter
-                    </button>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <Link href="/connexion" className="btn-primary py-2 px-4 text-sm">
-                Connexion
-              </Link>
-            )}
-
-            {/* Mobile burger */}
-            <button
-              onClick={() => setMobileOpen(!mobileOpen)}
-              className="lg:hidden p-2 rounded-lg hover:bg-card-hover transition-colors"
-              aria-label={mobileOpen ? "Fermer" : "Menu"}
-            >
-              {mobileOpen ? (
-                <X className="w-5 h-5" />
-              ) : (
-                <Menu className="w-5 h-5" />
-              )}
-            </button>
-          </div>
-        </div>
-
-        {/* Mobile menu */}
-        {mobileOpen && (
-          <div className="lg:hidden pb-4 border-t border-border mt-2 pt-3 animate-fade-in">
-            {NAV_LINKS.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                onClick={() => setMobileOpen(false)}
-                className={cn(
-                  "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all",
-                  isActive(link.href)
-                    ? "bg-accent/15 text-accent shadow-sm shadow-accent/10"
-                    : "bg-background/15 text-foreground/80 hover:text-foreground hover:bg-background/25 backdrop-blur-sm",
-                )}
-              >
-                <link.icon className="w-4 h-4" />
-                {link.label}
-              </Link>
-            ))}
-            {user && (
-              <Link
-                href="/notifications"
-                onClick={() => setMobileOpen(false)}
-                className={cn(
-                  "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all",
-                  isActive("/notifications")
-                    ? "bg-accent/15 text-accent shadow-sm shadow-accent/10"
-                    : "bg-background/15 text-foreground/80 hover:text-foreground hover:bg-background/25 backdrop-blur-sm",
-                )}
-              >
-                <Bell className="w-4 h-4" />
-                Notifications
-              </Link>
-            )}
-            {isAdmin && (
-              <Link
-                href="/admin"
-                onClick={() => setMobileOpen(false)}
-                className={cn(
-                  "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold transition-all",
-                  isActive("/admin")
-                    ? "bg-accent/15 text-accent shadow-sm shadow-accent/10"
-                    : "bg-background/15 text-accent/80 hover:text-accent hover:bg-background/25 backdrop-blur-sm",
-                )}
-              >
-                <Shield className="w-4 h-4" /> Administration
-              </Link>
-            )}
-          </div>
-        )}
-      </nav>
-    </header>
-  );
-}
-</file>
-
 <file path="components/recettes/SimulateurThermomix.tsx">
 "use client";
 
@@ -35832,6 +35760,349 @@ function EmptyState({ msg }: { msg: string }) {
       <MessageSquare className="w-12 h-12 mx-auto text-muted-foreground/30 mb-4" />
       <p className="text-muted-foreground">{msg}</p>
     </div>
+  );
+}
+</file>
+
+<file path="components/layout/Navbar.tsx">
+"use client";
+
+import { useState, useEffect, useRef } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { usePathname, useRouter } from "next/navigation";
+import {
+  User,
+  LogOut,
+  Settings,
+  ChevronDown,
+  Shield,
+  Menu,
+  X,
+  Home,
+  BookOpen,
+  Search,
+  PlusCircle,
+  Heart,
+  Calendar,
+  Info,
+  Bell,
+} from "lucide-react";
+import ThemeToggle from "@/components/ui/ThemeToggle";
+import Logo from "@/components/ui/Logo";
+import NotificationBell, {
+  type NotificationBellRef,
+} from "@/components/layout/NotificationBell";
+import { useAuth } from "@/hooks/useAuth";
+import { cn } from "@/lib/utils";
+
+const NAV_LINKS = [
+  { href: "/", label: "Accueil", icon: Home },
+  { href: "/recettes", label: "Recettes", icon: BookOpen },
+  { href: "/recherche", label: "Recherche", icon: Search },
+  { href: "/planificateur", label: "Planning", icon: Calendar },
+  { href: "/mes-plannings", label: "Mes plannings", icon: Calendar },
+  { href: "/soumettre", label: "Proposer", icon: PlusCircle },
+  { href: "/favoris", label: "Favoris", icon: Heart },
+  { href: "/a-propos", label: "À propos", icon: Info },
+];
+
+export default function Navbar() {
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [visible, setVisible] = useState(true);
+  const { isAdmin, user, signOut, profil } = useAuth();
+  const pathname = usePathname();
+  const router = useRouter();
+  const userMenuRef = useRef<HTMLDivElement>(null);
+  const notificationBellRef = useRef<NotificationBellRef>(null);
+  const lastScrollY = useRef(0);
+  const ticking = useRef(false);
+
+  // Fermer dropdown clic extérieur
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        userMenuRef.current &&
+        !userMenuRef.current.contains(event.target as Node)
+      ) {
+        setUserMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Hide on scroll down, show on scroll up
+  useEffect(() => {
+    const handleScroll = () => {
+      if (ticking.current) return;
+      ticking.current = true;
+      requestAnimationFrame(() => {
+        const currentY = window.scrollY;
+
+        if (mobileOpen || userMenuOpen) {
+          setVisible(true);
+          lastScrollY.current = currentY;
+          ticking.current = false;
+          return;
+        }
+
+        if (currentY < 60) setVisible(true);
+        else if (currentY - lastScrollY.current > 10) {
+          setVisible(false);
+        } else if (lastScrollY.current - currentY > 10) setVisible(true);
+        lastScrollY.current = currentY;
+        ticking.current = false;
+      });
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [mobileOpen, userMenuOpen]);
+
+  const handleLogout = async () => {
+    await signOut();
+    setUserMenuOpen(false);
+    router.push("/");
+  };
+
+  const isActive = (href: string) =>
+    href === "/" ? pathname === "/" : pathname.startsWith(href);
+
+  const avatarUrl = profil?.avatar_url;
+
+  return (
+    <header
+      className={cn(
+        "sticky top-0 z-50 bg-background/99 backdrop-blur-[1px] border-b border-border transition-transform duration-300",
+        visible ? "translate-y-0" : "-translate-y-full",
+      )}
+    >
+      <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16">
+          {/* Logo */}
+          <Link
+            href="/"
+            className="flex items-center gap-2 font-display text-xl font-bold text-accent shrink-0 group"
+          >
+            <Logo className="h-10 w-auto md:h-12" />
+            <span className="hidden sm:inline">Kitchen Mix</span>
+          </Link>
+
+          {/* Desktop Nav Links */}
+          <div className="hidden lg:flex items-center gap-1">
+            {NAV_LINKS.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={cn(
+                  "px-3 py-2 rounded-lg text-sm font-medium transition-all",
+                  isActive(link.href)
+                    ? "bg-accent/15 text-accent shadow-sm shadow-accent/10"
+                    : "bg-background/15 text-foreground/80 hover:text-foreground hover:bg-background/25 backdrop-blur-sm",
+                )}
+              >
+                {link.label}
+              </Link>
+            ))}
+          </div>
+
+          {/* Right side */}
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+
+            {/* Cloche de notifications */}
+            {user && (
+              <NotificationBell
+                ref={notificationBellRef}
+                onToggle={(open) => {
+                  if (open) {
+                    setMobileOpen(false);
+                    setUserMenuOpen(false);
+                  }
+                }}
+              />
+            )}
+
+            {/* Admin button */}
+            {isAdmin && (
+              <Link
+                href="/admin"
+                className={cn(
+                  "p-2 rounded-lg transition-colors hidden sm:flex",
+                  isActive("/admin")
+                    ? "bg-accent/15 text-accent"
+                    : "text-accent/60 hover:text-accent hover:bg-accent/10",
+                )}
+                title="Administration"
+              >
+                <Shield className="w-5 h-5" />
+              </Link>
+            )}
+
+            {/* Profile / Login */}
+            {user ? (
+              <div className="relative" ref={userMenuRef}>
+                <button
+                  onClick={() => {
+                    setUserMenuOpen(!userMenuOpen);
+                    setMobileOpen(false);
+                    notificationBellRef.current?.close();
+                  }}
+                  className="flex items-center gap-2 p-1 rounded-full hover:bg-card-hover transition-colors border border-transparent hover:border-border"
+                >
+                  {avatarUrl ? (
+                    <Image
+                      src={avatarUrl}
+                      alt={profil?.pseudo || "Avatar"}
+                      width={32}
+                      height={32}
+                      className="w-8 h-8 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-accent">
+                      <User className="w-5 h-5" />
+                    </div>
+                  )}
+                  <ChevronDown
+                    className={cn(
+                      "w-4 h-4 text-muted-foreground transition-transform",
+                      userMenuOpen && "rotate-180",
+                    )}
+                  />
+                </button>
+
+                {userMenuOpen && (
+                  <div
+                    className="absolute right-0 mt-2 w-52 rounded-xl shadow-2xl py-1 animate-in fade-in zoom-in duration-200 border border-border"
+                    style={{ backgroundColor: "var(--color-bg)" }}
+                  >
+                    <div className="px-4 py-2.5 border-b border-border mb-1">
+                      <p className="text-xs text-muted-foreground">
+                        Connecté en tant que
+                      </p>
+                      <p className="text-sm font-bold truncate">
+                        {profil?.pseudo || user.email}
+                      </p>
+                    </div>
+                    <Link
+                      href="/profil"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-accent/10 hover:text-accent transition-colors"
+                    >
+                      <User className="w-4 h-4" /> Mon Profil
+                    </Link>
+                    <Link
+                      href={`/profil/${user.id}`}
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-accent/10 hover:text-accent transition-colors"
+                    >
+                      <User className="w-4 h-4 opacity-50" /> Profil public
+                    </Link>
+                    <Link
+                      href="/parametres"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-accent/10 hover:text-accent transition-colors"
+                    >
+                      <Settings className="w-4 h-4" /> Paramètres
+                    </Link>
+                    {isAdmin && (
+                      <Link
+                        href="/admin"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-accent hover:bg-accent/10 transition-colors"
+                      >
+                        <Shield className="w-4 h-4" /> Administration
+                      </Link>
+                    )}
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-error hover:bg-error/10 transition-colors border-t border-border mt-1"
+                    >
+                      <LogOut className="w-4 h-4" /> Se déconnecter
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Link href="/connexion" className="btn-primary py-2 px-4 text-sm">
+                Connexion
+              </Link>
+            )}
+
+            {/* Mobile burger */}
+            <button
+              onClick={() => {
+                setMobileOpen(!mobileOpen);
+                setUserMenuOpen(false);
+                notificationBellRef.current?.close();
+              }}
+              className="lg:hidden p-2 rounded-lg hover:bg-card-hover transition-colors"
+              aria-label={mobileOpen ? "Fermer" : "Menu"}
+            >
+              {mobileOpen ? (
+                <X className="w-5 h-5" />
+              ) : (
+                <Menu className="w-5 h-5" />
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile menu */}
+        {mobileOpen && (
+          <div className="lg:hidden absolute top-16 left-0 right-0 z-50 bg-background border-t border-border shadow-2xl animate-slide-up max-h-[calc(100dvh-4rem)] overflow-y-auto overscroll-contain">
+            <div className="px-4 py-4 space-y-1">
+              {NAV_LINKS.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={() => setMobileOpen(false)}
+                  className={cn(
+                    "flex items-center gap-3 px-4 py-3 rounded-xl text-base font-medium transition-all",
+                    isActive(link.href)
+                      ? "bg-accent/20 text-accent shadow-sm"
+                      : "bg-card text-foreground hover:bg-card-hover",
+                  )}
+                >
+                  <link.icon className="w-5 h-5" />
+                  {link.label}
+                </Link>
+              ))}
+              {user && (
+                <Link
+                  href="/notifications"
+                  onClick={() => setMobileOpen(false)}
+                  className={cn(
+                    "flex items-center gap-3 px-4 py-3 rounded-xl text-base font-medium transition-all",
+                    isActive("/notifications")
+                      ? "bg-accent/20 text-accent shadow-sm"
+                      : "bg-card text-foreground hover:bg-card-hover",
+                  )}
+                >
+                  <Bell className="w-5 h-5" />
+                  Notifications
+                </Link>
+              )}
+              {isAdmin && (
+                <Link
+                  href="/admin"
+                  onClick={() => setMobileOpen(false)}
+                  className={cn(
+                    "flex items-center gap-3 px-4 py-3 rounded-xl text-base font-bold transition-all",
+                    isActive("/admin")
+                      ? "bg-accent/20 text-accent shadow-sm"
+                      : "bg-card text-foreground hover:bg-card-hover",
+                  )}
+                >
+                  <Shield className="w-5 h-5" /> Administration
+                </Link>
+              )}
+            </div>
+          </div>
+        )}
+      </nav>
+    </header>
   );
 }
 </file>
