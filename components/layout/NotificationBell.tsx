@@ -177,9 +177,8 @@ export default function NotificationBell() {
       </button>
 
       {open && (
-        // APRÈS
         <div
-          className="absolute right-0 mt-2 w-[min(calc(100vw-5rem),22rem)] rounded-xl shadow-2xl border border-border overflow-hidden animate-in fade-in zoom-in duration-200"
+          className="fixed sm:absolute top-14 sm:top-auto left-1/2 sm:left-auto -translate-x-1/2 sm:translate-x-0 sm:right-0 sm:mt-2 w-[calc(100vw-1.5rem)] max-w-[22rem] sm:w-[22rem] rounded-xl shadow-2xl border border-border overflow-hidden animate-in fade-in zoom-in duration-200"
           style={{ backgroundColor: "var(--color-bg)" }}
           role="dialog"
           aria-label="Notifications"
