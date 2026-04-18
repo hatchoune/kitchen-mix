@@ -63,17 +63,28 @@ export default function Navbar() {
   }, []);
 
   // Hide on scroll down, show on scroll up
+  // APRÈS
   useEffect(() => {
     const handleScroll = () => {
       if (ticking.current) return;
       ticking.current = true;
       requestAnimationFrame(() => {
         const currentY = window.scrollY;
+
+        // Si un menu est ouvert (burger mobile ou avatar), on force la navbar
+        // visible et on ne ferme rien. L'utilisateur a ouvert le menu
+        // volontairement — un micro-scroll (inertie tactile, reflow) ne doit
+        // pas l'interrompre.
+        if (mobileOpen || userMenuOpen) {
+          setVisible(true);
+          lastScrollY.current = currentY;
+          ticking.current = false;
+          return;
+        }
+
         if (currentY < 60) setVisible(true);
         else if (currentY - lastScrollY.current > 10) {
           setVisible(false);
-          setUserMenuOpen(false);
-          setMobileOpen(false);
         } else if (lastScrollY.current - currentY > 10) setVisible(true);
         lastScrollY.current = currentY;
         ticking.current = false;
@@ -81,7 +92,7 @@ export default function Navbar() {
     };
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [mobileOpen, userMenuOpen]);
 
   const handleLogout = async () => {
     await signOut();
