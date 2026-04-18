@@ -270,7 +270,7 @@ export default function Navbar() {
 
         {/* Mobile menu */}
         {mobileOpen && (
-          <div className="lg:hidden pb-4 border-t border-border mt-2 pt-3 animate-fade-in">
+          <div className="lg:hidden pb-4 border-t border-border mt-2 pt-3 animate-fade-in bg-background backdrop-blur-md rounded-b-2xl shadow-lg">
             {NAV_LINKS.map((link) => (
               <Link
                 key={link.href}
@@ -279,8 +279,8 @@ export default function Navbar() {
                 className={cn(
                   "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all",
                   isActive(link.href)
-                    ? "bg-accent/15 text-accent shadow-sm shadow-accent/10"
-                    : "bg-background/15 text-foreground/80 hover:text-foreground hover:bg-background/25 backdrop-blur-sm",
+                    ? "bg-accent/20 text-accent shadow-sm shadow-accent/10"
+                    : "bg-card/80 text-foreground hover:bg-card hover:text-accent",
                 )}
               >
                 <link.icon className="w-4 h-4" />
@@ -294,8 +294,8 @@ export default function Navbar() {
                 className={cn(
                   "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all",
                   isActive("/notifications")
-                    ? "bg-accent/15 text-accent shadow-sm shadow-accent/10"
-                    : "bg-background/15 text-foreground/80 hover:text-foreground hover:bg-background/25 backdrop-blur-sm",
+                    ? "bg-accent/20 text-accent shadow-sm shadow-accent/10"
+                    : "bg-card/80 text-foreground hover:bg-card hover:text-accent",
                 )}
               >
                 <Bell className="w-4 h-4" />
@@ -309,8 +309,8 @@ export default function Navbar() {
                 className={cn(
                   "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold transition-all",
                   isActive("/admin")
-                    ? "bg-accent/15 text-accent shadow-sm shadow-accent/10"
-                    : "bg-background/15 text-accent/80 hover:text-accent hover:bg-background/25 backdrop-blur-sm",
+                    ? "bg-accent/20 text-accent shadow-sm shadow-accent/10"
+                    : "bg-card/80 text-foreground hover:bg-card hover:text-accent",
                 )}
               >
                 <Shield className="w-4 h-4" /> Administration
