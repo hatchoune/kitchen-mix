@@ -12,10 +12,10 @@ import { createClient } from "@supabase/supabase-js";
 import { SEED_THERMOMIX } from "../lib/seed-mega-thermomix";
 import { SEED_COOK_EXPERT } from "../lib/seed-mega-cookexpert";
 import { SEED_COMPANION } from "../lib/seed-mega-companion";
-// import { SEED_KITCHENAID } from "../lib/seed-mega-kitchenaid";
-// import { SEED_COOKEO } from "../lib/seed-mega-cookeo";
-// import { SEED_MULTICUISEUR } from "../lib/seed-mega-multicuiseur";
-// import { SEED_PETITS_APPAREILS } from "../lib/seed-mega-petits-appareils";
+import { SEED_KITCHENAID } from "../lib/seed-mega-kitchenaid";
+import { SEED_COOKEO } from "../lib/seed-mega-cookeo";
+import { SEED_MULTICUISEUR } from "../lib/seed-mega-multicuiseur";
+import { SEED_PETITS_APPAREILS } from "../lib/seed-mega-petits-appareils";
 
 // ─── Charger .env.local ──────────────────────────────────────
 try {
@@ -53,10 +53,10 @@ const ALL_RECIPES = [
   ...SEED_THERMOMIX,
   ...SEED_COOK_EXPERT,
   ...SEED_COMPANION,
-  // ...SEED_KITCHENAID,
-  // ...SEED_COOKEO,
-  // ...SEED_MULTICUISEUR,
-  // ...SEED_PETITS_APPAREILS,
+  ...SEED_KITCHENAID,
+  ...SEED_COOKEO,
+  ...SEED_MULTICUISEUR,
+  ...SEED_PETITS_APPAREILS,
 ];
 
 async function seed() {

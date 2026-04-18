@@ -114,9 +114,7 @@ export default function NotificationBell() {
     if (!notif.read_at) {
       setItems((prev) =>
         prev.map((n) =>
-          n.id === notif.id
-            ? { ...n, read_at: new Date().toISOString() }
-            : n,
+          n.id === notif.id ? { ...n, read_at: new Date().toISOString() } : n,
         ),
       );
       setUnreadCount((c) => Math.max(0, c - 1));
@@ -179,8 +177,9 @@ export default function NotificationBell() {
       </button>
 
       {open && (
+        // APRÈS
         <div
-          className="absolute right-0 mt-2 w-[min(92vw,22rem)] rounded-xl shadow-2xl border border-border overflow-hidden animate-in fade-in zoom-in duration-200"
+          className="absolute right-0 mt-2 w-[min(calc(100vw-5rem),22rem)] rounded-xl shadow-2xl border border-border overflow-hidden animate-in fade-in zoom-in duration-200"
           style={{ backgroundColor: "var(--color-bg)" }}
           role="dialog"
           aria-label="Notifications"

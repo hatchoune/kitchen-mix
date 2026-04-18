@@ -31,38 +31,60 @@ export async function getShoppingListForDays(
   if (error) throw new Error(error.message);
   if (!rows || rows.length === 0) return [];
 
-  // Dédupliquer les IDs (si même recette placée plusieurs fois)
-  const recetteIds = [
-    ...new Set(rows.map((r) => r.recette_id).filter(Boolean)),
-  ];
+  // Compter les occurrences de chaque recette : une même recette placée
+  // plusieurs fois dans la semaine doit multiplier ses ingrédients.
+  const idCounts = new Map<string, number>();
+  for (const row of rows) {
+    if (!row.recette_id) continue;
+    idCounts.set(row.recette_id, (idCounts.get(row.recette_id) ?? 0) + 1);
+  }
 
+  const recetteIds = Array.from(idCounts.keys());
   if (recetteIds.length === 0) return [];
 
-  // Récupérer les ingrédients des recettes
+  // Récupérer les ingrédients (une seule fois par recette, on multipliera après)
   const { data: recettes, error: recError } = await supabase
     .from("recettes")
-    .select("ingredients")
+    .select("id, ingredients")
     .in("id", recetteIds);
 
   if (recError) throw new Error(recError.message);
   if (!recettes) return [];
 
-  // Agrégation des ingrédients
+  // Index par ID pour accès direct
+  const ingredientsById = new Map<string, Ingredient[]>();
+  for (const r of recettes) {
+    ingredientsById.set(r.id, (r.ingredients as Ingredient[]) ?? []);
+  }
+
+  // Agrégation : clé normalisée (nom + unité trim + lowercase),
+  // quantité castée en Number() (au cas où stockée en string dans le JSON),
+  // multipliée par le nombre d'occurrences de la recette.
   const aggregated = new Map<string, ListeCoursesItem>();
 
-  for (const recette of recettes) {
-    const ingredients = recette.ingredients as Ingredient[];
+  for (const [recetteId, count] of idCounts) {
+    const ingredients = ingredientsById.get(recetteId);
     if (!ingredients) continue;
+
     for (const ing of ingredients) {
-      const key = `${ing.nom.toLowerCase()}-${ing.unite}`;
+      if (!ing?.nom) continue;
+
+      const qty = Number(ing.quantite);
+      if (!Number.isFinite(qty)) continue;
+
+      const nomKey = ing.nom.trim().toLowerCase();
+      const uniteKey = (ing.unite ?? "").trim().toLowerCase();
+      const key = `${nomKey}|${uniteKey}`;
+
+      const addQty = qty * count;
       const existing = aggregated.get(key);
       if (existing) {
-        existing.quantite += ing.quantite;
+        existing.quantite += addQty;
       } else {
         aggregated.set(key, {
           nom: ing.nom,
-          quantite: ing.quantite,
-          unite: ing.unite,
+          quantite: addQty,
+          unite: ing.unite ?? "",
           categorie: ing.categorie || "Autre",
         });
       }
