@@ -18,14 +18,20 @@ import {
   Shield,
   AlertTriangle,
   Loader2,
+  User as UserIcon,
+  KeyRound,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { updatePseudo, changePassword } from "@/app/actions/users";
+import { useToast } from "@/components/ui/Toast";
 
 export default function ParametresPage() {
-  const { user, isAdmin, profil, signOut } = useAuth();
+  const { user, isAdmin, profil, signOut, refreshProfil } = useAuth();
   const { theme, setTheme } = useTheme();
   const router = useRouter();
+  const { toastSuccess, toastError } = useToast();
   const [supabase] = useState(() => createClient());
+
   const [notifs, setNotifs] = useState({ replies: true, moderation: true });
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -33,12 +39,28 @@ export default function ParametresPage() {
   const [deleteConfirmInput, setDeleteConfirmInput] = useState("");
   const [deleteReason, setDeleteReason] = useState("");
 
+  // États pour le pseudo
+  const [pseudo, setPseudo] = useState("");
+  const [pseudoLoading, setPseudoLoading] = useState(false);
+  const [pseudoError, setPseudoError] = useState("");
+
+  // États pour le mot de passe
+  const [oldPassword, setOldPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
+  const [showOldPassword, setShowOldPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   useEffect(() => {
     if (profil) {
       setNotifs({
         replies: profil.notify_replies ?? true,
         moderation: profil.notify_moderation ?? true,
       });
+      setPseudo(profil.pseudo || "");
     }
   }, [profil]);
 
@@ -55,41 +77,80 @@ export default function ParametresPage() {
       .eq("id", user.id);
     setLoading(false);
     if (error) {
-      alert("Erreur lors de la sauvegarde. Réessayez.");
+      toastError("Erreur lors de la sauvegarde. Réessayez.");
       return;
     }
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
   };
 
+  const handlePseudoSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pseudo.trim() || pseudo === profil?.pseudo) return;
+    setPseudoLoading(true);
+    setPseudoError("");
+    try {
+      await updatePseudo(pseudo);
+      await refreshProfil();
+      toastSuccess("Pseudo mis à jour !");
+    } catch (err: any) {
+      setPseudoError(err.message);
+      toastError(err.message);
+    } finally {
+      setPseudoLoading(false);
+    }
+  };
+
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!oldPassword || !newPassword || !confirmPassword) {
+      setPasswordError("Tous les champs sont requis.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError("Les nouveaux mots de passe ne correspondent pas.");
+      return;
+    }
+    if (newPassword.length < 6) {
+      setPasswordError("Le mot de passe doit contenir au moins 6 caractères.");
+      return;
+    }
+    setPasswordLoading(true);
+    setPasswordError("");
+    try {
+      await changePassword(oldPassword, newPassword);
+      toastSuccess("Mot de passe modifié avec succès.");
+      setOldPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (err: any) {
+      setPasswordError(err.message);
+      toastError(err.message);
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
   const handleFinalDelete = async () => {
     if (deleteConfirmInput !== "supprimer mon compte") return;
     setLoading(true);
-
     try {
-      // 1. Feedback optionnel
       if (deleteReason) {
         await supabase
           .from("suppression_feedbacks")
           .insert({ raison: deleteReason });
       }
-
-      // 2. Suppression du compte (nécessite une session valide)
       const { error: deleteError } = await supabase.rpc("delete_user_account");
       if (deleteError) {
-        alert("Erreur technique lors de la suppression. Contactez l'admin.");
+        toastError("Erreur technique lors de la suppression.");
         setLoading(false);
         return;
       }
-
-      // 3. Déconnexion pour invalider les cookies
       await signOut();
-
-      // 4. Redirection
       router.push("/");
     } catch (err) {
       console.error("Erreur suppression:", err);
-      alert("Une erreur est survenue. Veuillez réessayer.");
+      toastError("Une erreur est survenue. Veuillez réessayer.");
       setLoading(false);
     }
   };
@@ -182,7 +243,128 @@ export default function ParametresPage() {
           </div>
         </section>
 
-        {/* SECTION 3 : SÉCURITÉ */}
+        {/* SECTION 3 : COMPTE (Pseudo & Mot de passe) */}
+        <section className="space-y-6">
+          <div className="flex items-center gap-2 text-accent font-bold">
+            <UserIcon className="w-5 h-5" />
+            <h2 className="text-lg uppercase tracking-wider">
+              Informations personnelles
+            </h2>
+          </div>
+
+          <div className="glass-card p-6 space-y-6 rounded-[2rem] border border-border/40">
+            {/* Pseudo */}
+            <div>
+              <h3 className="text-sm font-bold mb-3 flex items-center gap-2">
+                <UserIcon className="w-4 h-4 text-accent/70" />
+                Pseudo
+              </h3>
+              <form onSubmit={handlePseudoSubmit} className="space-y-3">
+                <input
+                  type="text"
+                  value={pseudo}
+                  onChange={(e) => setPseudo(e.target.value)}
+                  placeholder="Votre pseudo"
+                  className="input-field"
+                  disabled={pseudoLoading}
+                />
+                {pseudoError && (
+                  <p className="text-xs text-error">{pseudoError}</p>
+                )}
+                <button
+                  type="submit"
+                  disabled={pseudoLoading || pseudo === profil?.pseudo}
+                  className="text-sm px-4 py-2 rounded-lg bg-accent/10 text-accent border border-accent/20 hover:bg-accent/20 transition-colors disabled:opacity-40"
+                >
+                  {pseudoLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    "Mettre à jour le pseudo"
+                  )}
+                </button>
+              </form>
+            </div>
+
+            <div className="h-px bg-border/40 w-full" />
+
+            {/* Mot de passe */}
+            <div>
+              <h3 className="text-sm font-bold mb-3 flex items-center gap-2">
+                <KeyRound className="w-4 h-4 text-accent/70" />
+                Changer le mot de passe
+              </h3>
+              <form onSubmit={handlePasswordSubmit} className="space-y-3">
+                <div className="relative">
+                  <input
+                    type={showOldPassword ? "text" : "password"}
+                    value={oldPassword}
+                    onChange={(e) => setOldPassword(e.target.value)}
+                    placeholder="Mot de passe actuel"
+                    className="input-field pr-10"
+                    disabled={passwordLoading}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowOldPassword(!showOldPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                  >
+                    {showOldPassword ? "🙈" : "👁️"}
+                  </button>
+                </div>
+                <div className="relative">
+                  <input
+                    type={showNewPassword ? "text" : "password"}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Nouveau mot de passe"
+                    className="input-field pr-10"
+                    disabled={passwordLoading}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                  >
+                    {showNewPassword ? "🙈" : "👁️"}
+                  </button>
+                </div>
+                <div className="relative">
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Confirmer le nouveau mot de passe"
+                    className="input-field pr-10"
+                    disabled={passwordLoading}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                  >
+                    {showConfirmPassword ? "🙈" : "👁️"}
+                  </button>
+                </div>
+                {passwordError && (
+                  <p className="text-xs text-error">{passwordError}</p>
+                )}
+                <button
+                  type="submit"
+                  disabled={passwordLoading}
+                  className="text-sm px-4 py-2 rounded-lg bg-accent/10 text-accent border border-accent/20 hover:bg-accent/20 transition-colors disabled:opacity-40"
+                >
+                  {passwordLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    "Modifier le mot de passe"
+                  )}
+                </button>
+              </form>
+            </div>
+          </div>
+        </section>
+
+        {/* SECTION 4 : SÉCURITÉ */}
         <section className="space-y-6">
           <div className="flex items-center gap-2 text-error font-bold">
             <Lock className="w-5 h-5" />
@@ -210,7 +392,7 @@ export default function ParametresPage() {
         </section>
       </div>
 
-      {/* BOUTON SAUVEGARDER */}
+      {/* BOUTON SAUVEGARDER PRÉFÉRENCES */}
       <div className="sticky bottom-6 flex justify-end">
         <button
           onClick={handleSavePreferences}
@@ -231,7 +413,7 @@ export default function ParametresPage() {
         </button>
       </div>
 
-      {/* MODALE SUPPRESSION */}
+      {/* MODALE SUPPRESSION (inchangée) */}
       {showDeleteModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
           <div className="bg-card border border-error/30 p-8 rounded-[2.5rem] max-w-md w-full space-y-6 shadow-2xl scale-in-center">

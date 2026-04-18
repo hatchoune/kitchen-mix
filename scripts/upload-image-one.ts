@@ -1,21 +1,5 @@
 /* =============================================================
    Kitchen Mix — Upload d'UNE seule image de recette
-   
-   Usage :
-
-   Option A — le fichier porte exactement le nom du slug :
-     (ex: images-recettes/gratin-blettes-bechamel-thermomix.jpg)
-     npm run images:one -- --slug gratin-blettes-bechamel-thermomix
-
-   Option B — le fichier a un nom quelconque :
-     npm run images:one -- --slug gratin-blettes-bechamel-thermomix --file images-recettes/mon-gratin.jpg
-
-   Ce que fait le script :
-     - Compresse l'image en WebP (max 1200×800, 80% qualité)
-     - L'uploade dans le bucket Supabase "recettes-images"
-     - Met à jour image_url de la recette ciblée en BDD
-
-   Prérequis : sharp installé + .env.local configuré
    ============================================================= */
 
 import { readFileSync, readdirSync, existsSync } from "fs";
@@ -23,15 +7,22 @@ import { resolve, extname, join } from "path";
 import { createClient } from "@supabase/supabase-js";
 import sharp from "sharp";
 
-// ─── Config (identique à upload-images.ts) ───────────────────
 const IMAGES_DIR = resolve(process.cwd(), "images-recettes");
 const BUCKET = "recettes-images";
 const MAX_WIDTH = 1200;
 const MAX_HEIGHT = 800;
 const QUALITY = 80;
-const IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".tiff"];
+const IMAGE_EXTENSIONS = [
+  ".jpg",
+  ".jpeg",
+  ".png",
+  ".webp",
+  ".gif",
+  ".bmp",
+  ".tiff",
+];
 
-// ─── Charger .env.local ──────────────────────────────────────
+// Charger .env.local
 try {
   const envPath = resolve(process.cwd(), ".env.local");
   const envFile = readFileSync(envPath, "utf-8");
@@ -58,7 +49,7 @@ if (!supabaseUrl || !serviceRoleKey) {
 
 const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-// ─── Arguments CLI ───────────────────────────────────────────
+// Arguments CLI
 const args = process.argv.slice(2);
 
 function getArg(name: string): string | null {
@@ -67,17 +58,21 @@ function getArg(name: string): string | null {
 }
 
 const targetSlug = getArg("--slug");
-const targetFile = getArg("--file"); // chemin relatif ou absolu, optionnel
+const targetFile = getArg("--file");
 
 if (!targetSlug) {
   console.error("❌ Slug manquant.");
-  console.error("   Usage : npm run images:one -- --slug <slug> [--file images-recettes/photo.jpg]");
+  console.error(
+    "   Usage : npm run images:one -- --slug <slug> [--file images-recettes/photo.jpg]",
+  );
   process.exit(1);
 }
 
-// ─── Trouver le fichier image ────────────────────────────────
+// Garantie que targetSlug est une string
+const slug: string = targetSlug;
+
+// Trouver le fichier image
 function findImageFile(slug: string, explicitFile: string | null): string {
-  // Option B : fichier explicitement fourni
   if (explicitFile) {
     const absPath = resolve(process.cwd(), explicitFile);
     if (!existsSync(absPath)) {
@@ -87,10 +82,11 @@ function findImageFile(slug: string, explicitFile: string | null): string {
     return absPath;
   }
 
-  // Option A : chercher dans images-recettes/ un fichier dont le nom (sans extension) = slug exact
   if (!existsSync(IMAGES_DIR)) {
     console.error(`❌ Dossier images-recettes/ introuvable.`);
-    console.error(`   Créez-le et placez-y votre image : mkdir images-recettes`);
+    console.error(
+      `   Créez-le et placez-y votre image : mkdir images-recettes`,
+    );
     process.exit(1);
   }
 
@@ -103,25 +99,28 @@ function findImageFile(slug: string, explicitFile: string | null): string {
   });
 
   if (!match) {
-    console.error(`❌ Aucun fichier nommé "${slug}.[jpg|png|webp|...]" trouvé dans images-recettes/`);
+    console.error(
+      `❌ Aucun fichier nommé "${slug}.[jpg|png|webp|...]" trouvé dans images-recettes/`,
+    );
     console.error(`\n   Solutions :`);
     console.error(`   1. Renommez votre fichier : ${slug}.jpg`);
-    console.error(`   2. Ou précisez le chemin : npm run images:one -- --slug ${slug} --file images-recettes/votre-photo.jpg`);
+    console.error(
+      `   2. Ou précisez le chemin : npm run images:one -- --slug ${slug} --file images-recettes/votre-photo.jpg`,
+    );
     process.exit(1);
   }
 
   return join(IMAGES_DIR, match);
 }
 
-// ─── Main ────────────────────────────────────────────────────
 async function main() {
-  console.log(`\n🖼️  Upload image — slug : "${targetSlug}"\n`);
+  console.log(`\n🖼️  Upload image — slug : "${slug}"\n`);
 
-  // 1. Vérifier que la recette existe en BDD
+  // 1. Vérifier que la recette existe
   const { data: recette, error: dbError } = await supabase
     .from("recettes")
     .select("slug, titre, image_url")
-    .eq("slug", targetSlug)
+    .eq("slug", slug)
     .maybeSingle();
 
   if (dbError) {
@@ -130,8 +129,12 @@ async function main() {
   }
 
   if (!recette) {
-    console.error(`❌ Aucune recette trouvée avec le slug "${targetSlug}" en base de données.`);
-    console.error(`   Vérifiez le slug ou insérez d'abord la recette avec : npm run seed:one -- --slug ${targetSlug}`);
+    console.error(
+      `❌ Aucune recette trouvée avec le slug "${slug}" en base de données.`,
+    );
+    console.error(
+      `   Vérifiez le slug ou insérez d'abord la recette avec : npm run seed:one -- --slug ${slug}`,
+    );
     process.exit(1);
   }
 
@@ -143,7 +146,7 @@ async function main() {
   }
 
   // 2. Trouver le fichier
-  const filePath = findImageFile(targetSlug, targetFile);
+  const filePath = findImageFile(slug, targetFile);
   console.log(`📁 Fichier source : ${filePath}`);
 
   // 3. Compresser en WebP
@@ -157,15 +160,15 @@ async function main() {
   const compressedSize = Math.round(compressed.length / 1024);
   console.log(`   ${originalSize} KB → ${compressedSize} KB WebP`);
 
-  // 4. Uploader dans le bucket Supabase
-  const fileName = `${targetSlug}.webp`;
+  // 4. Uploader dans Supabase
+  const fileName = `${slug}.webp`;
   console.log(`☁️  Upload dans le bucket "${BUCKET}"...`);
 
   const { error: uploadError } = await supabase.storage
     .from(BUCKET)
     .upload(fileName, compressed, {
       contentType: "image/webp",
-      upsert: true, // remplace si déjà présent
+      upsert: true,
     });
 
   if (uploadError) {
@@ -174,7 +177,9 @@ async function main() {
   }
 
   // 5. Récupérer l'URL publique
-  const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(fileName);
+  const { data: urlData } = supabase.storage
+    .from(BUCKET)
+    .getPublicUrl(fileName);
   const publicUrl = urlData.publicUrl;
   console.log(`   URL publique : ${publicUrl}`);
 
@@ -183,14 +188,16 @@ async function main() {
   const { error: updateError } = await supabase
     .from("recettes")
     .update({ image_url: publicUrl })
-    .eq("slug", targetSlug);
+    .eq("slug", slug);
 
   if (updateError) {
     console.error(`❌ Erreur mise à jour BDD : ${updateError.message}`);
     process.exit(1);
   }
 
-  console.log(`\n🎉 Image uploadée et liée avec succès à "${recette.titre}" !\n`);
+  console.log(
+    `\n🎉 Image uploadée et liée avec succès à "${recette.titre}" !\n`,
+  );
 }
 
 main().catch(console.error);

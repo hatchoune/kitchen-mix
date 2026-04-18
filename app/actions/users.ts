@@ -81,7 +81,10 @@ export async function banUser(userId: string, reason: string) {
     .eq("user_id", userId);
   if (userPlannings && userPlannings.length > 0) {
     const planIds = userPlannings.map((p) => p.id);
-    await adminClient.from("planning_likes").delete().in("planning_id", planIds);
+    await adminClient
+      .from("planning_likes")
+      .delete()
+      .in("planning_id", planIds);
     await adminClient
       .from("planning_favorites")
       .delete()
@@ -103,10 +106,7 @@ export async function banUser(userId: string, reason: string) {
   // Profil
   await adminClient.from("profils").delete().eq("id", userId);
   // Newsletter
-  await adminClient
-    .from("newsletter_subscribers")
-    .delete()
-    .eq("email", email);
+  await adminClient.from("newsletter_subscribers").delete().eq("email", email);
 
   // 5. Supprimer le compte auth (dernière étape)
   const { error: deleteError } =
@@ -195,4 +195,82 @@ export async function checkBannedEmail(email: string): Promise<boolean> {
     .maybeSingle();
 
   return !!data;
+}
+
+// ═══ Mise à jour du pseudo ───────────────────────────────────
+
+export async function updatePseudo(newPseudo: string) {
+  const supabase = await createServerSupabase();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) throw new Error("Non autorisé");
+
+  if (!newPseudo || newPseudo.trim().length < 2) {
+    throw new Error("Le pseudo doit contenir au moins 2 caractères.");
+  }
+  if (newPseudo.length > 30) {
+    throw new Error("Le pseudo ne doit pas dépasser 30 caractères.");
+  }
+
+  // Vérifier l'unicité du pseudo (optionnel mais recommandé)
+  const { data: existing } = await supabase
+    .from("profils")
+    .select("id")
+    .eq("pseudo", newPseudo.trim())
+    .neq("id", user.id)
+    .maybeSingle();
+
+  if (existing) {
+    throw new Error("Ce pseudo est déjà utilisé.");
+  }
+
+  const { error } = await supabase
+    .from("profils")
+    .update({ pseudo: newPseudo.trim(), updated_at: new Date().toISOString() })
+    .eq("id", user.id);
+
+  if (error) throw new Error(error.message);
+
+  return { success: true };
+}
+
+// ═══ Changement de mot de passe ──────────────────────────────
+
+export async function changePassword(oldPassword: string, newPassword: string) {
+  const supabase = await createServerSupabase();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) throw new Error("Non autorisé");
+
+  if (!oldPassword || !newPassword) {
+    throw new Error("Les deux champs sont requis.");
+  }
+  if (newPassword.length < 6) {
+    throw new Error(
+      "Le nouveau mot de passe doit contenir au moins 6 caractères.",
+    );
+  }
+
+  // Vérifier l'ancien mot de passe via signIn (éphémère)
+  const { error: signInError } = await supabase.auth.signInWithPassword({
+    email: user.email!,
+    password: oldPassword,
+  });
+
+  if (signInError) {
+    throw new Error("L'ancien mot de passe est incorrect.");
+  }
+
+  // Mettre à jour le mot de passe
+  const { error: updateError } = await supabase.auth.updateUser({
+    password: newPassword,
+  });
+
+  if (updateError) throw new Error(updateError.message);
+
+  return { success: true };
 }
