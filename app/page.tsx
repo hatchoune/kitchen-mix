@@ -16,6 +16,8 @@ import type { Metadata } from "next";
 import { SITE_URL } from "@/lib/constants";
 import MonAppareilFilter from "@/components/ui/MonAppareilFilter";
 import RotatingTypewriter from "@/components/ui/RotatingTypewriter";
+import styles from "./page.module.css";
+import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Kitchen Mix | Recettes pour Thermomix, Companion & Cook Expert",

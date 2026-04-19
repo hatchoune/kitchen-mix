@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import SearchBar from "@/components/ui/SearchBar";
+import RecetteGrid from "@/components/recettes/RecetteGrid";
 import RecetteFiltres from "@/components/recettes/RecetteFiltres";
 import { SkeletonGrid } from "@/components/ui/SkeletonCard";
-import RecettesListeClient from "@/components/recettes/RecettesListeClient";
-import { DEFAULT_PAGE_SIZE, SITE_URL } from "@/lib/constants";
+import { rechercherRecettes } from "@/app/actions/recherche";
+import { DEFAULT_PAGE_SIZE, SITE_URL, TEMPS_OPTIONS } from "@/lib/constants";
 import type { RecetteFilters } from "@/types";
-import { TEMPS_OPTIONS } from "@/lib/constants";
+import ScrollToResults from "./ScrollToResults";
 
 export const revalidate = 1800;
 
@@ -29,8 +31,8 @@ interface PageProps {
 
 export default async function RecettesPage({ searchParams }: PageProps) {
   const params = await searchParams;
+  const query = params.q || "";
 
-  // Construction des filtres (identique à ce qui était dans RecettesResults)
   const tempsOption = params.temps
     ? TEMPS_OPTIONS.find((t) => t.value === params.temps)
     : undefined;
@@ -48,24 +50,58 @@ export default async function RecettesPage({ searchParams }: PageProps) {
       temps_min: tempsOption.min,
       temps_max: tempsOption.max,
     }),
+    q: query || undefined,
   };
+
+  // Détermine si on doit scroller (recherche textuelle ou au moins un filtre actif)
+  const hasFilters = Object.entries(params).some(
+    ([key, value]) => key !== "q" && value !== undefined && value !== "",
+  );
+  const shouldScroll = query !== "" || hasFilters;
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="font-display font-bold text-3xl">Recettes</h1>
-        <p className="text-muted-foreground mt-2">
-          Trouvez la recette parfaite pour votre robot cuiseur.
-        </p>
+      <div className="space-y-4">
+        <h1 className="font-display font-bold text-3xl">
+          {query ? `Recherche : "${query}"` : "Toutes les recettes"}
+        </h1>
+        <SearchBar defaultValue={query} size="large" />
       </div>
 
-      <Suspense fallback={<div className="h-20 skeleton rounded-xl" />}>
+      <Suspense fallback={<div className="h-16 skeleton rounded-xl" />}>
         <RecetteFiltres />
       </Suspense>
 
-      <Suspense fallback={<SkeletonGrid count={12} />}>
-        <RecettesListeClient filters={filters} />
-      </Suspense>
+      <ScrollToResults shouldScroll={shouldScroll}>
+        <div id="search-results" className="space-y-4 scroll-mt-20">
+          <Suspense fallback={<SkeletonGrid count={12} />}>
+            <SearchResults filters={filters} query={query} />
+          </Suspense>
+        </div>
+      </ScrollToResults>
     </div>
+  );
+}
+
+async function SearchResults({
+  filters,
+  query,
+}: {
+  filters: RecetteFilters;
+  query: string;
+}) {
+  const { data: recettes, count } = await rechercherRecettes(
+    filters.q || "",
+    filters,
+  );
+
+  return (
+    <>
+      <p className="text-sm text-muted-foreground">
+        {count} résultat{count > 1 ? "s" : ""}
+        {query ? ` pour "${query}"` : ""}
+      </p>
+      <RecetteGrid recettes={recettes} />
+    </>
   );
 }

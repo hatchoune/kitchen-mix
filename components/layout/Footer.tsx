@@ -57,7 +57,6 @@ export default function Footer() {
             </h3>
             <ul className="space-y-2">
               {[
-                { href: "/recherche", label: "Recherche" },
                 { href: "/planificateur", label: "Planificateur" },
                 { href: "/favoris", label: "Mes Favoris" },
                 { href: "/profil", label: "Mon Profil" },

@@ -8,6 +8,7 @@ import BottomNav from "@/components/layout/BottomNav";
 import "./globals.css";
 import { Space_Grotesk, Inter } from "next/font/google";
 import QueryProvider from "@/components/QueryProvider";
+import BackgroundWrapper from "@/components/layout/BackgroundWrapper";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -104,7 +105,7 @@ export default function RootLayout({
           <Providers>
             <Navbar />
             <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-              {children}
+              <BackgroundWrapper>{children}</BackgroundWrapper>
             </main>
             <Footer />
             <BottomNav />

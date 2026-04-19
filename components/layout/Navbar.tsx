@@ -32,7 +32,6 @@ import { cn } from "@/lib/utils";
 const NAV_LINKS = [
   { href: "/", label: "Accueil", icon: Home },
   { href: "/recettes", label: "Recettes", icon: BookOpen },
-  { href: "/recherche", label: "Recherche", icon: Search },
   { href: "/planificateur", label: "Planning", icon: Calendar },
   { href: "/mes-plannings", label: "Mes plannings", icon: Calendar },
   { href: "/soumettre", label: "Proposer", icon: PlusCircle },

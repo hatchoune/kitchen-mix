@@ -112,6 +112,7 @@ app/
     error.tsx
     loading.tsx
     page.tsx
+    ScrollToResults.tsx
   recherche/
     page.tsx
   sitemap-images.xml/
@@ -160,6 +161,7 @@ components/
     NewsletterForm.tsx
     NutriScore.tsx
     RecipeImage.tsx
+    RotatingTypewriter.tsx
     SearchBar.tsx
     SkeletonCard.tsx
     StarRating.tsx
@@ -306,6 +308,36 @@ vercel.json
 
 <files>
 This section contains the contents of the repository's files.
+
+<file path="app/recettes/ScrollToResults.tsx">
+"use client";
+
+import { useEffect, useRef } from "react";
+
+interface ScrollToResultsProps {
+  shouldScroll: boolean;
+  children: React.ReactNode;
+}
+
+export default function ScrollToResults({
+  shouldScroll,
+  children,
+}: ScrollToResultsProps) {
+  const hasScrolled = useRef(false);
+
+  useEffect(() => {
+    if (shouldScroll && !hasScrolled.current) {
+      const element = document.getElementById("search-results");
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth", block: "start" });
+        hasScrolled.current = true;
+      }
+    }
+  }, [shouldScroll]);
+
+  return <>{children}</>;
+}
+</file>
 
 <file path="app/a-propos/layout.tsx">
 // app/a-propos/layout.tsx
@@ -3788,7 +3820,6 @@ export default function robots(): MetadataRoute.Robots {
           "/planificateur/",
           "/connexion/",
           "/admin/",
-          "/recherche/",
         ],
       },
     ],
@@ -5165,6 +5196,148 @@ export default function RecipeImage({
         <LogoIcon className="w-16 h-16 opacity-30" />
       </div>
     </div>
+  );
+}
+</file>
+
+<file path="components/ui/RotatingTypewriter.tsx">
+"use client";
+
+import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
+
+const PHRASES = [
+  "Enfin un seul site pour tous vos robots !",
+  "Thermomix, Companion, Airfryer, Cookeo et plus encore.",
+  "Votre planificateur de repas devient universel.",
+];
+
+const TYPING_SPEED = 50;
+const PAUSE_BETWEEN = 2000;
+const VAPORIZE_LETTER_DELAY = 20;
+
+export default function RotatingTypewriter() {
+  const [displayText, setDisplayText] = useState("");
+  const [phraseIndex, setPhraseIndex] = useState(0);
+  const [isVaporizing, setIsVaporizing] = useState(false);
+  const [isFinished, setIsFinished] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const vaporizeTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Effet de frappe (uniquement si l'animation n'est pas terminée)
+  useEffect(() => {
+    if (isFinished) return;
+
+    const currentPhrase = PHRASES[phraseIndex];
+
+    const tick = () => {
+      if (!isVaporizing) {
+        if (displayText.length < currentPhrase.length) {
+          setDisplayText(currentPhrase.slice(0, displayText.length + 1));
+        } else {
+          // Fin de frappe : programme la vaporisation après une pause
+          vaporizeTimerRef.current = setTimeout(() => {
+            setIsVaporizing(true);
+          }, PAUSE_BETWEEN);
+          return;
+        }
+      }
+
+      if (!isVaporizing) {
+        timeoutRef.current = setTimeout(tick, TYPING_SPEED);
+      }
+    };
+
+    // Nettoie les anciens timers
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    if (vaporizeTimerRef.current) clearTimeout(vaporizeTimerRef.current);
+
+    // Démarre la frappe
+    timeoutRef.current = setTimeout(tick, TYPING_SPEED);
+
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      if (vaporizeTimerRef.current) clearTimeout(vaporizeTimerRef.current);
+    };
+  }, [displayText, isVaporizing, phraseIndex, isFinished]);
+
+  // Callback quand toutes les lettres d'une phrase se sont évaporées
+  const handleVaporizeComplete = () => {
+    setIsVaporizing(false);
+    setDisplayText("");
+
+    // Si on vient de terminer la troisième phrase (index 2), on passe en mode "fini"
+    if (phraseIndex === PHRASES.length - 1) {
+      setIsFinished(true);
+    } else {
+      setPhraseIndex((prev) => prev + 1);
+    }
+  };
+
+  // Rendu final : "Kitchen Mix" en orange, fixe
+  if (isFinished) {
+    return (
+      <h1 className="font-display font-bold max-w-3xl mx-auto text-4xl sm:text-5xl md:text-6xl text-accent">
+        Kitchen Mix
+      </h1>
+    );
+  }
+
+  // Rendu pendant l'animation
+  return (
+    <h1 className="font-display font-bold max-w-3xl mx-auto text-3xl sm:text-4xl min-h-[4.5rem] sm:min-h-[6rem] flex items-center justify-center">
+      <span className="relative inline-block">
+        <AnimatePresence mode="wait">
+          {!isVaporizing ? (
+            <motion.span
+              key={`typing-${phraseIndex}`}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="text-foreground"
+            >
+              {displayText}
+              <span
+                className={cn(
+                  "ml-1 inline-block w-[2px] h-[1.2em] -mb-1 bg-accent",
+                  "animate-pulse",
+                )}
+              />
+            </motion.span>
+          ) : (
+            <motion.span
+              key={`vaporizing-${phraseIndex}`}
+              className="text-foreground inline-block"
+            >
+              {displayText.split("").map((char, index) => (
+                <motion.span
+                  key={index}
+                  initial={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                  animate={{
+                    opacity: 0,
+                    y: -20,
+                    filter: "blur(4px)",
+                    transition: {
+                      delay: index * (VAPORIZE_LETTER_DELAY / 1000),
+                      duration: 0.2,
+                    },
+                  }}
+                  onAnimationComplete={
+                    index === displayText.length - 1
+                      ? handleVaporizeComplete
+                      : undefined
+                  }
+                  className="inline-block"
+                >
+                  {char === " " ? "\u00A0" : char}
+                </motion.span>
+              ))}
+            </motion.span>
+          )}
+        </AnimatePresence>
+      </span>
+    </h1>
   );
 }
 </file>
@@ -21190,12 +21363,14 @@ export default async function ProfilPublicPage({
 <file path="app/recettes/page.tsx">
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import SearchBar from "@/components/ui/SearchBar";
+import RecetteGrid from "@/components/recettes/RecetteGrid";
 import RecetteFiltres from "@/components/recettes/RecetteFiltres";
 import { SkeletonGrid } from "@/components/ui/SkeletonCard";
-import RecettesListeClient from "@/components/recettes/RecettesListeClient";
-import { DEFAULT_PAGE_SIZE, SITE_URL } from "@/lib/constants";
+import { rechercherRecettes } from "@/app/actions/recherche";
+import { DEFAULT_PAGE_SIZE, SITE_URL, TEMPS_OPTIONS } from "@/lib/constants";
 import type { RecetteFilters } from "@/types";
-import { TEMPS_OPTIONS } from "@/lib/constants";
+import ScrollToResults from "./ScrollToResults";
 
 export const revalidate = 1800;
 
@@ -21219,8 +21394,8 @@ interface PageProps {
 
 export default async function RecettesPage({ searchParams }: PageProps) {
   const params = await searchParams;
+  const query = params.q || "";
 
-  // Construction des filtres (identique à ce qui était dans RecettesResults)
   const tempsOption = params.temps
     ? TEMPS_OPTIONS.find((t) => t.value === params.temps)
     : undefined;
@@ -21238,47 +21413,65 @@ export default async function RecettesPage({ searchParams }: PageProps) {
       temps_min: tempsOption.min,
       temps_max: tempsOption.max,
     }),
+    q: query || undefined,
   };
+
+  // Détermine si on doit scroller (recherche textuelle ou au moins un filtre actif)
+  const hasFilters = Object.entries(params).some(
+    ([key, value]) => key !== "q" && value !== undefined && value !== "",
+  );
+  const shouldScroll = query !== "" || hasFilters;
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="font-display font-bold text-3xl">Recettes</h1>
-        <p className="text-muted-foreground mt-2">
-          Trouvez la recette parfaite pour votre robot cuiseur.
-        </p>
+      <div className="space-y-4">
+        <h1 className="font-display font-bold text-3xl">
+          {query ? `Recherche : "${query}"` : "Toutes les recettes"}
+        </h1>
+        <SearchBar defaultValue={query} size="large" />
       </div>
 
-      <Suspense fallback={<div className="h-20 skeleton rounded-xl" />}>
+      <Suspense fallback={<div className="h-16 skeleton rounded-xl" />}>
         <RecetteFiltres />
       </Suspense>
 
-      <Suspense fallback={<SkeletonGrid count={12} />}>
-        <RecettesListeClient filters={filters} />
-      </Suspense>
+      <ScrollToResults shouldScroll={shouldScroll}>
+        <div id="search-results" className="space-y-4 scroll-mt-20">
+          <Suspense fallback={<SkeletonGrid count={12} />}>
+            <SearchResults filters={filters} query={query} />
+          </Suspense>
+        </div>
+      </ScrollToResults>
     </div>
+  );
+}
+
+async function SearchResults({
+  filters,
+  query,
+}: {
+  filters: RecetteFilters;
+  query: string;
+}) {
+  const { data: recettes, count } = await rechercherRecettes(
+    filters.q || "",
+    filters,
+  );
+
+  return (
+    <>
+      <p className="text-sm text-muted-foreground">
+        {count} résultat{count > 1 ? "s" : ""}
+        {query ? ` pour "${query}"` : ""}
+      </p>
+      <RecetteGrid recettes={recettes} />
+    </>
   );
 }
 </file>
 
 <file path="app/recherche/page.tsx">
-import type { Metadata } from "next";
-import { Suspense } from "react";
-import SearchBar from "@/components/ui/SearchBar";
-import RecetteGrid from "@/components/recettes/RecetteGrid";
-import RecetteFiltres from "@/components/recettes/RecetteFiltres";
-import { SkeletonGrid } from "@/components/ui/SkeletonCard";
-import { rechercherRecettes } from "@/app/actions/recherche";
-import { SITE_URL, TEMPS_OPTIONS } from "@/lib/constants";
-import { Search } from "lucide-react";
-
-export const metadata: Metadata = {
-  title: "Rechercher une recette — Robot cuiseur multifonction",
-  description:
-    "Trouvez la recette parfaite pour votre robot cuiseur. Recherchez par nom, ingrédient, catégorie ou régime alimentaire.",
-  alternates: { canonical: `${SITE_URL}/recherche` },
-  robots: { index: false, follow: false }, // ← ajout
-};
+import { redirect } from "next/navigation";
 
 interface PageProps {
   searchParams: Promise<Record<string, string | undefined>>;
@@ -21286,64 +21479,10 @@ interface PageProps {
 
 export default async function RecherchePage({ searchParams }: PageProps) {
   const params = await searchParams;
-  const query = params.q || "";
-
-  return (
-    <div className="space-y-8">
-      <div className="space-y-4">
-        <h1 className="font-display font-bold text-3xl">Recherche</h1>
-        <SearchBar defaultValue={query} size="large" autoFocus />
-      </div>
-
-      <Suspense fallback={<div className="h-16 skeleton rounded-xl" />}>
-        <RecetteFiltres />
-      </Suspense>
-
-      {query ? (
-        <Suspense fallback={<SkeletonGrid count={6} />}>
-          <SearchResults query={query} params={params} />
-        </Suspense>
-      ) : (
-        <div className="text-center py-20 space-y-4">
-          <Search className="w-12 h-12 text-muted-foreground mx-auto" />
-          <p className="text-muted-foreground text-lg">
-            Tapez un mot-clé pour chercher une recette.
-          </p>
-        </div>
-      )}
-    </div>
-  );
-}
-
-async function SearchResults({
-  query,
-  params,
-}: {
-  query: string;
-  params: Record<string, string | undefined>;
-}) {
-  const tempsOption = params.temps
-    ? TEMPS_OPTIONS.find((t) => t.value === params.temps)
-    : undefined;
-
-  const { data: recettes, count } = await rechercherRecettes(query, {
-    categorie: params.categorie,
-    modele: params.modele,
-    page: params.page ? parseInt(params.page) : 1,
-    ...(tempsOption && {
-      temps_min: tempsOption.min,
-      temps_max: tempsOption.max,
-    }),
-  });
-
-  return (
-    <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">
-        {count} résultat{count > 1 ? "s" : ""} pour &quot;{query}&quot;
-      </p>
-      <RecetteGrid recettes={recettes} />
-    </div>
-  );
+  const queryString = new URLSearchParams(
+    params as Record<string, string>,
+  ).toString();
+  redirect(`/recettes${queryString ? `?${queryString}` : ""}`);
 }
 </file>
 
@@ -21463,161 +21602,6 @@ export default function RootLayout({
       </body>
     </html>
   );
-}
-</file>
-
-<file path="app/page.tsx">
-import Link from "next/link";
-import { ArrowRight, Flame, Clock } from "lucide-react";
-import Logo from "@/components/ui/Logo";
-import SearchBar from "@/components/ui/SearchBar";
-import RecetteGrid from "@/components/recettes/RecetteGrid";
-import { SkeletonGrid } from "@/components/ui/SkeletonCard";
-import NewsletterForm from "@/components/ui/NewsletterForm";
-import {
-  getRecettesTendances,
-  getDernieresRecettes,
-} from "@/lib/supabase/queries";
-import { getWebSiteJsonLd, getOrganizationJsonLd, safeJsonLd } from "@/lib/seo";
-import { CATEGORIES } from "@/lib/constants";
-import { Suspense } from "react";
-import type { Metadata } from "next";
-import { SITE_URL } from "@/lib/constants";
-import MonAppareilFilter from "@/components/ui/MonAppareilFilter";
-
-export const metadata: Metadata = {
-  title: "Kitchen Mix | Recettes pour Thermomix, Companion & Cook Expert",
-  description:
-    "Découvrez des centaines de recettes faciles et rapides pour votre robot cuiseur multifonction. Plats, desserts, soupes et planificateur de repas intégré.",
-  alternates: { canonical: SITE_URL },
-};
-
-export default function HomePage() {
-  return (
-    <div className="space-y-16">
-      {/* JSON-LD WebSite schema (sitelinks searchbox) */}
-
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: safeJsonLd(getWebSiteJsonLd()) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: safeJsonLd(getOrganizationJsonLd()),
-        }}
-      />
-      {/* Hero */}
-      <section className="text-center pt-12 pb-8 space-y-6">
-        <h1 className="font-display font-bold max-w-3xl mx-auto text-3xl sm:text-4xl">
-          Des recettes <span className="text-accent">savoureuses</span> pour
-          votre Robot Cuiseur Multifonction
-        </h1>
-
-        <p className="text-muted-foreground text-lg max-w-xl mx-auto leading-relaxed">
-          Découvrez, cuisinez et partagez 🍛 Simulateur intégré, planificateur
-          de repas 📆 et communauté passionnée.
-        </p>
-
-        <div className="max-w-lg mx-auto">
-          <SearchBar size="large" placeholder="Que voulez-vous cuisiner ?" />
-        </div>
-      </section>
-
-      {/* Category pills */}
-      <section>
-        <div className="flex flex-wrap items-center justify-center gap-2">
-          <MonAppareilFilter basePath="/recettes" />
-          <Link
-            href="/recettes?temps=express"
-            className="px-4 py-2 rounded-full text-sm font-medium bg-accent/10 text-accent border border-accent/20 hover:bg-accent/20 transition-all"
-          >
-            ⚡ Express
-          </Link>
-          <Link
-            href="/recettes?temps=rapide"
-            className="px-4 py-2 rounded-full text-sm font-medium bg-accent/10 text-accent border border-accent/20 hover:bg-accent/20 transition-all"
-          >
-            🕒 Rapide
-          </Link>
-          {CATEGORIES.map((cat) => (
-            <Link
-              key={cat.value}
-              href={`/recettes?categorie=${cat.value}`}
-              className="px-4 py-2 rounded-full text-sm font-medium bg-card border border-border hover:bg-accent/10 hover:text-accent hover:border-accent/20 transition-all"
-            >
-              {cat.label}
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      {/* Tendances — Bento grid */}
-      <section className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h2 className="font-display font-bold flex items-center gap-2">
-            <Flame className="w-6 h-6 text-accent" />
-            Tendances
-          </h2>
-          <Link
-            href="/recettes?tri=populaire"
-            className="flex items-center gap-1 text-sm text-accent hover:underline"
-          >
-            Tout voir <ArrowRight className="w-4 h-4" />
-          </Link>
-        </div>
-
-        <Suspense fallback={<SkeletonGrid count={7} />}>
-          <TendancesGrid />
-        </Suspense>
-      </section>
-
-      {/* Dernières recettes */}
-      <section className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h2 className="font-display font-bold flex items-center gap-2">
-            <Clock className="w-6 h-6 text-accent" />
-            Dernières recettes
-          </h2>
-          <Link
-            href="/recettes"
-            className="flex items-center gap-1 text-sm text-accent hover:underline"
-          >
-            Tout voir <ArrowRight className="w-4 h-4" />
-          </Link>
-        </div>
-
-        <Suspense fallback={<SkeletonGrid count={6} />}>
-          <DernieresGrid />
-        </Suspense>
-      </section>
-
-      {/* Newsletter */}
-      <section className="max-w-xl mx-auto text-center space-y-4">
-        <h2 className="font-display font-bold">
-          Recevez nos meilleures recettes
-        </h2>
-        <p className="text-muted-foreground">
-          Inscrivez-vous à notre newsletter pour recevoir chaque semaine de
-          nouvelles recettes pour votre Robot Cuiseur Multifonction directement
-          dans votre boîte mail.
-        </p>
-        <NewsletterForm />
-      </section>
-    </div>
-  );
-}
-
-// ─── Async Server Components ─────────────────────────────────
-
-async function TendancesGrid() {
-  const recettes = await getRecettesTendances(7);
-  return <RecetteGrid recettes={recettes} bento />;
-}
-
-async function DernieresGrid() {
-  const recettes = await getDernieresRecettes(6);
-  return <RecetteGrid recettes={recettes} />;
 }
 </file>
 
@@ -29731,6 +29715,158 @@ function TimePicker({
 }
 </file>
 
+<file path="app/page.tsx">
+import Link from "next/link";
+import { ArrowRight, Flame, Clock } from "lucide-react";
+import Logo from "@/components/ui/Logo";
+import SearchBar from "@/components/ui/SearchBar";
+import RecetteGrid from "@/components/recettes/RecetteGrid";
+import { SkeletonGrid } from "@/components/ui/SkeletonCard";
+import NewsletterForm from "@/components/ui/NewsletterForm";
+import {
+  getRecettesTendances,
+  getDernieresRecettes,
+} from "@/lib/supabase/queries";
+import { getWebSiteJsonLd, getOrganizationJsonLd, safeJsonLd } from "@/lib/seo";
+import { CATEGORIES } from "@/lib/constants";
+import { Suspense } from "react";
+import type { Metadata } from "next";
+import { SITE_URL } from "@/lib/constants";
+import MonAppareilFilter from "@/components/ui/MonAppareilFilter";
+import RotatingTypewriter from "@/components/ui/RotatingTypewriter";
+
+export const metadata: Metadata = {
+  title: "Kitchen Mix | Recettes pour Thermomix, Companion & Cook Expert",
+  description:
+    "Découvrez des centaines de recettes faciles et rapides pour votre robot cuiseur multifonction. Plats, desserts, soupes et planificateur de repas intégré.",
+  alternates: { canonical: SITE_URL },
+};
+
+export default function HomePage() {
+  return (
+    <div className="space-y-16">
+      {/* JSON-LD WebSite schema (sitelinks searchbox) */}
+
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(getWebSiteJsonLd()) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: safeJsonLd(getOrganizationJsonLd()),
+        }}
+      />
+      {/* Hero */}
+      <section className="text-center pt-12 pb-8 space-y-6">
+        <RotatingTypewriter />
+        <p className="text-muted-foreground text-lg max-w-xl mx-auto leading-relaxed">
+          Découvrez, cuisinez et partagez 🍛 Simulateur intégré, planificateur
+          de repas 📆 et communauté passionnée.
+        </p>
+
+        <div className="max-w-lg mx-auto">
+          <SearchBar size="large" placeholder="Que voulez-vous cuisiner ?" />
+        </div>
+      </section>
+
+      {/* Category pills */}
+      <section>
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <MonAppareilFilter basePath="/recettes" />
+          <Link
+            href="/recettes?temps=express"
+            className="px-4 py-2 rounded-full text-sm font-medium bg-accent/10 text-accent border border-accent/20 hover:bg-accent/20 transition-all"
+          >
+            ⚡ Express
+          </Link>
+          <Link
+            href="/recettes?temps=rapide"
+            className="px-4 py-2 rounded-full text-sm font-medium bg-accent/10 text-accent border border-accent/20 hover:bg-accent/20 transition-all"
+          >
+            🕒 Rapide
+          </Link>
+          {CATEGORIES.map((cat) => (
+            <Link
+              key={cat.value}
+              href={`/recettes?categorie=${cat.value}`}
+              className="px-4 py-2 rounded-full text-sm font-medium bg-card border border-border hover:bg-accent/10 hover:text-accent hover:border-accent/20 transition-all"
+            >
+              {cat.label}
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      {/* Tendances — Bento grid */}
+      <section className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="font-display font-bold flex items-center gap-2">
+            <Flame className="w-6 h-6 text-accent" />
+            Tendances
+          </h2>
+          <Link
+            href="/recettes?tri=populaire"
+            className="flex items-center gap-1 text-sm text-accent hover:underline"
+          >
+            Tout voir <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
+
+        <Suspense fallback={<SkeletonGrid count={7} />}>
+          <TendancesGrid />
+        </Suspense>
+      </section>
+
+      {/* Dernières recettes */}
+      <section className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="font-display font-bold flex items-center gap-2">
+            <Clock className="w-6 h-6 text-accent" />
+            Dernières recettes
+          </h2>
+          <Link
+            href="/recettes"
+            className="flex items-center gap-1 text-sm text-accent hover:underline"
+          >
+            Tout voir <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
+
+        <Suspense fallback={<SkeletonGrid count={6} />}>
+          <DernieresGrid />
+        </Suspense>
+      </section>
+
+      {/* Newsletter */}
+      <section className="max-w-xl mx-auto text-center space-y-4">
+        <h2 className="font-display font-bold">
+          Recevez nos meilleures recettes
+        </h2>
+        <p className="text-muted-foreground">
+          Inscrivez-vous à notre newsletter pour recevoir chaque semaine de
+          nouvelles recettes pour votre Robot Cuiseur Multifonction directement
+          dans votre boîte mail.
+        </p>
+        <NewsletterForm />
+      </section>
+    </div>
+  );
+}
+
+// ─── Async Server Components ─────────────────────────────────
+
+async function TendancesGrid() {
+  const recettes = await getRecettesTendances(7);
+  return <RecetteGrid recettes={recettes} bento />;
+}
+
+async function DernieresGrid() {
+  const recettes = await getDernieresRecettes(6);
+  return <RecetteGrid recettes={recettes} />;
+}
+</file>
+
 <file path="components/layout/Footer.tsx">
 import Link from "next/link";
 import Logo from "@/components/ui/Logo";
@@ -29791,7 +29927,6 @@ export default function Footer() {
             </h3>
             <ul className="space-y-2">
               {[
-                { href: "/recherche", label: "Recherche" },
                 { href: "/planificateur", label: "Planificateur" },
                 { href: "/favoris", label: "Mes Favoris" },
                 { href: "/profil", label: "Mon Profil" },
@@ -30858,6 +30993,7 @@ export async function rateRecipe(recetteId: string, rating: number) {
 
 import { createServerSupabase } from "@/lib/supabase/server";
 import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
+import type { RecetteFilters, RecetteCard } from "@/types";
 
 const CARD_FIELDS = `
   id, slug, titre, description, image_url,
@@ -30869,61 +31005,72 @@ const CARD_FIELDS = `
 
 export async function rechercherRecettes(
   query: string,
-  filters?: {
-    categorie?: string;
-    modele?: string;
-    temps_min?: number;
-    temps_max?: number;
-    page?: number;
-    limit?: number;
-  },
-) {
-  // Validation longueur + sanitisation
-  if (!query?.trim() || query.length > 200) {
-    return { data: [], count: 0, page: 1, limit: DEFAULT_PAGE_SIZE };
-  }
-  const safeQuery = query.replace(/[%_,]/g, "\\$&").trim();
-
+  filters: RecetteFilters = {},
+): Promise<{ data: RecetteCard[]; count: number }> {
   const supabase = await createServerSupabase();
-  const page = filters?.page || 1;
-  const limit = filters?.limit || DEFAULT_PAGE_SIZE;
+  const page = filters.page || 1;
+  const limit = filters.limit || DEFAULT_PAGE_SIZE;
   const offset = (page - 1) * limit;
 
   let dbQuery = supabase
     .from("recettes")
     .select(CARD_FIELDS, { count: "exact" })
     .eq("approuve", true)
-    .eq("publie", true)
-    .or(`titre.ilike.%${safeQuery}%,description.ilike.%${safeQuery}%`);
+    .eq("publie", true);
 
-  if (filters?.categorie) {
+  if (query && query.trim().length > 0) {
+    const safeQuery = query.replace(/[%_,]/g, "\\$&").trim();
+    dbQuery = dbQuery.or(
+      `titre.ilike.%${safeQuery}%,description.ilike.%${safeQuery}%`,
+    );
+  }
+
+  if (filters.categorie) {
     dbQuery = dbQuery.contains("categories", [filters.categorie]);
   }
-  if (filters?.modele) {
+  if (filters.modele) {
     dbQuery = dbQuery.contains("modele_thermomix", [filters.modele]);
   }
+  if (filters.difficulte) {
+    dbQuery = dbQuery.eq("difficulte", filters.difficulte);
+  }
+  if (filters.regime) {
+    dbQuery = dbQuery.contains("regime", [filters.regime]);
+  }
+  if (filters.nutriscore) {
+    dbQuery = dbQuery.eq("nutriscore", filters.nutriscore);
+  }
 
-  // ─── Filtre durée (point 2) — utilise la colonne générée temps_total ───
-  if (filters?.temps_min) {
+  if (filters.temps_min !== undefined) {
     dbQuery = dbQuery.gte("temps_total", filters.temps_min);
   }
-  if (filters?.temps_max && filters.temps_max < 9999) {
+  if (filters.temps_max !== undefined && filters.temps_max < 9999) {
     dbQuery = dbQuery.lte("temps_total", filters.temps_max);
   }
 
-  dbQuery = dbQuery
-    .order("note_moyenne", { ascending: false })
-    .range(offset, offset + limit - 1);
+  switch (filters.tri) {
+    case "populaire":
+      dbQuery = dbQuery.order("vues", { ascending: false });
+      break;
+    case "mieux_note":
+      dbQuery = dbQuery.order("note_moyenne", { ascending: false });
+      break;
+    case "rapide":
+      dbQuery = dbQuery.order("temps_total", { ascending: true });
+      break;
+    default:
+      dbQuery = dbQuery.order("created_at", { ascending: false });
+  }
+
+  dbQuery = dbQuery.range(offset, offset + limit - 1);
 
   const { data, count, error } = await dbQuery;
 
   if (error) throw new Error(error.message);
 
   return {
-    data: data || [],
+    data: (data || []) as RecetteCard[],
     count: count || 0,
-    page,
-    limit,
   };
 }
 </file>
@@ -32636,60 +32783,6 @@ export async function getRecettesEnAttente(): Promise<Recette[]> {
 }
 </file>
 
-<file path="package.json">
-{
-  "name": "kitchen-mix",
-  "version": "1.0.0",
-  "private": true,
-  "description": "Kitchen Mix — Recettes Thermomix premium",
-  "scripts": {
-    "dev": "next dev --turbopack",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint",
-    "seed": "npx tsx scripts/seed.ts",
-    "seed:lot2": "npx tsx scripts/seed-lot2.ts",
-    "seed:companion": "npx tsx scripts/seed-companion.ts",
-    "seed:cook-expert": "npx tsx scripts/seed-cook-expert.ts",
-    "reset:recettes": "npx tsx scripts/reset-recettes.ts",
-    "type-check": "tsc --noEmit",
-    "seed:mega": "npx tsx scripts/seed-mega.ts",
-    "seed:one": "npx tsx scripts/seed-one.ts",
-    "images": "npx tsx scripts/upload-images.ts",
-    "images:one": "npx tsx scripts/upload-image-one.ts"
-  },
-  "dependencies": {
-    "@hookform/resolvers": "^3.10.0",
-    "@supabase/ssr": "^0.6.1",
-    "@supabase/supabase-js": "^2.49.4",
-    "@tanstack/react-query": "^5.97.0",
-    "browser-image-compression": "^2.0.2",
-    "dotenv": "^17.4.0",
-    "framer-motion": "^12.6.3",
-    "lucide-react": "^0.474.0",
-    "next": "^15.3.1",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
-    "react-hook-form": "^7.54.2",
-    "react-image-crop": "^11.0.10",
-    "zod": "^3.24.2"
-  },
-  "devDependencies": {
-    "@types/node": "^22.14.1",
-    "@types/react": "^19.1.2",
-    "@types/react-dom": "^19.1.2",
-    "autoprefixer": "^10.4.21",
-    "eslint": "^9.25.0",
-    "eslint-config-next": "^15.3.1",
-    "postcss": "^8.5.3",
-    "sharp": "^0.34.5",
-    "tailwindcss": "^3.4.17",
-    "tsx": "^4.19.3",
-    "typescript": "^5.8.3"
-  }
-}
-</file>
-
 <file path="app/profil/page.tsx">
 "use client";
 
@@ -34248,6 +34341,60 @@ export interface NotificationEnriched extends Notification {
 }
 </file>
 
+<file path="package.json">
+{
+  "name": "kitchen-mix",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Kitchen Mix — Recettes Thermomix premium",
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "seed": "npx tsx scripts/seed.ts",
+    "seed:lot2": "npx tsx scripts/seed-lot2.ts",
+    "seed:companion": "npx tsx scripts/seed-companion.ts",
+    "seed:cook-expert": "npx tsx scripts/seed-cook-expert.ts",
+    "reset:recettes": "npx tsx scripts/reset-recettes.ts",
+    "type-check": "tsc --noEmit",
+    "seed:mega": "npx tsx scripts/seed-mega.ts",
+    "seed:one": "npx tsx scripts/seed-one.ts",
+    "images": "npx tsx scripts/upload-images.ts",
+    "images:one": "npx tsx scripts/upload-image-one.ts"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "^3.10.0",
+    "@supabase/ssr": "^0.6.1",
+    "@supabase/supabase-js": "^2.49.4",
+    "@tanstack/react-query": "^5.97.0",
+    "browser-image-compression": "^2.0.2",
+    "dotenv": "^17.4.0",
+    "framer-motion": "^12.38.0",
+    "lucide-react": "^0.474.0",
+    "next": "^15.3.1",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-hook-form": "^7.54.2",
+    "react-image-crop": "^11.0.10",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.1",
+    "@types/react": "^19.1.2",
+    "@types/react-dom": "^19.1.2",
+    "autoprefixer": "^10.4.21",
+    "eslint": "^9.25.0",
+    "eslint-config-next": "^15.3.1",
+    "postcss": "^8.5.3",
+    "sharp": "^0.34.5",
+    "tailwindcss": "^3.4.17",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.3"
+  }
+}
+</file>
+
 <file path="components/recettes/SimulateurThermomix.tsx">
 "use client";
 
@@ -35799,7 +35946,6 @@ import { cn } from "@/lib/utils";
 const NAV_LINKS = [
   { href: "/", label: "Accueil", icon: Home },
   { href: "/recettes", label: "Recettes", icon: BookOpen },
-  { href: "/recherche", label: "Recherche", icon: Search },
   { href: "/planificateur", label: "Planning", icon: Calendar },
   { href: "/mes-plannings", label: "Mes plannings", icon: Calendar },
   { href: "/soumettre", label: "Proposer", icon: PlusCircle },
