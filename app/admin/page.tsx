@@ -641,9 +641,12 @@ export default function AdminPage() {
                 className="glass-card p-4 flex items-center justify-between"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-bold truncate">
+                  <Link
+                    href={`/profil/${u.id}`}
+                    className="text-sm font-bold truncate hover:text-accent hover:underline transition-colors"
+                  >
                     {u.pseudo || "Sans pseudo"}
-                  </p>
+                  </Link>
                   <p className="text-xs text-muted-foreground">{u.email}</p>
                   <p className="text-[10px] text-muted-foreground mt-0.5">
                     Inscrit le{" "}

@@ -239,7 +239,8 @@ export type NotificationType =
   | "comment_reply"
   | "recipe_comment"
   | "recipe_favorite"
-  | "recipe_rating";
+  | "recipe_rating"
+  | "planning_unsaved_reminder"; // NEW: rappel système pour sauvegarder le planning
 
 export interface NotificationMetadata {
   recette_titre?: string | null;

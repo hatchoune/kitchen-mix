@@ -15,6 +15,8 @@ export const NOTIFICATION_TYPE_LABELS: Record<NotificationType, string> = {
   recipe_comment: "a commenté votre recette",
   recipe_favorite: "a ajouté votre recette à ses favoris",
   recipe_rating: "a noté votre recette",
+  planning_unsaved_reminder:
+    "Pensez à sauvegarder votre planning en cours — il restera en mémoire mais la sauvegarde vous permettra de le retrouver partout.",
 };
 
 /* ─── Icône emoji associée au type ───────────────────────── */
@@ -25,6 +27,7 @@ export const NOTIFICATION_TYPE_ICONS: Record<NotificationType, string> = {
   recipe_comment: "💬",
   recipe_favorite: "❤️",
   recipe_rating: "⭐",
+  planning_unsaved_reminder: "💾",
 };
 
 /* ─── Tronquer un texte pour l'aperçu ───────────────────── */
@@ -54,20 +57,43 @@ export interface NotificationDisplay {
   href: string | null;
   /** True si le contenu lié (recette) a disparu. */
   isDeleted: boolean;
+  /** True pour les notifications système (pas d'acteur utilisateur). */
+  isSystem: boolean;
 }
 
 /**
  * Transforme une notification enrichie (avec jointures) en un objet
  * prêt pour l'UI. Gère proprement la suppression de la recette ou
- * du commentaire associé.
+ * du commentaire associé, ainsi que les notifications système
+ * (actor_id NULL) comme les rappels de sauvegarde de planning.
  */
 export function buildNotificationDisplay(
   n: NotificationEnriched,
 ): NotificationDisplay {
   const metadata = n.metadata ?? {};
-  const actorPseudo = n.actor?.pseudo || "Un utilisateur";
+  const isSystem = n.actor_id === null;
+
+  const actorPseudo = isSystem
+    ? "Kitchen Mix"
+    : n.actor?.pseudo || "Un utilisateur";
   const actorAvatar = n.actor?.avatar_url ?? null;
   const actionLabel = NOTIFICATION_TYPE_LABELS[n.type];
+
+  // Cas particulier : rappel système de sauvegarde de planning.
+  // Pas de recette / commentaire associé — lien direct vers /planificateur.
+  if (n.type === "planning_unsaved_reminder") {
+    return {
+      actorPseudo,
+      actorAvatar,
+      actionLabel,
+      contextTitle: null,
+      commentPreview: null,
+      rating: null,
+      href: "/planificateur",
+      isDeleted: false,
+      isSystem: true,
+    };
+  }
 
   // Recette : on privilégie la donnée vivante, sinon la métadonnée.
   const liveRecette = n.recette;
@@ -111,6 +137,7 @@ export function buildNotificationDisplay(
     rating,
     href,
     isDeleted,
+    isSystem,
   };
 }
 

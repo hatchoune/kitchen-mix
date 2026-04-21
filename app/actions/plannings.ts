@@ -38,7 +38,7 @@ export async function savePlanning(input: SavePlanningInput) {
       week_start: input.week_start,
       data: input.data,
     })
-    .select("id")
+    .select("id, name, description, is_public")
     .single();
 
   if (error) throw new Error(error.message);
@@ -50,7 +50,73 @@ export async function savePlanning(input: SavePlanningInput) {
   await checkAndUnlockAchievements(user.id, "plan_saved");
 
   revalidatePath("/planificateur");
-  return { id: data.id };
+  return {
+    id: data.id,
+    name: data.name,
+    description: data.description,
+    is_public: data.is_public,
+  };
+}
+
+// ─── Mettre à jour les données d'un planning (auto-save) ──────
+//
+// Utilisé par le planificateur pour synchroniser silencieusement
+// les modifications d'un planning déjà enregistré. Pas de
+// revalidatePath pour éviter de casser la navigation côté client.
+
+export async function updatePlanningData(
+  id: string,
+  data: Record<number, (string | null)[]>,
+) {
+  const supabase = await createServerSupabase();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) throw new Error("Non autorisé");
+
+  const { error } = await supabase
+    .from("user_plannings")
+    .update({ data, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("user_id", user.id);
+
+  if (error) throw new Error(error.message);
+  return { success: true };
+}
+
+// ─── Mettre à jour les métadonnées d'un planning ─────────────
+//
+// Permet de renommer, redécrire ou changer la visibilité d'un
+// planning déjà enregistré, depuis le planificateur (option
+// "Modifier les infos" sur un planning chargé).
+
+export async function updatePlanningMeta(
+  id: string,
+  meta: { name: string; description?: string; is_public: boolean },
+) {
+  const supabase = await createServerSupabase();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) throw new Error("Non autorisé");
+  if (!meta.name?.trim()) throw new Error("Le nom est requis");
+
+  const { error } = await supabase
+    .from("user_plannings")
+    .update({
+      name: meta.name.trim(),
+      description: meta.description?.trim() || null,
+      is_public: meta.is_public,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id)
+    .eq("user_id", user.id);
+
+  if (error) throw new Error(error.message);
+  revalidatePath("/planificateur");
+  return { success: true };
 }
 
 // ─── Récupérer un planning par ID ────────────────────────────
@@ -70,7 +136,9 @@ export async function getPlanning(id: string) {
 
 // ─── Récupérer les recettes d'un planning ────────────────────
 
-export async function getPlanningRecipes(planningData: Record<string, (string | null)[]>) {
+export async function getPlanningRecipes(
+  planningData: Record<string, (string | null)[]>,
+) {
   const supabase = await createServerSupabase();
 
   // Collecter tous les IDs de recettes uniques
@@ -88,7 +156,16 @@ export async function getPlanningRecipes(planningData: Record<string, (string | 
     .select("id, slug, titre, image_url, ingredients")
     .in("id", Array.from(recetteIds));
 
-  const map: Record<string, { id: string; slug: string; titre: string; image_url: string | null; ingredients: unknown[] }> = {};
+  const map: Record<
+    string,
+    {
+      id: string;
+      slug: string;
+      titre: string;
+      image_url: string | null;
+      ingredients: unknown[];
+    }
+  > = {};
   for (const r of data || []) {
     map[r.id] = r;
   }
@@ -222,7 +299,9 @@ export async function getMyPlannings() {
 
   const { data } = await supabase
     .from("user_plannings")
-    .select("id, name, description, is_public, week_start, likes_count, created_at")
+    .select(
+      "id, name, description, is_public, week_start, likes_count, created_at",
+    )
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
 

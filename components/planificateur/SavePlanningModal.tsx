@@ -2,14 +2,37 @@
 
 import { useState } from "react";
 import { X, Save, Loader2, Globe, Lock } from "lucide-react";
-import { savePlanning } from "@/app/actions/plannings";
+import { savePlanning, updatePlanningMeta } from "@/app/actions/plannings";
 import { cn } from "@/lib/utils";
+
+interface SavedPlanningResult {
+  id: string;
+  name: string;
+  description: string | null;
+  is_public: boolean;
+}
 
 interface SavePlanningModalProps {
   weekStart: string;
   planData: Record<number, (string | null)[]>;
   onClose: () => void;
-  onSaved: (id: string) => void;
+  onSaved: (result: SavedPlanningResult) => void;
+  /**
+   * Mode édition : si fourni, le modal modifie les métadonnées d'un
+   * planning existant au lieu d'en créer un nouveau. Utile quand
+   * l'utilisateur veut renommer ou changer la visibilité.
+   */
+  editingPlanning?: {
+    id: string;
+    name: string;
+    description: string | null;
+    is_public: boolean;
+  } | null;
+  /**
+   * Titre personnalisé (ex: "Enregistrer votre nouveau planning"
+   * lors du premier ajout de recette). Défaut : selon le mode.
+   */
+  title?: string;
 }
 
 export default function SavePlanningModal({
@@ -17,10 +40,16 @@ export default function SavePlanningModal({
   planData,
   onClose,
   onSaved,
+  editingPlanning,
+  title,
 }: SavePlanningModalProps) {
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [isPublic, setIsPublic] = useState(false);
+  const isEditing = !!editingPlanning;
+
+  const [name, setName] = useState(editingPlanning?.name ?? "");
+  const [description, setDescription] = useState(
+    editingPlanning?.description ?? "",
+  );
+  const [isPublic, setIsPublic] = useState(editingPlanning?.is_public ?? false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -34,28 +63,55 @@ export default function SavePlanningModal({
     setError("");
 
     try {
-      // Convertir le plan en format stockable (juste les IDs)
-      const data: Record<number, (string | null)[]> = {};
-      for (let d = 0; d < 7; d++) {
-        const slots = planData[d] || [null, null, null];
-        data[d] = slots.map((r) => (r && typeof r === "object" && "id" in r ? (r as { id: string }).id : r));
+      if (isEditing && editingPlanning) {
+        // Mode édition : on modifie juste les métadonnées
+        await updatePlanningMeta(editingPlanning.id, {
+          name: name.trim(),
+          description: description.trim() || undefined,
+          is_public: isPublic,
+        });
+        onSaved({
+          id: editingPlanning.id,
+          name: name.trim(),
+          description: description.trim() || null,
+          is_public: isPublic,
+        });
+      } else {
+        // Mode création : nouveau planning
+        const data: Record<number, (string | null)[]> = {};
+        for (let d = 0; d < 7; d++) {
+          const slots = planData[d] || [null, null, null];
+          data[d] = slots.map((r) =>
+            r && typeof r === "object" && "id" in r
+              ? (r as { id: string }).id
+              : r,
+          );
+        }
+
+        const result = await savePlanning({
+          name: name.trim(),
+          description: description.trim() || undefined,
+          is_public: isPublic,
+          week_start: weekStart,
+          data,
+        });
+
+        onSaved({
+          id: result.id,
+          name: result.name,
+          description: result.description,
+          is_public: result.is_public,
+        });
       }
-
-      const result = await savePlanning({
-        name: name.trim(),
-        description: description.trim() || undefined,
-        is_public: isPublic,
-        week_start: weekStart,
-        data,
-      });
-
-      onSaved(result.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erreur inconnue");
     } finally {
       setSaving(false);
     }
   };
+
+  const displayTitle =
+    title || (isEditing ? "Modifier le planning" : "Enregistrer le planning");
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -67,12 +123,19 @@ export default function SavePlanningModal({
         <div className="flex items-center justify-between">
           <h3 className="font-display font-bold text-xl flex items-center gap-2">
             <Save className="w-5 h-5 text-accent" />
-            Sauvegarder le planning
+            {displayTitle}
           </h3>
-          <button onClick={onClose}>
+          <button onClick={onClose} aria-label="Fermer">
             <X className="w-5 h-5 text-muted-foreground" />
           </button>
         </div>
+
+        {!isEditing && (
+          <p className="text-sm text-muted-foreground -mt-2">
+            Votre planning sera enregistré automatiquement à chaque nouvelle
+            recette ajoutée.
+          </p>
+        )}
 
         <div className="space-y-4">
           <div>
@@ -103,9 +166,7 @@ export default function SavePlanningModal({
           </div>
 
           <div>
-            <label className="text-sm font-medium mb-2 block">
-              Visibilité
-            </label>
+            <label className="text-sm font-medium mb-2 block">Visibilité</label>
             <div className="flex gap-2">
               <button
                 type="button"
@@ -142,9 +203,7 @@ export default function SavePlanningModal({
           </div>
         </div>
 
-        {error && (
-          <p className="text-sm text-error font-medium">{error}</p>
-        )}
+        {error && <p className="text-sm text-error font-medium">{error}</p>}
 
         <button
           onClick={handleSave}
@@ -156,7 +215,13 @@ export default function SavePlanningModal({
           ) : (
             <Save className="w-4 h-4" />
           )}
-          {saving ? "Sauvegarde..." : "Sauvegarder"}
+          {saving
+            ? isEditing
+              ? "Mise à jour..."
+              : "Enregistrement..."
+            : isEditing
+              ? "Mettre à jour"
+              : "Enregistrer le planning"}
         </button>
       </div>
     </div>

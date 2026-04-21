@@ -125,20 +125,26 @@ app/
   globals.css
   layout.tsx
   not-found.tsx
+  page.module.css
   page.tsx
   robots.ts
   sitemap.ts
 components/
   layout/
+    BackgroundWrapper.tsx
     BottomNav.tsx
     Footer.tsx
     LogoIcon.tsx
     Navbar.tsx
     NotificationBell.tsx
   planificateur/
+    PendingRecipeBanner.tsx
     RecipePreviewModal.tsx
     SavePlanningModal.tsx
+    SaveReminder.tsx
   recettes/
+    AddToPlanningButton.tsx
+    AddToPlanningModal.tsx
     IngredientsAjustables.tsx
     RecetteCard.tsx
     RecetteComments.tsx
@@ -173,6 +179,7 @@ components/
 contexts/
   AuthContext.tsx
 hooks/
+  RecettesSimulateur.ts
   useAuth.ts
   useBodyScrollLock.ts
   useFavoris.ts
@@ -242,6 +249,7 @@ lib/
   appliance-specs.ts
   constants.ts
   notifications.ts
+  pending-recipe.ts
   seed-data-companion-lot1.ts
   seed-data-cook-expert.ts
   seed-data-lot2.ts
@@ -260,12 +268,15 @@ lib/
   validation.ts
   watermark.ts
 public/
+  backgrounds/
+    background-accueil.webp
   favicon.ico
   logo.svg
 scripts/
   migration-achievements.sql
   migration-banned-users.sql
   migration-multi-appareils.sql
+  migration-notifications-system.sql
   migration-plannings-publics.sql
   migration-profil-public.sql
   migration-temps-total.sql
@@ -309,34 +320,1054 @@ vercel.json
 <files>
 This section contains the contents of the repository's files.
 
-<file path="app/recettes/ScrollToResults.tsx">
+<file path="components/planificateur/PendingRecipeBanner.tsx">
 "use client";
 
-import { useEffect, useRef } from "react";
+import { Sparkles, X, ArrowDown } from "lucide-react";
+import Image from "next/image";
+import type { PendingRecipe } from "@/lib/pending-recipe";
 
-interface ScrollToResultsProps {
-  shouldScroll: boolean;
-  children: React.ReactNode;
+interface Props {
+  recipe: PendingRecipe;
+  onCancel: () => void;
 }
 
-export default function ScrollToResults({
-  shouldScroll,
-  children,
-}: ScrollToResultsProps) {
-  const hasScrolled = useRef(false);
+/* =============================================================
+   PendingRecipeBanner
+   -------------------------------------------------------------
+   Bannière sticky affichée en haut du planificateur quand une
+   recette est en attente de placement (arrivée via "Ajouter au
+   planning" depuis une page recette).
+   -------------------------------------------------------------
+   - Sticky (reste visible en scroll) pour rappeler l'action à faire
+   - Bouton X pour annuler le placement
+   - Design coloré accent pour attirer l'œil
+   ============================================================= */
 
+export default function PendingRecipeBanner({ recipe, onCancel }: Props) {
+  return (
+    <div className="sticky top-16 z-30 animate-in fade-in slide-in-from-top-4 duration-300">
+      <div className="glass-card px-4 py-3 rounded-xl border-2 border-accent/50 bg-accent/10 shadow-lg shadow-accent/20 flex items-center gap-3">
+        {/* Vignette recette */}
+        <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0 bg-accent/10 flex items-center justify-center border border-accent/20">
+          {recipe.image_url ? (
+            <div className="relative w-full h-full">
+              <Image
+                src={recipe.image_url}
+                alt={recipe.titre}
+                fill
+                className="object-cover"
+                sizes="48px"
+              />
+            </div>
+          ) : (
+            <span className="text-xl">🍽️</span>
+          )}
+        </div>
+
+        {/* Texte */}
+        <div className="flex-1 min-w-0">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-accent flex items-center gap-1">
+            <Sparkles className="w-3 h-3" />
+            Recette à placer
+          </p>
+          <p className="text-sm font-display font-semibold truncate leading-tight">
+            {recipe.titre}
+          </p>
+          <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1">
+            <ArrowDown className="w-3 h-3 animate-bounce" />
+            Cliquez sur un créneau « + Ajouter » ci-dessous
+          </p>
+        </div>
+
+        {/* Annuler */}
+        <button
+          onClick={onCancel}
+          className="shrink-0 p-1.5 rounded-lg text-muted-foreground hover:bg-card-hover hover:text-error transition-colors"
+          aria-label="Annuler l'ajout"
+          title="Annuler"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  );
+}
+</file>
+
+<file path="components/planificateur/SaveReminder.tsx">
+"use client";
+
+import { Save, X, Info } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+interface Props {
+  onSave: () => void;
+  onDismiss: () => void;
+  /** Nombre de recettes dans le planning (affiché pour contextualiser). */
+  recipeCount?: number;
+}
+
+/* =============================================================
+   SaveReminder
+   -------------------------------------------------------------
+   Bannière discrète mais visible rappelant à l'utilisateur de
+   sauvegarder son planning quand il a déjà plusieurs recettes
+   ajoutées. Pas intrusive — un bouton "Sauvegarder" + une croix
+   pour fermer le rappel.
+   ============================================================= */
+
+export default function SaveReminder({
+  onSave,
+  onDismiss,
+  recipeCount,
+}: Props) {
+  return (
+    <div
+      className={cn(
+        "glass-card px-4 py-3 rounded-xl border flex items-center gap-3",
+        "border-accent/30 bg-accent/5",
+        "animate-in fade-in slide-in-from-bottom-2 duration-300",
+      )}
+      role="status"
+      aria-live="polite"
+    >
+      <div className="w-10 h-10 rounded-full bg-accent/15 flex items-center justify-center shrink-0">
+        <Info className="w-5 h-5 text-accent" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-display font-semibold flex items-center gap-1.5">
+          💾 Pensez à sauvegarder votre planning
+        </p>
+        <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
+          {recipeCount && recipeCount >= 2
+            ? `Vos ${recipeCount} recettes restent en mémoire, mais la sauvegarde vous permet de retrouver ce planning partout.`
+            : "Vos recettes restent en mémoire, mais la sauvegarde vous permet de retrouver ce planning partout."}
+        </p>
+      </div>
+      <button
+        onClick={onSave}
+        className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg bg-accent text-black text-xs font-bold hover:bg-accent-hover transition-colors"
+      >
+        <Save className="w-3.5 h-3.5" />
+        Sauvegarder
+      </button>
+      <button
+        onClick={onDismiss}
+        className="shrink-0 p-1.5 rounded-lg text-muted-foreground hover:bg-card-hover transition-colors"
+        aria-label="Fermer le rappel"
+        title="Fermer le rappel"
+      >
+        <X className="w-4 h-4" />
+      </button>
+    </div>
+  );
+}
+</file>
+
+<file path="components/recettes/AddToPlanningButton.tsx">
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { CalendarPlus } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import AddToPlanningModal from "./AddToPlanningModal";
+import type { Recette } from "@/types";
+
+interface Props {
+  recette: Pick<Recette, "id" | "slug" | "titre" | "image_url">;
+}
+
+/* =============================================================
+   AddToPlanningButton
+   -------------------------------------------------------------
+   Bouton sur la page recette → ouvre AddToPlanningModal.
+   Si non connecté, redirige vers la page de connexion avec
+   retour sur la recette.
+   ============================================================= */
+
+export default function AddToPlanningButton({ recette }: Props) {
+  const { user } = useAuth();
+  const [open, setOpen] = useState(false);
+
+  if (!user) {
+    return (
+      <Link
+        href={`/connexion?next=/recettes/${recette.slug}`}
+        className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-card border border-border hover:bg-card-hover transition-colors no-print"
+        title="Connectez-vous pour ajouter cette recette à un planning"
+        aria-label="Ajouter au planning (connexion requise)"
+      >
+        <CalendarPlus className="w-4 h-4" />
+        <span className="hidden sm:inline">Ajouter au planning</span>
+        <span className="sm:hidden">Planning</span>
+      </Link>
+    );
+  }
+
+  return (
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-accent/10 text-accent hover:bg-accent/20 border border-accent/25 transition-colors no-print"
+        aria-label="Ajouter cette recette à un planning"
+      >
+        <CalendarPlus className="w-4 h-4" />
+        <span className="hidden sm:inline">Ajouter au planning</span>
+        <span className="sm:hidden">Planning</span>
+      </button>
+
+      {open && (
+        <AddToPlanningModal
+          recette={recette}
+          onClose={() => setOpen(false)}
+        />
+      )}
+    </>
+  );
+}
+</file>
+
+<file path="components/recettes/AddToPlanningModal.tsx">
+"use client";
+
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import {
+  X,
+  Calendar,
+  Plus,
+  Globe,
+  Lock,
+  Loader2,
+  ThumbsUp,
+  Sparkles,
+} from "lucide-react";
+import Image from "next/image";
+import { createClient } from "@/lib/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
+import { setPendingRecipe } from "@/lib/pending-recipe";
+import { cn } from "@/lib/utils";
+import type { Recette } from "@/types";
+
+interface UserPlanning {
+  id: string;
+  name: string;
+  description: string | null;
+  is_public: boolean;
+  week_start: string;
+  likes_count: number;
+  created_at: string;
+}
+
+interface Props {
+  recette: Pick<Recette, "id" | "slug" | "titre" | "image_url">;
+  onClose: () => void;
+}
+
+/* =============================================================
+   AddToPlanningModal
+   -------------------------------------------------------------
+   - Liste scrollable des plannings sauvegardés de l'utilisateur
+     (séparation privés / publics comme /mes-plannings)
+   - Bouton "Nouveau planning" toujours en tête de liste
+   - Au clic : stocke la recette en sessionStorage (pont mémoire)
+     et redirige vers /planificateur avec le bon contexte :
+       • Planning existant → ?load={id}&pending=1
+       • Nouveau planning  → ?new=1&pending=1
+   - Le planificateur reconnaît ?pending=1, affiche une bannière
+     "Recette à placer" et l'assigne au slot cliqué par l'utilisateur.
+   ============================================================= */
+
+export default function AddToPlanningModal({ recette, onClose }: Props) {
+  const { user } = useAuth();
+  const router = useRouter();
+  const [supabase] = useState(() => createClient());
+  const [plannings, setPlannings] = useState<UserPlanning[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Scroll lock du body tant que le modal est ouvert (iOS-safe).
+  useBodyScrollLock(true);
+
+  // Fermeture au clavier (Échap)
   useEffect(() => {
-    if (shouldScroll && !hasScrolled.current) {
-      const element = document.getElementById("search-results");
-      if (element) {
-        element.scrollIntoView({ behavior: "smooth", block: "start" });
-        hasScrolled.current = true;
-      }
-    }
-  }, [shouldScroll]);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
 
-  return <>{children}</>;
+  // Charge les plannings de l'utilisateur
+  useEffect(() => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
+    const load = async () => {
+      const { data } = await supabase
+        .from("user_plannings")
+        .select(
+          "id, name, description, is_public, week_start, likes_count, created_at",
+        )
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+      if (cancelled) return;
+      setPlannings((data || []) as UserPlanning[]);
+      setLoading(false);
+    };
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [user, supabase]);
+
+  const handleSelectPlanning = (planningId: string) => {
+    setPendingRecipe({
+      id: recette.id,
+      slug: recette.slug,
+      titre: recette.titre,
+      image_url: recette.image_url,
+    });
+    onClose();
+    router.push(`/planificateur?load=${planningId}&pending=1`);
+  };
+
+  const handleCreateNew = () => {
+    setPendingRecipe({
+      id: recette.id,
+      slug: recette.slug,
+      titre: recette.titre,
+      image_url: recette.image_url,
+    });
+    onClose();
+    router.push(`/planificateur?new=1&pending=1`);
+  };
+
+  const prives = plannings.filter((p) => !p.is_public);
+  const publics = plannings.filter((p) => p.is_public);
+  const hasAny = plannings.length > 0;
+
+  return (
+    <div className="fixed inset-0 z-[100] h-[100dvh] overscroll-none flex items-end sm:items-center justify-center">
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
+
+      {/* Bottom sheet mobile / modal centré desktop */}
+      <div
+        className="relative z-10 w-full h-[85dvh] sm:h-auto sm:max-h-[85dvh] sm:max-w-md sm:mx-4 rounded-t-2xl sm:rounded-2xl flex flex-col animate-slide-up pb-safe"
+        style={{ backgroundColor: "var(--color-bg)" }}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Ajouter à un planning"
+      >
+        {/* Poignée mobile */}
+        <div className="absolute top-2 left-1/2 -translate-x-1/2 w-10 h-1 rounded-full bg-border sm:hidden" />
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-border shrink-0">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-5 h-5 text-accent" />
+            <h3 className="font-display font-bold text-lg">
+              Ajouter à un planning
+            </h3>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 -mr-2 rounded-lg hover:bg-card-hover transition-colors"
+            aria-label="Fermer"
+          >
+            <X className="w-5 h-5 text-muted-foreground" />
+          </button>
+        </div>
+
+        {/* Bandeau recette sélectionnée */}
+        <div className="px-5 py-3 border-b border-border shrink-0 flex items-center gap-3 bg-accent/5">
+          <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 bg-accent/10 flex items-center justify-center">
+            {recette.image_url ? (
+              <div className="relative w-full h-full">
+                <Image
+                  src={recette.image_url}
+                  alt={recette.titre}
+                  fill
+                  className="object-cover"
+                  sizes="40px"
+                />
+              </div>
+            ) : (
+              <span className="text-lg">🍽️</span>
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-accent flex items-center gap-1">
+              <Sparkles className="w-3 h-3" />
+              Recette à ajouter
+            </p>
+            <p className="text-sm font-medium truncate">{recette.titre}</p>
+          </div>
+        </div>
+
+        {/* Contenu scrollable */}
+        <div className="flex-1 overflow-y-auto overscroll-contain px-5 py-4 space-y-4">
+          {/* Nouveau planning — toujours visible en tête */}
+          <button
+            onClick={handleCreateNew}
+            className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl border-2 border-dashed border-accent/40 hover:border-accent hover:bg-accent/5 transition-all group"
+          >
+            <div className="w-10 h-10 rounded-full bg-accent/15 flex items-center justify-center text-accent shrink-0 group-hover:scale-110 transition-transform">
+              <Plus className="w-5 h-5" />
+            </div>
+            <div className="flex-1 text-left">
+              <p className="font-display font-bold text-sm">
+                Nouveau planning
+              </p>
+              <p className="text-[11px] text-muted-foreground leading-tight">
+                {hasAny
+                  ? "Démarrer une semaine vierge avec cette recette"
+                  : "Démarrez votre première semaine avec cette recette"}
+              </p>
+            </div>
+          </button>
+
+          {/* Loading */}
+          {loading && (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-5 h-5 animate-spin text-accent" />
+            </div>
+          )}
+
+          {/* État vide */}
+          {!loading && !hasAny && (
+            <div className="text-center py-4 text-xs text-muted-foreground">
+              Aucun planning sauvegardé pour le moment.
+            </div>
+          )}
+
+          {/* Plannings privés */}
+          {!loading && prives.length > 0 && (
+            <section className="space-y-2">
+              <h4 className="font-display font-semibold text-[11px] flex items-center gap-1.5 text-muted-foreground uppercase tracking-wider">
+                <Lock className="w-3 h-3" />
+                Privés ({prives.length})
+              </h4>
+              <div className="space-y-1.5">
+                {prives.map((p) => (
+                  <PlanningChoice
+                    key={p.id}
+                    planning={p}
+                    onSelect={() => handleSelectPlanning(p.id)}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Plannings publics */}
+          {!loading && publics.length > 0 && (
+            <section className="space-y-2">
+              <h4 className="font-display font-semibold text-[11px] flex items-center gap-1.5 text-muted-foreground uppercase tracking-wider">
+                <Globe className="w-3 h-3" />
+                Publics ({publics.length})
+              </h4>
+              <div className="space-y-1.5">
+                {publics.map((p) => (
+                  <PlanningChoice
+                    key={p.id}
+                    planning={p}
+                    onSelect={() => handleSelectPlanning(p.id)}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+        </div>
+
+        {/* Footer info */}
+        <div className="px-5 py-2.5 border-t border-border shrink-0">
+          <p className="text-[10px] text-muted-foreground text-center leading-snug">
+            Vous choisirez le jour et le repas dans le planificateur.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
 }
+
+/* ─── Ligne de choix ─────────────────────────────────────── */
+
+function PlanningChoice({
+  planning,
+  onSelect,
+}: {
+  planning: UserPlanning;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      onClick={onSelect}
+      className={cn(
+        "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border border-border",
+        "hover:border-accent/40 hover:bg-accent/5 transition-all text-left group",
+      )}
+    >
+      <div className="w-9 h-9 rounded-lg bg-accent/10 flex items-center justify-center shrink-0 group-hover:bg-accent/20 transition-colors">
+        <Calendar className="w-4 h-4 text-accent" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="font-display font-semibold text-sm truncate group-hover:text-accent transition-colors">
+          {planning.name}
+        </p>
+        <div className="flex items-center gap-2 text-[10px] text-muted-foreground mt-0.5">
+          <span>
+            {new Date(planning.created_at).toLocaleDateString("fr-FR", {
+              day: "numeric",
+              month: "short",
+            })}
+          </span>
+          {planning.is_public && (
+            <span className="flex items-center gap-0.5">
+              <ThumbsUp className="w-2.5 h-2.5" />
+              {planning.likes_count}
+            </span>
+          )}
+          {planning.description && (
+            <span className="truncate">· {planning.description}</span>
+          )}
+        </div>
+      </div>
+    </button>
+  );
+}
+</file>
+
+<file path="hooks/RecettesSimulateur.ts">
+"use client";
+
+import { useState, useEffect, useCallback, useRef } from "react";
+import { createPortal } from "react-dom";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Thermometer,
+  Timer,
+  Gauge,
+  UtensilsCrossed,
+  RotateCw,
+  Check,
+  X,
+  Mic,
+  MicOff,
+} from "lucide-react";
+import type { EtapeThermomix } from "@/types";
+import { useWakeLock } from "@/hooks/useWakeLock";
+import { useVoiceCommand } from "@/hooks/useVoiceCommand"; // <-- NOUVEAU HOOK
+
+interface SimulateurProps {
+  isOpen: boolean;
+  onClose: () => void;
+  etapes: EtapeThermomix[];
+  titre: string;
+}
+
+export default function SimulateurThermomix({
+  isOpen,
+  onClose,
+  etapes,
+  titre,
+}: SimulateurProps) {
+  const [currentStep, setCurrentStep] = useState(0);
+  const [isPortrait, setIsPortrait] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const { request: requestWakeLock, release: releaseWakeLock } = useWakeLock();
+  const touchStartX = useRef<number | null>(null);
+  const pushedHistoryRef = useRef(false);
+
+  // ─── Contrôle vocal ────────────────────────────────────────────
+  const [voiceEnabled, setVoiceEnabled] = useState(false);
+
+  const handleVoiceCommand = useCallback((command: string) => {
+    // Le hook appelle déjà la fonction, mais on pourrait logger ici si besoin
+    console.log(`[Voice] Commande reconnue: ${command}`);
+  }, []);
+
+  const { isListening, error: voiceError, isSupported } = useVoiceCommand({
+    enabled: voiceEnabled && isOpen, // Actif seulement si le modal est ouvert et le toggle activé
+    lang: "fr-FR",
+    commands: {
+      "suivant": goNext,
+      "avance": goNext,
+      "ok": goNext,
+      "précédent": goPrev,
+      "retour": goPrev,
+    },
+    onCommand: handleVoiceCommand,
+  });
+
+  // ─── Portal mount guard (évite hydration mismatch SSR) ─────────────
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // ─── Scroll lock ALLÉGÉ (overflow:hidden sans body:fixed) ──────────
+  useEffect(() => {
+    if (!isOpen) return;
+    const body = document.body;
+    const html = document.documentElement;
+    const prev = {
+      bodyOverflow: body.style.overflow,
+      htmlOverflow: html.style.overflow,
+      htmlOverscroll: html.style.overscrollBehavior,
+    };
+    body.style.overflow = "hidden";
+    html.style.overflow = "hidden";
+    html.style.overscrollBehavior = "none";
+    return () => {
+      body.style.overflow = prev.bodyOverflow;
+      html.style.overflow = prev.htmlOverflow;
+      html.style.overscrollBehavior = prev.htmlOverscroll;
+    };
+  }, [isOpen]);
+
+  // ─── Détection orientation (mobile portrait → alerte rotation) ───
+  useEffect(() => {
+    const checkOrientation = () => {
+      setIsPortrait(
+        window.innerHeight > window.innerWidth && window.innerWidth < 1024,
+      );
+    };
+    checkOrientation();
+    window.addEventListener("resize", checkOrientation);
+    window.addEventListener("orientationchange", checkOrientation);
+    return () => {
+      window.removeEventListener("resize", checkOrientation);
+      window.removeEventListener("orientationchange", checkOrientation);
+    };
+  }, []);
+
+  // ─── Reset au step 0 à chaque ouverture ───────────────────────────
+  useEffect(() => {
+    if (isOpen) setCurrentStep(0);
+    // Désactiver le micro quand on ferme le modal
+    if (!isOpen) setVoiceEnabled(false);
+  }, [isOpen]);
+
+  // ─── WakeLock ──────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!isOpen) return;
+    requestWakeLock();
+    return () => {
+      releaseWakeLock();
+    };
+  }, [isOpen, requestWakeLock, releaseWakeLock]);
+
+  // ─── Bouton RETOUR Android ────────────────────────────────────────
+  useEffect(() => {
+    if (!isOpen) return;
+
+    window.history.pushState({ kmxSimulateur: true }, "");
+    pushedHistoryRef.current = true;
+
+    const onPop = () => {
+      pushedHistoryRef.current = false;
+      onClose();
+    };
+
+    window.addEventListener("popstate", onPop);
+    return () => {
+      window.removeEventListener("popstate", onPop);
+      if (pushedHistoryRef.current) {
+        pushedHistoryRef.current = false;
+        window.history.back();
+      }
+    };
+  }, [isOpen, onClose]);
+
+  // ─── Navigation ────────────────────────────────────────────────────
+  function goNext() {
+    setCurrentStep((s) => Math.min(etapes.length - 1, s + 1));
+  }
+
+  function goPrev() {
+    setCurrentStep((s) => Math.max(0, s - 1));
+  }
+
+  // ─── Raccourcis clavier ────────────────────────────────────────────
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+      else if (e.key === "ArrowRight") goNext();
+      else if (e.key === "ArrowLeft") goPrev();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [isOpen, onClose]);
+
+  // ─── Swipe horizontal ──────────────────────────────────────────────
+  const onTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+  const onTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null) return;
+    const deltaX = e.changedTouches[0].clientX - touchStartX.current;
+    const THRESHOLD = 50;
+    if (deltaX > THRESHOLD) goPrev();
+    else if (deltaX < -THRESHOLD) goNext();
+    touchStartX.current = null;
+  };
+
+  if (!isOpen || !mounted) return null;
+
+  const etape = etapes[currentStep];
+  const isLastStep = currentStep === etapes.length - 1;
+  const progressPct = ((currentStep + 1) / etapes.length) * 100;
+
+  const formatTime = (seconds: number | undefined) => {
+    if (!seconds) return "--:--";
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, "0")}`;
+  };
+
+  const content = (
+    <div
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 100,
+      }}
+      className="bg-neutral-950 text-white overscroll-none flex flex-col"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Mode cuisine guidée"
+    >
+      {/* ─── Overlay rotation (mobile portrait uniquement) ─────────── */}
+      {isPortrait && (
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 110,
+          }}
+          className="bg-black flex flex-col items-center justify-center p-6 text-center overscroll-none"
+        >
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 p-3 bg-accent text-black hover:bg-accent-hover active:scale-95 rounded-full transition-all shadow-lg shadow-accent/30"
+            aria-label="Fermer le mode guidé"
+          >
+            <X className="w-6 h-6" strokeWidth={3} />
+          </button>
+          <div className="animate-bounce mb-4 text-accent">
+            <RotateCw className="w-16 h-16" />
+          </div>
+          <h2 className="text-xl font-bold text-white mb-2">
+            Mode Cuisine Guidée
+          </h2>
+          <p className="text-gray-400">
+            Veuillez pivoter votre téléphone en mode paysage pour cuisiner avec
+            confort.
+          </p>
+        </div>
+      )}
+
+      {/* ─── HEADER ─────────────────────────────────────────────────── */}
+      <header className="shrink-0 bg-black/80 backdrop-blur-sm border-b border-white/10">
+        <div className="flex items-center gap-2 px-2 py-2 sm:px-3">
+          <button
+            onClick={onClose}
+            className="shrink-0 p-2 bg-accent text-black hover:bg-accent-hover active:scale-95 rounded-full transition-all shadow-md shadow-accent/20"
+            aria-label="Fermer le mode guidé"
+          >
+            <X className="w-5 h-5" strokeWidth={3} />
+          </button>
+
+          <h3 className="flex-1 font-display font-bold text-xs sm:text-sm truncate min-w-0">
+            {titre}
+          </h3>
+
+          {/* ─── BOUTON CONTRÔLE VOCAL ───────────────────────────────── */}
+          {isSupported && (
+            <button
+              onClick={() => setVoiceEnabled((prev) => !prev)}
+              className={cn(
+                "shrink-0 p-2 rounded-full transition-all shadow-md relative",
+                voiceEnabled
+                  ? "bg-blue-500 text-white hover:bg-blue-600"
+                  : "bg-white/10 text-gray-400 hover:bg-white/20"
+              )}
+              aria-label={voiceEnabled ? "Désactiver le contrôle vocal" : "Activer le contrôle vocal"}
+              title={voiceEnabled ? "Micro actif - Dites 'Suivant' ou 'Précédent'" : "Activer la commande vocale"}
+            >
+              {voiceEnabled ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
+              {isListening && (
+                <span className="absolute -top-0.5 -right-0.5 flex h-3 w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                </span>
+              )}
+            </button>
+          )}
+
+          <div className="shrink-0 text-[10px] sm:text-xs font-mono bg-accent/20 text-accent px-2.5 py-1 rounded-full border border-accent/30 whitespace-nowrap">
+            {currentStep + 1} / {etapes.length}
+          </div>
+
+          <button
+            onClick={goPrev}
+            disabled={currentStep === 0}
+            className="shrink-0 flex items-center gap-1 px-2 sm:px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10 disabled:opacity-20 transition-all text-xs font-medium"
+            aria-label="Étape précédente"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            <span className="hidden sm:inline">Précédent</span>
+          </button>
+
+          <button
+            onClick={() => (isLastStep ? onClose() : goNext())}
+            className="shrink-0 flex items-center gap-1 px-2 sm:px-3 py-1.5 rounded-full bg-accent text-black hover:scale-105 active:scale-95 transition-all text-xs font-bold shadow-md shadow-accent/20"
+            aria-label={isLastStep ? "Terminer" : "Étape suivante"}
+          >
+            <span className="hidden sm:inline">
+              {isLastStep ? "Terminer" : "Suivant"}
+            </span>
+            {isLastStep ? (
+              <Check className="w-4 h-4" />
+            ) : (
+              <ChevronRight className="w-4 h-4" />
+            )}
+          </button>
+        </div>
+
+        {/* Petite alerte si erreur micro */}
+        {voiceError && voiceEnabled && (
+          <div className="text-[10px] text-red-400 text-center pb-1">
+            {voiceError}
+          </div>
+        )}
+
+        <div className="h-1 w-full bg-white/10 overflow-hidden">
+          <div
+            className="h-full bg-accent shadow-[0_0_10px_rgba(var(--accent-rgb),0.4)] transition-all duration-500 ease-out"
+            style={{ width: `${progressPct}%` }}
+          />
+        </div>
+      </header>
+
+      {/* ─── ZONE CENTRALE ──────────────────────────────────────────── */}
+      <main
+        className="flex-1 overflow-y-auto overscroll-contain p-3 lg:p-8 flex flex-col items-center justify-center gap-3 lg:gap-10"
+        onTouchStart={onTouchStart}
+        onTouchEnd={onTouchEnd}
+      >
+        <div className="flex gap-3 sm:gap-12 justify-center w-full">
+          <CircleParam
+            icon={Timer}
+            value={formatTime(etape.duree)}
+            label="Temps"
+          />
+          <CircleParam
+            icon={Thermometer}
+            value={etape.temperature || "---"}
+            unit="°"
+            label="Temp"
+          />
+          <CircleParam
+            icon={Gauge}
+            value={etape.vitesse || "0"}
+            label="Vitesse"
+          />
+        </div>
+
+        <div className="max-w-4xl w-full text-center px-2">
+          <p className="text-sm sm:text-xl font-medium leading-relaxed text-balance">
+            {etape.instruction}
+          </p>
+          {etape.accessoire && (
+            <div className="mt-4 sm:mt-6 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-accent/10 text-accent border border-accent/20">
+              <UtensilsCrossed className="w-4 h-4" />
+              <span className="text-sm font-bold uppercase tracking-wider">
+                {etape.accessoire}
+              </span>
+            </div>
+          )}
+        </div>
+      </main>
+    </div>
+  );
+
+  // Render via Portal
+  return createPortal(content, document.body);
+}
+
+function CircleParam({ icon: Icon, value, unit, label }: any) {
+  return (
+    <div className="flex flex-col items-center gap-1 lg:gap-2">
+      <div className="w-16 h-16 lg:w-32 lg:h-32 rounded-full border-2 border-white/10 flex flex-col items-center justify-center bg-white/5 backdrop-blur-sm">
+        <Icon className="w-3 h-3 lg:w-6 lg:h-6 text-accent/60 mb-0.5" />
+        <span className="text-sm lg:text-4xl font-bold font-display">
+          {value}
+          {unit}
+        </span>
+      </div>
+      <span className="text-[8px] lg:text-[11px] uppercase tracking-[0.2em] text-gray-500 font-black">
+        {label}
+      </span>
+    </div>
+  );
+}
+
+// Helper cn pour les classes (si tu ne l'as pas déjà importé)
+function cn(...classes: (string | false | null | undefined)[]): string {
+  return classes.filter(Boolean).join(" ");
+}
+</file>
+
+<file path="lib/pending-recipe.ts">
+/* =============================================================
+   Kitchen Mix — Pending Recipe
+   -------------------------------------------------------------
+   Pont mémoire pour "Ajouter au planning" depuis une page recette.
+   Stocke temporairement (sessionStorage, TTL 30 min) la recette
+   que l'utilisateur souhaite placer dans son planning, le temps
+   qu'il sélectionne le jour / créneau cible dans le planificateur.
+
+   Pourquoi sessionStorage :
+   - Se purge automatiquement à la fermeture de l'onglet
+   - Pas d'effet fantôme entre sessions différentes
+   - Sécurité : données sensibles de navigation non persistées
+
+   Note : les helpers de rappel de sauvegarde (getSaveReminderCount,
+   canShowSaveBellNotif, incrementSaveReminderCount) ont été retirés
+   suite à la refonte auto-save du planificateur. L'enregistrement
+   d'un planning est désormais proposé directement au premier ajout
+   de recette, plus besoin de rappels.
+   ============================================================= */
+
+const PENDING_RECIPE_KEY = "kmx-pending-recipe";
+const TTL_MS = 30 * 60 * 1000; // 30 minutes
+
+export interface PendingRecipe {
+  id: string;
+  slug: string;
+  titre: string;
+  image_url: string | null;
+  timestamp: number;
+}
+
+/** Enregistre une recette en attente de placement. */
+export function setPendingRecipe(
+  recipe: Omit<PendingRecipe, "timestamp">,
+): void {
+  if (typeof window === "undefined") return;
+  try {
+    const payload: PendingRecipe = { ...recipe, timestamp: Date.now() };
+    sessionStorage.setItem(PENDING_RECIPE_KEY, JSON.stringify(payload));
+  } catch {
+    // sessionStorage indispo, quota plein, ou mode privé : on ignore
+  }
+}
+
+/** Lit la recette en attente, ou null si expirée / absente. */
+export function getPendingRecipe(): PendingRecipe | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = sessionStorage.getItem(PENDING_RECIPE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as PendingRecipe;
+    if (!parsed.id || !parsed.timestamp) {
+      clearPendingRecipe();
+      return null;
+    }
+    if (Date.now() - parsed.timestamp > TTL_MS) {
+      clearPendingRecipe();
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+/** Efface la recette en attente (après placement ou annulation). */
+export function clearPendingRecipe(): void {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.removeItem(PENDING_RECIPE_KEY);
+  } catch {
+    // ignore
+  }
+}
+</file>
+
+<file path="scripts/migration-notifications-system.sql">
+-- =============================================================
+-- Kitchen Mix — Migration : Notifications Système
+-- -------------------------------------------------------------
+-- Supporte les notifications auto-générées par le système
+-- (pas d'acteur utilisateur), utilisées notamment pour :
+--   - Rappel de sauvegarde de planning en cours
+-- -------------------------------------------------------------
+-- À exécuter UNE SEULE FOIS sur Supabase (SQL Editor).
+-- Idempotent : peut être relancé sans effet de bord.
+-- =============================================================
+
+-- 1) actor_id doit accepter NULL pour les notifications système
+ALTER TABLE notifications
+  ALTER COLUMN actor_id DROP NOT NULL;
+
+-- 2) Étendre la contrainte CHECK sur le type de notification
+--    pour inclure le nouveau type 'planning_unsaved_reminder'.
+--    On drop puis recrée proprement.
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conrelid = 'public.notifications'::regclass
+      AND conname = 'notifications_type_check'
+  ) THEN
+    ALTER TABLE notifications DROP CONSTRAINT notifications_type_check;
+  END IF;
+END $$;
+
+ALTER TABLE notifications
+  ADD CONSTRAINT notifications_type_check
+  CHECK (type IN (
+    'comment_like',
+    'comment_reply',
+    'recipe_comment',
+    'recipe_favorite',
+    'recipe_rating',
+    'planning_unsaved_reminder'
+  ));
+
+-- 3) (Optionnel) Index utile pour le anti-spam 24h
+--    Le filtre se fait sur user_id + type + created_at, l'index
+--    accélère le SELECT COUNT dans notifyUnsavedPlanning.
+CREATE INDEX IF NOT EXISTS notifications_user_type_created_idx
+  ON notifications (user_id, type, created_at DESC);
+
+-- 4) Vérification rapide (à exécuter manuellement si tu veux confirmer)
+-- SELECT column_name, is_nullable
+-- FROM information_schema.columns
+-- WHERE table_name = 'notifications' AND column_name = 'actor_id';
+-- → doit retourner 'YES'
+
+-- SELECT conname, pg_get_constraintdef(oid)
+-- FROM pg_constraint
+-- WHERE conrelid = 'public.notifications'::regclass
+--   AND conname = 'notifications_type_check';
+-- → doit lister les 6 types dont 'planning_unsaved_reminder'
 </file>
 
 <file path="app/a-propos/layout.tsx">
@@ -416,13 +1447,17 @@ import type {
      car l'acteur (auth.uid()) est différent du destinataire.
    - Les LECTURES / MARQUAGES passent par le client utilisateur
      et sont filtrées par RLS (user_id = auth.uid()).
+   - Les notifications SYSTÈME (actor_id = null) comme les
+     rappels de sauvegarde de planning contournent la règle
+     "pas de notif à soi-même" car elles ne viennent d'aucun
+     utilisateur tiers.
    ============================================================= */
 
 // ─── Helper interne (non exporté) ───────────────────────────
 
 interface InsertParams {
   recipientId: string;
-  actorId: string;
+  actorId: string | null; // null pour notifications système
   type: NotificationType;
   recetteId?: string | null;
   commentId?: string | null;
@@ -430,8 +1465,11 @@ interface InsertParams {
 }
 
 async function insertNotification(params: InsertParams): Promise<void> {
-  // Jamais de notification à soi-même.
-  if (params.recipientId === params.actorId) return;
+  // Jamais de notification à soi-même — SAUF pour les notifs système
+  // (actor_id == null) qui sont des rappels légitimes du système.
+  if (params.actorId !== null && params.recipientId === params.actorId) {
+    return;
+  }
 
   const admin = createAdminSupabase();
   const { error } = await admin.from("notifications").insert({
@@ -659,6 +1697,51 @@ export async function notifyRecipeRating(
     });
   } catch (err) {
     console.error("[notifications] notifyRecipeRating error:", err);
+  }
+}
+
+/**
+ * Rappel système pour sauvegarder un planning en cours.
+ *
+ * - actor_id = NULL → c'est une notification système (pas d'utilisateur tiers)
+ * - Anti-spam serveur : ne crée pas de nouvelle notif si une existe déjà
+ *   non lue sur les 24 dernières heures pour cet utilisateur.
+ * - Le plafond "3 rappels à vie" est géré côté client (localStorage) via
+ *   lib/pending-recipe.ts (canShowSaveBellNotif / incrementSaveReminderCount).
+ */
+export async function notifyUnsavedPlanning(): Promise<{ sent: boolean }> {
+  try {
+    const supabase = await createServerSupabase();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return { sent: false };
+
+    const admin = createAdminSupabase();
+
+    // Anti-spam : pas de nouvelle notif si une existe déjà (lue ou non)
+    // sur les 24 dernières heures pour ce user.
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { count } = await admin
+      .from("notifications")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .eq("type", "planning_unsaved_reminder")
+      .gte("created_at", since);
+
+    if ((count ?? 0) > 0) return { sent: false };
+
+    await insertNotification({
+      recipientId: user.id,
+      actorId: null, // notification système
+      type: "planning_unsaved_reminder",
+    });
+
+    revalidatePath("/notifications");
+    return { sent: true };
+  } catch (err) {
+    console.error("[notifications] notifyUnsavedPlanning error:", err);
+    return { sent: false };
   }
 }
 
@@ -895,7 +1978,7 @@ export async function savePlanning(input: SavePlanningInput) {
       week_start: input.week_start,
       data: input.data,
     })
-    .select("id")
+    .select("id, name, description, is_public")
     .single();
 
   if (error) throw new Error(error.message);
@@ -907,7 +1990,73 @@ export async function savePlanning(input: SavePlanningInput) {
   await checkAndUnlockAchievements(user.id, "plan_saved");
 
   revalidatePath("/planificateur");
-  return { id: data.id };
+  return {
+    id: data.id,
+    name: data.name,
+    description: data.description,
+    is_public: data.is_public,
+  };
+}
+
+// ─── Mettre à jour les données d'un planning (auto-save) ──────
+//
+// Utilisé par le planificateur pour synchroniser silencieusement
+// les modifications d'un planning déjà enregistré. Pas de
+// revalidatePath pour éviter de casser la navigation côté client.
+
+export async function updatePlanningData(
+  id: string,
+  data: Record<number, (string | null)[]>,
+) {
+  const supabase = await createServerSupabase();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) throw new Error("Non autorisé");
+
+  const { error } = await supabase
+    .from("user_plannings")
+    .update({ data, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("user_id", user.id);
+
+  if (error) throw new Error(error.message);
+  return { success: true };
+}
+
+// ─── Mettre à jour les métadonnées d'un planning ─────────────
+//
+// Permet de renommer, redécrire ou changer la visibilité d'un
+// planning déjà enregistré, depuis le planificateur (option
+// "Modifier les infos" sur un planning chargé).
+
+export async function updatePlanningMeta(
+  id: string,
+  meta: { name: string; description?: string; is_public: boolean },
+) {
+  const supabase = await createServerSupabase();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) throw new Error("Non autorisé");
+  if (!meta.name?.trim()) throw new Error("Le nom est requis");
+
+  const { error } = await supabase
+    .from("user_plannings")
+    .update({
+      name: meta.name.trim(),
+      description: meta.description?.trim() || null,
+      is_public: meta.is_public,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id)
+    .eq("user_id", user.id);
+
+  if (error) throw new Error(error.message);
+  revalidatePath("/planificateur");
+  return { success: true };
 }
 
 // ─── Récupérer un planning par ID ────────────────────────────
@@ -927,7 +2076,9 @@ export async function getPlanning(id: string) {
 
 // ─── Récupérer les recettes d'un planning ────────────────────
 
-export async function getPlanningRecipes(planningData: Record<string, (string | null)[]>) {
+export async function getPlanningRecipes(
+  planningData: Record<string, (string | null)[]>,
+) {
   const supabase = await createServerSupabase();
 
   // Collecter tous les IDs de recettes uniques
@@ -945,7 +2096,16 @@ export async function getPlanningRecipes(planningData: Record<string, (string | 
     .select("id, slug, titre, image_url, ingredients")
     .in("id", Array.from(recetteIds));
 
-  const map: Record<string, { id: string; slug: string; titre: string; image_url: string | null; ingredients: unknown[] }> = {};
+  const map: Record<
+    string,
+    {
+      id: string;
+      slug: string;
+      titre: string;
+      image_url: string | null;
+      ingredients: unknown[];
+    }
+  > = {};
   for (const r of data || []) {
     map[r.id] = r;
   }
@@ -1079,7 +2239,9 @@ export async function getMyPlannings() {
 
   const { data } = await supabase
     .from("user_plannings")
-    .select("id, name, description, is_public, week_start, likes_count, created_at")
+    .select(
+      "id, name, description, is_public, week_start, likes_count, created_at",
+    )
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
 
@@ -2881,16 +4043,16 @@ export default async function RecetteDetailPage({ params }: PageProps) {
 <file path="app/recettes/[slug]/RecetteDetailClient.tsx">
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Heart, Printer, Share2, PlayCircle } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useFavoris } from "@/hooks/useFavoris";
 import { useRatings } from "@/hooks/useRatings";
 import StarRating from "@/components/ui/StarRating";
 import SimulateurThermomix from "@/components/recettes/SimulateurThermomix";
+import AddToPlanningButton from "@/components/recettes/AddToPlanningButton";
 import type { Recette } from "@/types";
 import { cn } from "@/lib/utils";
-import Link from "next/link";
 
 interface RecetteDetailClientProps {
   recette: Recette;
@@ -2920,6 +4082,14 @@ export default function RecetteDetailClient({
   const handlePrint = () => window.print();
   const favori = isFavori(recette.id);
 
+  // IMPORTANT : onClose DOIT être stable (useCallback sans deps)
+  // Sinon l'effet `useEffect([isOpen, onClose])` dans SimulateurThermomix
+  // se rejoue à chaque render du parent → cleanup fait history.back() →
+  // Next.js App Router POST la page → re-render → boucle infinie de POSTs.
+  const handleSimulateurClose = useCallback(() => {
+    setSimulateurOpen(false);
+  }, []);
+
   return (
     <>
       <div className="flex flex-wrap items-center gap-4">
@@ -2933,7 +4103,17 @@ export default function RecetteDetailClient({
           size="lg"
         />
 
-        <div className="flex items-center gap-2 ml-auto">
+        <div className="flex items-center gap-2 ml-auto flex-wrap">
+          {/* Ajouter au planning — gère lui-même le cas non connecté */}
+          <AddToPlanningButton
+            recette={{
+              id: recette.id,
+              slug: recette.slug,
+              titre: recette.titre,
+              image_url: recette.image_url,
+            }}
+          />
+
           {/* Favori */}
           {user && (
             <button
@@ -2975,6 +4155,7 @@ export default function RecetteDetailClient({
 
       {/* Simulator CTA */}
       <button
+        type="button"
         onClick={() => setSimulateurOpen(true)}
         className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-accent text-black font-display font-bold text-sm hover:bg-accent-hover transition-colors no-print"
       >
@@ -2982,49 +4163,11 @@ export default function RecetteDetailClient({
         Lancer la recette guidée
       </button>
 
-      {/* Simulator Modal — bloqué si non connecté */}
-      {simulateurOpen && !user && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          {/* Fond flouté */}
-          <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={() => setSimulateurOpen(false)}
-          />
-          {/* Carte centrale */}
-          <div
-            className="relative z-10 w-full max-w-sm rounded-2xl p-8 flex flex-col items-center gap-5 text-center animate-scale-in"
-            style={{ backgroundColor: "var(--color-bg)" }}
-          >
-            <div className="w-16 h-16 rounded-full bg-accent/10 flex items-center justify-center">
-              <PlayCircle className="w-8 h-8 text-accent" />
-            </div>
-            <div className="space-y-2">
-              <h3 className="font-display font-bold text-xl">Recette guidée</h3>
-              <p className="text-sm text-muted-foreground">
-                Connectez-vous pour accéder au mode cuisine guidée pas à pas.
-              </p>
-            </div>
-            <Link
-              href={`/connexion?next=/recettes/${recette.slug}`}
-              className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-accent text-black font-display font-bold text-sm hover:bg-accent-hover transition-colors"
-            >
-              Se connecter
-            </Link>
-            <button
-              onClick={() => setSimulateurOpen(false)}
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Annuler
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Simulator Modal — accessible si connecté */}
-      {simulateurOpen && user && (
+      {/* Simulator Modal — ouverture directe, pas de gate auth */}
+      {simulateurOpen && (
         <SimulateurThermomix
           isOpen={simulateurOpen}
-          onClose={() => setSimulateurOpen(false)}
+          onClose={handleSimulateurClose}
           etapes={recette.etapes}
           titre={recette.titre}
         />
@@ -3289,6 +4432,36 @@ export default function Loading() {
       <SkeletonGrid count={12} />
     </div>
   );
+}
+</file>
+
+<file path="app/recettes/ScrollToResults.tsx">
+"use client";
+
+import { useEffect, useRef } from "react";
+
+interface ScrollToResultsProps {
+  shouldScroll: boolean;
+  children: React.ReactNode;
+}
+
+export default function ScrollToResults({
+  shouldScroll,
+  children,
+}: ScrollToResultsProps) {
+  const hasScrolled = useRef(false);
+
+  useEffect(() => {
+    if (shouldScroll && !hasScrolled.current) {
+      const element = document.getElementById("search-results");
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth", block: "start" });
+        hasScrolled.current = true;
+      }
+    }
+  }, [shouldScroll]);
+
+  return <>{children}</>;
 }
 </file>
 
@@ -3803,28 +4976,64 @@ export default function NotFound() {
 }
 </file>
 
-<file path="app/robots.ts">
-import type { MetadataRoute } from "next";
-import { SITE_URL } from "@/lib/constants";
+<file path="app/page.module.css">
+/* app/page.module.css */
+.pageBackground {
+  position: relative;
+  isolation: isolate;
+}
 
-export default function robots(): MetadataRoute.Robots {
-  return {
-    rules: [
-      {
-        userAgent: "*",
-        allow: "/",
-        disallow: [
-          "/api/",
-          "/profil/",
-          "/favoris/",
-          "/planificateur/",
-          "/connexion/",
-          "/admin/",
-        ],
-      },
-    ],
-    sitemap: [`${SITE_URL}/sitemap.xml`, `${SITE_URL}/sitemap-images.xml`],
-  };
+.pageBackground::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: -1;
+  background-image: url("/backgrounds/background-accueil.webp");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: 0.25;
+  pointer-events: none;
+}
+</file>
+
+<file path="components/layout/BackgroundWrapper.tsx">
+"use client";
+
+import { usePathname } from "next/navigation";
+import styles from "@/app/page.module.css";
+
+const EXCLUDED_PATHS = [
+  "/profil",
+  "/parametres",
+  "/admin",
+  // "/profil/[id]" correspond à tout chemin commençant par "/profil/"
+];
+
+export default function BackgroundWrapper({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const pathname = usePathname();
+
+  // Vérifie si le chemin actuel est exclu
+  const isExcluded = EXCLUDED_PATHS.some((path) => {
+    if (path === "/profil") {
+      // Exclut "/profil" et "/profil/[id]"
+      return pathname.startsWith("/profil");
+    }
+    return pathname.startsWith(path);
+  });
+
+  return (
+    <div className={!isExcluded ? styles.pageBackground : undefined}>
+      {children}
+    </div>
+  );
 }
 </file>
 
@@ -4199,14 +5408,37 @@ export default function Navbar() {
 
 import { useState } from "react";
 import { X, Save, Loader2, Globe, Lock } from "lucide-react";
-import { savePlanning } from "@/app/actions/plannings";
+import { savePlanning, updatePlanningMeta } from "@/app/actions/plannings";
 import { cn } from "@/lib/utils";
+
+interface SavedPlanningResult {
+  id: string;
+  name: string;
+  description: string | null;
+  is_public: boolean;
+}
 
 interface SavePlanningModalProps {
   weekStart: string;
   planData: Record<number, (string | null)[]>;
   onClose: () => void;
-  onSaved: (id: string) => void;
+  onSaved: (result: SavedPlanningResult) => void;
+  /**
+   * Mode édition : si fourni, le modal modifie les métadonnées d'un
+   * planning existant au lieu d'en créer un nouveau. Utile quand
+   * l'utilisateur veut renommer ou changer la visibilité.
+   */
+  editingPlanning?: {
+    id: string;
+    name: string;
+    description: string | null;
+    is_public: boolean;
+  } | null;
+  /**
+   * Titre personnalisé (ex: "Enregistrer votre nouveau planning"
+   * lors du premier ajout de recette). Défaut : selon le mode.
+   */
+  title?: string;
 }
 
 export default function SavePlanningModal({
@@ -4214,10 +5446,16 @@ export default function SavePlanningModal({
   planData,
   onClose,
   onSaved,
+  editingPlanning,
+  title,
 }: SavePlanningModalProps) {
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [isPublic, setIsPublic] = useState(false);
+  const isEditing = !!editingPlanning;
+
+  const [name, setName] = useState(editingPlanning?.name ?? "");
+  const [description, setDescription] = useState(
+    editingPlanning?.description ?? "",
+  );
+  const [isPublic, setIsPublic] = useState(editingPlanning?.is_public ?? false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -4231,28 +5469,55 @@ export default function SavePlanningModal({
     setError("");
 
     try {
-      // Convertir le plan en format stockable (juste les IDs)
-      const data: Record<number, (string | null)[]> = {};
-      for (let d = 0; d < 7; d++) {
-        const slots = planData[d] || [null, null, null];
-        data[d] = slots.map((r) => (r && typeof r === "object" && "id" in r ? (r as { id: string }).id : r));
+      if (isEditing && editingPlanning) {
+        // Mode édition : on modifie juste les métadonnées
+        await updatePlanningMeta(editingPlanning.id, {
+          name: name.trim(),
+          description: description.trim() || undefined,
+          is_public: isPublic,
+        });
+        onSaved({
+          id: editingPlanning.id,
+          name: name.trim(),
+          description: description.trim() || null,
+          is_public: isPublic,
+        });
+      } else {
+        // Mode création : nouveau planning
+        const data: Record<number, (string | null)[]> = {};
+        for (let d = 0; d < 7; d++) {
+          const slots = planData[d] || [null, null, null];
+          data[d] = slots.map((r) =>
+            r && typeof r === "object" && "id" in r
+              ? (r as { id: string }).id
+              : r,
+          );
+        }
+
+        const result = await savePlanning({
+          name: name.trim(),
+          description: description.trim() || undefined,
+          is_public: isPublic,
+          week_start: weekStart,
+          data,
+        });
+
+        onSaved({
+          id: result.id,
+          name: result.name,
+          description: result.description,
+          is_public: result.is_public,
+        });
       }
-
-      const result = await savePlanning({
-        name: name.trim(),
-        description: description.trim() || undefined,
-        is_public: isPublic,
-        week_start: weekStart,
-        data,
-      });
-
-      onSaved(result.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erreur inconnue");
     } finally {
       setSaving(false);
     }
   };
+
+  const displayTitle =
+    title || (isEditing ? "Modifier le planning" : "Enregistrer le planning");
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -4264,12 +5529,19 @@ export default function SavePlanningModal({
         <div className="flex items-center justify-between">
           <h3 className="font-display font-bold text-xl flex items-center gap-2">
             <Save className="w-5 h-5 text-accent" />
-            Sauvegarder le planning
+            {displayTitle}
           </h3>
-          <button onClick={onClose}>
+          <button onClick={onClose} aria-label="Fermer">
             <X className="w-5 h-5 text-muted-foreground" />
           </button>
         </div>
+
+        {!isEditing && (
+          <p className="text-sm text-muted-foreground -mt-2">
+            Votre planning sera enregistré automatiquement à chaque nouvelle
+            recette ajoutée.
+          </p>
+        )}
 
         <div className="space-y-4">
           <div>
@@ -4300,9 +5572,7 @@ export default function SavePlanningModal({
           </div>
 
           <div>
-            <label className="text-sm font-medium mb-2 block">
-              Visibilité
-            </label>
+            <label className="text-sm font-medium mb-2 block">Visibilité</label>
             <div className="flex gap-2">
               <button
                 type="button"
@@ -4339,9 +5609,7 @@ export default function SavePlanningModal({
           </div>
         </div>
 
-        {error && (
-          <p className="text-sm text-error font-medium">{error}</p>
-        )}
+        {error && <p className="text-sm text-error font-medium">{error}</p>}
 
         <button
           onClick={handleSave}
@@ -4353,7 +5621,13 @@ export default function SavePlanningModal({
           ) : (
             <Save className="w-4 h-4" />
           )}
-          {saving ? "Sauvegarde..." : "Sauvegarder"}
+          {saving
+            ? isEditing
+              ? "Mise à jour..."
+              : "Enregistrement..."
+            : isEditing
+              ? "Mettre à jour"
+              : "Enregistrer le planning"}
         </button>
       </div>
     </div>
@@ -6623,6 +7897,8 @@ export const NOTIFICATION_TYPE_LABELS: Record<NotificationType, string> = {
   recipe_comment: "a commenté votre recette",
   recipe_favorite: "a ajouté votre recette à ses favoris",
   recipe_rating: "a noté votre recette",
+  planning_unsaved_reminder:
+    "Pensez à sauvegarder votre planning en cours — il restera en mémoire mais la sauvegarde vous permettra de le retrouver partout.",
 };
 
 /* ─── Icône emoji associée au type ───────────────────────── */
@@ -6633,6 +7909,7 @@ export const NOTIFICATION_TYPE_ICONS: Record<NotificationType, string> = {
   recipe_comment: "💬",
   recipe_favorite: "❤️",
   recipe_rating: "⭐",
+  planning_unsaved_reminder: "💾",
 };
 
 /* ─── Tronquer un texte pour l'aperçu ───────────────────── */
@@ -6662,20 +7939,43 @@ export interface NotificationDisplay {
   href: string | null;
   /** True si le contenu lié (recette) a disparu. */
   isDeleted: boolean;
+  /** True pour les notifications système (pas d'acteur utilisateur). */
+  isSystem: boolean;
 }
 
 /**
  * Transforme une notification enrichie (avec jointures) en un objet
  * prêt pour l'UI. Gère proprement la suppression de la recette ou
- * du commentaire associé.
+ * du commentaire associé, ainsi que les notifications système
+ * (actor_id NULL) comme les rappels de sauvegarde de planning.
  */
 export function buildNotificationDisplay(
   n: NotificationEnriched,
 ): NotificationDisplay {
   const metadata = n.metadata ?? {};
-  const actorPseudo = n.actor?.pseudo || "Un utilisateur";
+  const isSystem = n.actor_id === null;
+
+  const actorPseudo = isSystem
+    ? "Kitchen Mix"
+    : n.actor?.pseudo || "Un utilisateur";
   const actorAvatar = n.actor?.avatar_url ?? null;
   const actionLabel = NOTIFICATION_TYPE_LABELS[n.type];
+
+  // Cas particulier : rappel système de sauvegarde de planning.
+  // Pas de recette / commentaire associé — lien direct vers /planificateur.
+  if (n.type === "planning_unsaved_reminder") {
+    return {
+      actorPseudo,
+      actorAvatar,
+      actionLabel,
+      contextTitle: null,
+      commentPreview: null,
+      rating: null,
+      href: "/planificateur",
+      isDeleted: false,
+      isSystem: true,
+    };
+  }
 
   // Recette : on privilégie la donnée vivante, sinon la métadonnée.
   const liveRecette = n.recette;
@@ -6719,6 +8019,7 @@ export function buildNotificationDisplay(
     rating,
     href,
     isDeleted,
+    isSystem,
   };
 }
 
@@ -21360,248 +22661,28 @@ export default async function ProfilPublicPage({
 }
 </file>
 
-<file path="app/recettes/page.tsx">
-import type { Metadata } from "next";
-import { Suspense } from "react";
-import SearchBar from "@/components/ui/SearchBar";
-import RecetteGrid from "@/components/recettes/RecetteGrid";
-import RecetteFiltres from "@/components/recettes/RecetteFiltres";
-import { SkeletonGrid } from "@/components/ui/SkeletonCard";
-import { rechercherRecettes } from "@/app/actions/recherche";
-import { DEFAULT_PAGE_SIZE, SITE_URL, TEMPS_OPTIONS } from "@/lib/constants";
-import type { RecetteFilters } from "@/types";
-import ScrollToResults from "./ScrollToResults";
+<file path="app/robots.ts">
+import type { MetadataRoute } from "next";
+import { SITE_URL } from "@/lib/constants";
 
-export const revalidate = 1800;
-
-export const metadata: Metadata = {
-  title: "Toutes les recettes robot cuiseur — Faciles, rapides et gourmandes",
-  description:
-    "Toutes nos recettes pour robot cuiseur multifonction — Thermomix TM5 TM6 TM7, Moulinex Companion, Magimix Cook Expert. Plats, desserts, entrées, soupes — filtrées par difficulté, régime et appareil.",
-  alternates: { canonical: `${SITE_URL}/recettes` },
-  openGraph: {
-    title: "Recettes robot cuiseur multifonction — Kitchen Mix",
-    description:
-      "Des centaines de recettes originales pour tous vos robots cuiseurs.",
-    url: `${SITE_URL}/recettes`,
-    type: "website",
-  },
-};
-
-interface PageProps {
-  searchParams: Promise<Record<string, string | undefined>>;
-}
-
-export default async function RecettesPage({ searchParams }: PageProps) {
-  const params = await searchParams;
-  const query = params.q || "";
-
-  const tempsOption = params.temps
-    ? TEMPS_OPTIONS.find((t) => t.value === params.temps)
-    : undefined;
-
-  const filters: RecetteFilters = {
-    categorie: params.categorie,
-    modele: params.modele as RecetteFilters["modele"],
-    difficulte: params.difficulte as RecetteFilters["difficulte"],
-    regime: params.regime,
-    nutriscore: params.nutriscore as RecetteFilters["nutriscore"],
-    tri: (params.tri as RecetteFilters["tri"]) || "recent",
-    page: params.page ? parseInt(params.page) : 1,
-    limit: DEFAULT_PAGE_SIZE,
-    ...(tempsOption && {
-      temps_min: tempsOption.min,
-      temps_max: tempsOption.max,
-    }),
-    q: query || undefined,
+export default function robots(): MetadataRoute.Robots {
+  return {
+    rules: [
+      {
+        userAgent: "*",
+        allow: "/",
+        disallow: [
+          "/api/",
+          "/profil/",
+          "/favoris/",
+          "/planificateur/",
+          "/connexion/",
+          "/admin/",
+        ],
+      },
+    ],
+    sitemap: [`${SITE_URL}/sitemap.xml`, `${SITE_URL}/sitemap-images.xml`],
   };
-
-  // Détermine si on doit scroller (recherche textuelle ou au moins un filtre actif)
-  const hasFilters = Object.entries(params).some(
-    ([key, value]) => key !== "q" && value !== undefined && value !== "",
-  );
-  const shouldScroll = query !== "" || hasFilters;
-
-  return (
-    <div className="space-y-8">
-      <div className="space-y-4">
-        <h1 className="font-display font-bold text-3xl">
-          {query ? `Recherche : "${query}"` : "Toutes les recettes"}
-        </h1>
-        <SearchBar defaultValue={query} size="large" />
-      </div>
-
-      <Suspense fallback={<div className="h-16 skeleton rounded-xl" />}>
-        <RecetteFiltres />
-      </Suspense>
-
-      <ScrollToResults shouldScroll={shouldScroll}>
-        <div id="search-results" className="space-y-4 scroll-mt-20">
-          <Suspense fallback={<SkeletonGrid count={12} />}>
-            <SearchResults filters={filters} query={query} />
-          </Suspense>
-        </div>
-      </ScrollToResults>
-    </div>
-  );
-}
-
-async function SearchResults({
-  filters,
-  query,
-}: {
-  filters: RecetteFilters;
-  query: string;
-}) {
-  const { data: recettes, count } = await rechercherRecettes(
-    filters.q || "",
-    filters,
-  );
-
-  return (
-    <>
-      <p className="text-sm text-muted-foreground">
-        {count} résultat{count > 1 ? "s" : ""}
-        {query ? ` pour "${query}"` : ""}
-      </p>
-      <RecetteGrid recettes={recettes} />
-    </>
-  );
-}
-</file>
-
-<file path="app/recherche/page.tsx">
-import { redirect } from "next/navigation";
-
-interface PageProps {
-  searchParams: Promise<Record<string, string | undefined>>;
-}
-
-export default async function RecherchePage({ searchParams }: PageProps) {
-  const params = await searchParams;
-  const queryString = new URLSearchParams(
-    params as Record<string, string>,
-  ).toString();
-  redirect(`/recettes${queryString ? `?${queryString}` : ""}`);
-}
-</file>
-
-<file path="app/layout.tsx">
-// KITCHENMIX-2026-04-08-PROOF-OWNERSHIP
-import type { Metadata, Viewport } from "next";
-import { getDefaultMetadata } from "@/lib/seo";
-import Providers from "@/components/Providers";
-import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
-import BottomNav from "@/components/layout/BottomNav";
-import "./globals.css";
-import { Space_Grotesk, Inter } from "next/font/google";
-import QueryProvider from "@/components/QueryProvider";
-
-const spaceGrotesk = Space_Grotesk({
-  subsets: ["latin"],
-  variable: "--font-display",
-  display: "swap",
-});
-
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-body",
-  display: "swap",
-});
-
-export const metadata: Metadata = {
-  ...getDefaultMetadata(),
-  icons: { icon: "/favicon.ico" },
-};
-
-export const viewport: Viewport = {
-  width: "device-width",
-  initialScale: 1,
-  themeColor: [
-    { media: "(prefers-color-scheme: dark)", color: "#141414" },
-    { media: "(prefers-color-scheme: light)", color: "#FAFAF7" },
-  ],
-};
-
-/**
- * Script anti-FOUC : applique le thème AVANT le premier paint.
- * Exécuté dans <head> en blocking pour éviter le flash.
- */
-const antiFlashScript = `
-(function(){
-  try {
-    var t = localStorage.getItem("kmx-theme");
-    if (t && ["dark","light","grey"].indexOf(t) !== -1) {
-      document.documentElement.setAttribute("data-theme", t);
-    }
-  } catch(e) {}
-})();
-`;
-
-const chunkRecoveryScript = `
-(function(){
-  var reloaded = sessionStorage.getItem("kmx-chunk-reload");
-  window.addEventListener("error", function(e) {
-    if (
-      e.message && (
-        e.message.indexOf("Loading chunk") !== -1 ||
-        e.message.indexOf("Loading CSS chunk") !== -1 ||
-        e.message.indexOf("Failed to fetch") !== -1 ||
-        e.message.indexOf("ChunkLoadError") !== -1
-      ) && !reloaded
-    ) {
-      sessionStorage.setItem("kmx-chunk-reload", "1");
-      window.location.reload();
-    }
-  });
-  window.addEventListener("unhandledrejection", function(e) {
-    var msg = e.reason && (e.reason.message || String(e.reason));
-    if (
-      msg && (
-        msg.indexOf("Loading chunk") !== -1 ||
-        msg.indexOf("Loading CSS chunk") !== -1 ||
-        msg.indexOf("ChunkLoadError") !== -1
-      ) && !reloaded
-    ) {
-      sessionStorage.setItem("kmx-chunk-reload", "1");
-      window.location.reload();
-    }
-  });
-  if (reloaded) sessionStorage.removeItem("kmx-chunk-reload");
-})();
-`;
-
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  return (
-    <html
-      lang="fr"
-      data-theme="dark"
-      className={`${spaceGrotesk.variable} ${inter.variable}`}
-      suppressHydrationWarning
-    >
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: antiFlashScript }} />
-        <script dangerouslySetInnerHTML={{ __html: chunkRecoveryScript }} />
-      </head>
-      <body className="min-h-dvh flex flex-col">
-        <QueryProvider>
-          <Providers>
-            <Navbar />
-            <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-              {children}
-            </main>
-            <Footer />
-            <BottomNav />
-          </Providers>
-        </QueryProvider>
-      </body>
-    </html>
-  );
 }
 </file>
 
@@ -28735,6 +29816,132 @@ function PlanningRow({
 }
 </file>
 
+<file path="app/recettes/page.tsx">
+import type { Metadata } from "next";
+import { Suspense } from "react";
+import SearchBar from "@/components/ui/SearchBar";
+import RecetteGrid from "@/components/recettes/RecetteGrid";
+import RecetteFiltres from "@/components/recettes/RecetteFiltres";
+import { SkeletonGrid } from "@/components/ui/SkeletonCard";
+import { rechercherRecettes } from "@/app/actions/recherche";
+import { DEFAULT_PAGE_SIZE, SITE_URL, TEMPS_OPTIONS } from "@/lib/constants";
+import type { RecetteFilters } from "@/types";
+import ScrollToResults from "./ScrollToResults";
+
+export const revalidate = 1800;
+
+export const metadata: Metadata = {
+  title: "Toutes les recettes robot cuiseur — Faciles, rapides et gourmandes",
+  description:
+    "Toutes nos recettes pour robot cuiseur multifonction — Thermomix TM5 TM6 TM7, Moulinex Companion, Magimix Cook Expert. Plats, desserts, entrées, soupes — filtrées par difficulté, régime et appareil.",
+  alternates: { canonical: `${SITE_URL}/recettes` },
+  openGraph: {
+    title: "Recettes robot cuiseur multifonction — Kitchen Mix",
+    description:
+      "Des centaines de recettes originales pour tous vos robots cuiseurs.",
+    url: `${SITE_URL}/recettes`,
+    type: "website",
+  },
+};
+
+interface PageProps {
+  searchParams: Promise<Record<string, string | undefined>>;
+}
+
+export default async function RecettesPage({ searchParams }: PageProps) {
+  const params = await searchParams;
+  const query = params.q || "";
+
+  const tempsOption = params.temps
+    ? TEMPS_OPTIONS.find((t) => t.value === params.temps)
+    : undefined;
+
+  const filters: RecetteFilters = {
+    categorie: params.categorie,
+    modele: params.modele as RecetteFilters["modele"],
+    difficulte: params.difficulte as RecetteFilters["difficulte"],
+    regime: params.regime,
+    nutriscore: params.nutriscore as RecetteFilters["nutriscore"],
+    tri: (params.tri as RecetteFilters["tri"]) || "recent",
+    page: params.page ? parseInt(params.page) : 1,
+    limit: DEFAULT_PAGE_SIZE,
+    ...(tempsOption && {
+      temps_min: tempsOption.min,
+      temps_max: tempsOption.max,
+    }),
+    q: query || undefined,
+  };
+
+  // Détermine si on doit scroller (recherche textuelle ou au moins un filtre actif)
+  const hasFilters = Object.entries(params).some(
+    ([key, value]) => key !== "q" && value !== undefined && value !== "",
+  );
+  const shouldScroll = query !== "" || hasFilters;
+
+  return (
+    <div className="space-y-8">
+      <div className="space-y-4">
+        <h1 className="font-display font-bold text-3xl">
+          {query ? `Recherche : "${query}"` : "Toutes les recettes"}
+        </h1>
+        <SearchBar defaultValue={query} size="large" />
+      </div>
+
+      <Suspense fallback={<div className="h-16 skeleton rounded-xl" />}>
+        <RecetteFiltres />
+      </Suspense>
+
+      <ScrollToResults shouldScroll={shouldScroll}>
+        <div id="search-results" className="space-y-4 scroll-mt-20">
+          <Suspense fallback={<SkeletonGrid count={12} />}>
+            <SearchResults filters={filters} query={query} />
+          </Suspense>
+        </div>
+      </ScrollToResults>
+    </div>
+  );
+}
+
+async function SearchResults({
+  filters,
+  query,
+}: {
+  filters: RecetteFilters;
+  query: string;
+}) {
+  const { data: recettes, count } = await rechercherRecettes(
+    filters.q || "",
+    filters,
+  );
+
+  return (
+    <>
+      <p className="text-sm text-muted-foreground">
+        {count} résultat{count > 1 ? "s" : ""}
+        {query ? ` pour "${query}"` : ""}
+      </p>
+      <RecetteGrid recettes={recettes} />
+    </>
+  );
+}
+</file>
+
+<file path="app/recherche/page.tsx">
+import { redirect } from "next/navigation";
+
+interface PageProps {
+  searchParams: Promise<Record<string, string | undefined>>;
+}
+
+export default async function RecherchePage({ searchParams }: PageProps) {
+  const params = await searchParams;
+  const queryString = new URLSearchParams(
+    params as Record<string, string>,
+  ).toString();
+  redirect(`/recettes${queryString ? `?${queryString}` : ""}`);
+}
+</file>
+
 <file path="app/soumettre/page.tsx">
 "use client";
 
@@ -29715,323 +30922,122 @@ function TimePicker({
 }
 </file>
 
-<file path="app/page.tsx">
-import Link from "next/link";
-import { ArrowRight, Flame, Clock } from "lucide-react";
-import Logo from "@/components/ui/Logo";
-import SearchBar from "@/components/ui/SearchBar";
-import RecetteGrid from "@/components/recettes/RecetteGrid";
-import { SkeletonGrid } from "@/components/ui/SkeletonCard";
-import NewsletterForm from "@/components/ui/NewsletterForm";
-import {
-  getRecettesTendances,
-  getDernieresRecettes,
-} from "@/lib/supabase/queries";
-import { getWebSiteJsonLd, getOrganizationJsonLd, safeJsonLd } from "@/lib/seo";
-import { CATEGORIES } from "@/lib/constants";
-import { Suspense } from "react";
-import type { Metadata } from "next";
-import { SITE_URL } from "@/lib/constants";
-import MonAppareilFilter from "@/components/ui/MonAppareilFilter";
-import RotatingTypewriter from "@/components/ui/RotatingTypewriter";
+<file path="app/layout.tsx">
+// KITCHENMIX-2026-04-08-PROOF-OWNERSHIP
+import type { Metadata, Viewport } from "next";
+import { getDefaultMetadata } from "@/lib/seo";
+import Providers from "@/components/Providers";
+import Navbar from "@/components/layout/Navbar";
+import Footer from "@/components/layout/Footer";
+import BottomNav from "@/components/layout/BottomNav";
+import "./globals.css";
+import { Space_Grotesk, Inter } from "next/font/google";
+import QueryProvider from "@/components/QueryProvider";
+import BackgroundWrapper from "@/components/layout/BackgroundWrapper";
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  variable: "--font-display",
+  display: "swap",
+});
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-body",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
-  title: "Kitchen Mix | Recettes pour Thermomix, Companion & Cook Expert",
-  description:
-    "Découvrez des centaines de recettes faciles et rapides pour votre robot cuiseur multifonction. Plats, desserts, soupes et planificateur de repas intégré.",
-  alternates: { canonical: SITE_URL },
+  ...getDefaultMetadata(),
+  icons: { icon: "/favicon.ico" },
 };
 
-export default function HomePage() {
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: [
+    { media: "(prefers-color-scheme: dark)", color: "#141414" },
+    { media: "(prefers-color-scheme: light)", color: "#FAFAF7" },
+  ],
+};
+
+/**
+ * Script anti-FOUC : applique le thème AVANT le premier paint.
+ * Exécuté dans <head> en blocking pour éviter le flash.
+ */
+const antiFlashScript = `
+(function(){
+  try {
+    var t = localStorage.getItem("kmx-theme");
+    if (t && ["dark","light","grey"].indexOf(t) !== -1) {
+      document.documentElement.setAttribute("data-theme", t);
+    }
+  } catch(e) {}
+})();
+`;
+
+const chunkRecoveryScript = `
+(function(){
+  var reloaded = sessionStorage.getItem("kmx-chunk-reload");
+  window.addEventListener("error", function(e) {
+    if (
+      e.message && (
+        e.message.indexOf("Loading chunk") !== -1 ||
+        e.message.indexOf("Loading CSS chunk") !== -1 ||
+        e.message.indexOf("Failed to fetch") !== -1 ||
+        e.message.indexOf("ChunkLoadError") !== -1
+      ) && !reloaded
+    ) {
+      sessionStorage.setItem("kmx-chunk-reload", "1");
+      window.location.reload();
+    }
+  });
+  window.addEventListener("unhandledrejection", function(e) {
+    var msg = e.reason && (e.reason.message || String(e.reason));
+    if (
+      msg && (
+        msg.indexOf("Loading chunk") !== -1 ||
+        msg.indexOf("Loading CSS chunk") !== -1 ||
+        msg.indexOf("ChunkLoadError") !== -1
+      ) && !reloaded
+    ) {
+      sessionStorage.setItem("kmx-chunk-reload", "1");
+      window.location.reload();
+    }
+  });
+  if (reloaded) sessionStorage.removeItem("kmx-chunk-reload");
+})();
+`;
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <div className="space-y-16">
-      {/* JSON-LD WebSite schema (sitelinks searchbox) */}
-
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: safeJsonLd(getWebSiteJsonLd()) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: safeJsonLd(getOrganizationJsonLd()),
-        }}
-      />
-      {/* Hero */}
-      <section className="text-center pt-12 pb-8 space-y-6">
-        <RotatingTypewriter />
-        <p className="text-muted-foreground text-lg max-w-xl mx-auto leading-relaxed">
-          Découvrez, cuisinez et partagez 🍛 Simulateur intégré, planificateur
-          de repas 📆 et communauté passionnée.
-        </p>
-
-        <div className="max-w-lg mx-auto">
-          <SearchBar size="large" placeholder="Que voulez-vous cuisiner ?" />
-        </div>
-      </section>
-
-      {/* Category pills */}
-      <section>
-        <div className="flex flex-wrap items-center justify-center gap-2">
-          <MonAppareilFilter basePath="/recettes" />
-          <Link
-            href="/recettes?temps=express"
-            className="px-4 py-2 rounded-full text-sm font-medium bg-accent/10 text-accent border border-accent/20 hover:bg-accent/20 transition-all"
-          >
-            ⚡ Express
-          </Link>
-          <Link
-            href="/recettes?temps=rapide"
-            className="px-4 py-2 rounded-full text-sm font-medium bg-accent/10 text-accent border border-accent/20 hover:bg-accent/20 transition-all"
-          >
-            🕒 Rapide
-          </Link>
-          {CATEGORIES.map((cat) => (
-            <Link
-              key={cat.value}
-              href={`/recettes?categorie=${cat.value}`}
-              className="px-4 py-2 rounded-full text-sm font-medium bg-card border border-border hover:bg-accent/10 hover:text-accent hover:border-accent/20 transition-all"
-            >
-              {cat.label}
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      {/* Tendances — Bento grid */}
-      <section className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h2 className="font-display font-bold flex items-center gap-2">
-            <Flame className="w-6 h-6 text-accent" />
-            Tendances
-          </h2>
-          <Link
-            href="/recettes?tri=populaire"
-            className="flex items-center gap-1 text-sm text-accent hover:underline"
-          >
-            Tout voir <ArrowRight className="w-4 h-4" />
-          </Link>
-        </div>
-
-        <Suspense fallback={<SkeletonGrid count={7} />}>
-          <TendancesGrid />
-        </Suspense>
-      </section>
-
-      {/* Dernières recettes */}
-      <section className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h2 className="font-display font-bold flex items-center gap-2">
-            <Clock className="w-6 h-6 text-accent" />
-            Dernières recettes
-          </h2>
-          <Link
-            href="/recettes"
-            className="flex items-center gap-1 text-sm text-accent hover:underline"
-          >
-            Tout voir <ArrowRight className="w-4 h-4" />
-          </Link>
-        </div>
-
-        <Suspense fallback={<SkeletonGrid count={6} />}>
-          <DernieresGrid />
-        </Suspense>
-      </section>
-
-      {/* Newsletter */}
-      <section className="max-w-xl mx-auto text-center space-y-4">
-        <h2 className="font-display font-bold">
-          Recevez nos meilleures recettes
-        </h2>
-        <p className="text-muted-foreground">
-          Inscrivez-vous à notre newsletter pour recevoir chaque semaine de
-          nouvelles recettes pour votre Robot Cuiseur Multifonction directement
-          dans votre boîte mail.
-        </p>
-        <NewsletterForm />
-      </section>
-    </div>
-  );
-}
-
-// ─── Async Server Components ─────────────────────────────────
-
-async function TendancesGrid() {
-  const recettes = await getRecettesTendances(7);
-  return <RecetteGrid recettes={recettes} bento />;
-}
-
-async function DernieresGrid() {
-  const recettes = await getDernieresRecettes(6);
-  return <RecetteGrid recettes={recettes} />;
-}
-</file>
-
-<file path="components/layout/Footer.tsx">
-import Link from "next/link";
-import Logo from "@/components/ui/Logo";
-import { SITE_NAME } from "@/lib/constants";
-import NewsletterForm from "@/components/ui/NewsletterForm";
-
-export default function Footer() {
-  const year = new Date().getFullYear();
-
-  return (
-    <footer className="border-t border-border mt-16 pb-20 md:pb-0 no-print">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
-          {/* Brand */}
-          <div className="md:col-span-1">
-            <Link
-              href="/"
-              className="flex items-center gap-2 text-accent font-display font-bold text-lg"
-            >
-              <Logo className="w-10 h-auto" />
-              {SITE_NAME}
-            </Link>
-            <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
-              Recettes au robot cuiseur multifonction, originales et gourmandes.
-              Simulateur intégré, planificateur de repas.
-            </p>
-          </div>
-          {/* Recettes */}
-          <div>
-            <h3 className="font-display font-semibold text-sm uppercase tracking-wider mb-4 text-muted-foreground">
-              Recettes
-            </h3>
-            <ul className="space-y-2">
-              {[
-                { href: "/recettes?categorie=plat", label: "Plats" },
-                { href: "/recettes?categorie=dessert", label: "Desserts" },
-                { href: "/recettes?categorie=soupe", label: "Soupes" },
-                {
-                  href: "/recettes?categorie=boulangerie",
-                  label: "Boulangerie",
-                },
-              ].map((link) => (
-                <li key={link.href}>
-                  <Link
-                    href={link.href}
-                    className="text-sm text-muted-foreground hover:text-accent transition-colors"
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-          {/* Navigation */}
-          <div>
-            <h3 className="font-display font-semibold text-sm uppercase tracking-wider mb-4 text-muted-foreground">
-              Navigation
-            </h3>
-            <ul className="space-y-2">
-              {[
-                { href: "/planificateur", label: "Planificateur" },
-                { href: "/favoris", label: "Mes Favoris" },
-                { href: "/profil", label: "Mon Profil" },
-              ].map((link) => (
-                <li key={link.href}>
-                  <Link
-                    href={link.href}
-                    className="text-sm text-muted-foreground hover:text-accent transition-colors"
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-          {/* Informations légales */}
-          <div>
-            <h3 className="font-display font-semibold text-sm uppercase tracking-wider mb-4 text-muted-foreground">
-              Informations
-            </h3>
-            <ul className="space-y-2">
-              <li>
-                <Link
-                  href="/a-propos"
-                  className="text-sm text-muted-foreground hover:text-accent transition-colors"
-                >
-                  À propos
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/mentions-legales"
-                  className="text-sm text-muted-foreground hover:text-accent transition-colors"
-                >
-                  Mentions légales
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/conditions"
-                  className="text-sm text-muted-foreground hover:text-accent transition-colors"
-                >
-                  Conditions d'utilisation
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/confidentialite"
-                  className="text-sm text-muted-foreground hover:text-accent transition-colors"
-                >
-                  Politique de confidentialité
-                </Link>
-              </li>
-            </ul>
-          </div>
-          {/* Modèles */}
-          <div>
-            <h3 className="font-display font-semibold text-sm uppercase tracking-wider mb-4 text-muted-foreground">
-              Par appareil
-            </h3>
-            <ul className="space-y-2">
-              {[
-                { modele: "TM6", label: "Thermomix TM6" },
-                { modele: "COMPANION", label: "Moulinex Companion" },
-                { modele: "COOK_EXPERT", label: "Magimix Cook Expert" },
-              ].map((item) => (
-                <li key={item.modele}>
-                  <Link
-                    href={`/recettes?modele=${item.modele}`}
-                    className="text-sm text-muted-foreground hover:text-accent transition-colors"
-                  >
-                    {item.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-
-        {/* Newsletter */}
-        <div className="mt-10 pt-8 border-t border-border">
-          <div className="max-w-md">
-            <h3 className="font-display font-semibold text-sm uppercase tracking-wider mb-3 text-muted-foreground">
-              Newsletter
-            </h3>
-            <p className="text-sm text-muted-foreground mb-3">
-              Recevez nos nouvelles recettes chaque semaine.
-            </p>
-            <NewsletterForm source="footer" compact />
-          </div>
-        </div>
-
-        {/* Bottom */}
-        <div className="mt-12 pt-8 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-muted-foreground">
-            © {year} {SITE_NAME}. Tous droits réservés.
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Kitchen Mix est un site indépendant, non affilié à Vorwerk,
-            Thermomix®, Magimix, Moulinex ou toute autre marque. Les noms de
-            marques sont utilisés uniquement à titre informatif.
-          </p>
-        </div>
-      </div>
-    </footer>
+    <html
+      lang="fr"
+      data-theme="dark"
+      className={`${spaceGrotesk.variable} ${inter.variable}`}
+      suppressHydrationWarning
+    >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: antiFlashScript }} />
+        <script dangerouslySetInnerHTML={{ __html: chunkRecoveryScript }} />
+      </head>
+      <body className="min-h-dvh flex flex-col">
+        <QueryProvider>
+          <Providers>
+            <Navbar />
+            <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+              <BackgroundWrapper>{children}</BackgroundWrapper>
+            </main>
+            <Footer />
+            <BottomNav />
+          </Providers>
+        </QueryProvider>
+      </body>
+    </html>
   );
 }
 </file>
@@ -30988,93 +31994,6 @@ export async function rateRecipe(recetteId: string, rating: number) {
 }
 </file>
 
-<file path="app/actions/recherche.ts">
-"use server";
-
-import { createServerSupabase } from "@/lib/supabase/server";
-import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
-import type { RecetteFilters, RecetteCard } from "@/types";
-
-const CARD_FIELDS = `
-  id, slug, titre, description, image_url,
-  temps_preparation, temps_cuisson, difficulte,
-  nombre_portions, modele_thermomix, categories,
-  regime, note_moyenne, nombre_notes,
-  nutriscore, calories_par_portion
-`;
-
-export async function rechercherRecettes(
-  query: string,
-  filters: RecetteFilters = {},
-): Promise<{ data: RecetteCard[]; count: number }> {
-  const supabase = await createServerSupabase();
-  const page = filters.page || 1;
-  const limit = filters.limit || DEFAULT_PAGE_SIZE;
-  const offset = (page - 1) * limit;
-
-  let dbQuery = supabase
-    .from("recettes")
-    .select(CARD_FIELDS, { count: "exact" })
-    .eq("approuve", true)
-    .eq("publie", true);
-
-  if (query && query.trim().length > 0) {
-    const safeQuery = query.replace(/[%_,]/g, "\\$&").trim();
-    dbQuery = dbQuery.or(
-      `titre.ilike.%${safeQuery}%,description.ilike.%${safeQuery}%`,
-    );
-  }
-
-  if (filters.categorie) {
-    dbQuery = dbQuery.contains("categories", [filters.categorie]);
-  }
-  if (filters.modele) {
-    dbQuery = dbQuery.contains("modele_thermomix", [filters.modele]);
-  }
-  if (filters.difficulte) {
-    dbQuery = dbQuery.eq("difficulte", filters.difficulte);
-  }
-  if (filters.regime) {
-    dbQuery = dbQuery.contains("regime", [filters.regime]);
-  }
-  if (filters.nutriscore) {
-    dbQuery = dbQuery.eq("nutriscore", filters.nutriscore);
-  }
-
-  if (filters.temps_min !== undefined) {
-    dbQuery = dbQuery.gte("temps_total", filters.temps_min);
-  }
-  if (filters.temps_max !== undefined && filters.temps_max < 9999) {
-    dbQuery = dbQuery.lte("temps_total", filters.temps_max);
-  }
-
-  switch (filters.tri) {
-    case "populaire":
-      dbQuery = dbQuery.order("vues", { ascending: false });
-      break;
-    case "mieux_note":
-      dbQuery = dbQuery.order("note_moyenne", { ascending: false });
-      break;
-    case "rapide":
-      dbQuery = dbQuery.order("temps_total", { ascending: true });
-      break;
-    default:
-      dbQuery = dbQuery.order("created_at", { ascending: false });
-  }
-
-  dbQuery = dbQuery.range(offset, offset + limit - 1);
-
-  const { data, count, error } = await dbQuery;
-
-  if (error) throw new Error(error.message);
-
-  return {
-    data: (data || []) as RecetteCard[],
-    count: count || 0,
-  };
-}
-</file>
-
 <file path="app/parametres/page.tsx">
 "use client";
 
@@ -31624,6 +32543,329 @@ function ToggleOption({
         />
       </button>
     </div>
+  );
+}
+</file>
+
+<file path="app/page.tsx">
+import Link from "next/link";
+import { ArrowRight, Flame, Clock } from "lucide-react";
+import Logo from "@/components/ui/Logo";
+import SearchBar from "@/components/ui/SearchBar";
+import RecetteGrid from "@/components/recettes/RecetteGrid";
+import { SkeletonGrid } from "@/components/ui/SkeletonCard";
+import NewsletterForm from "@/components/ui/NewsletterForm";
+import {
+  getRecettesTendances,
+  getDernieresRecettes,
+} from "@/lib/supabase/queries";
+import { getWebSiteJsonLd, getOrganizationJsonLd, safeJsonLd } from "@/lib/seo";
+import { CATEGORIES } from "@/lib/constants";
+import { Suspense } from "react";
+import type { Metadata } from "next";
+import { SITE_URL } from "@/lib/constants";
+import MonAppareilFilter from "@/components/ui/MonAppareilFilter";
+import RotatingTypewriter from "@/components/ui/RotatingTypewriter";
+import styles from "./page.module.css";
+import { cn } from "@/lib/utils";
+
+export const metadata: Metadata = {
+  title: "Kitchen Mix | Recettes pour Thermomix, Companion & Cook Expert",
+  description:
+    "Découvrez des centaines de recettes faciles et rapides pour votre robot cuiseur multifonction. Plats, desserts, soupes et planificateur de repas intégré.",
+  alternates: { canonical: SITE_URL },
+};
+
+export default function HomePage() {
+  return (
+    <div className="space-y-16">
+      {/* JSON-LD WebSite schema (sitelinks searchbox) */}
+
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(getWebSiteJsonLd()) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: safeJsonLd(getOrganizationJsonLd()),
+        }}
+      />
+      {/* Hero */}
+      <section className="text-center pt-12 pb-8 space-y-6">
+        <RotatingTypewriter />
+        <p className="text-muted-foreground text-lg max-w-xl mx-auto leading-relaxed">
+          Découvrez, cuisinez et partagez 🍛 Simulateur intégré, planificateur
+          de repas 📆 et communauté passionnée.
+        </p>
+
+        <div className="max-w-lg mx-auto">
+          <SearchBar size="large" placeholder="Que voulez-vous cuisiner ?" />
+        </div>
+      </section>
+
+      {/* Category pills */}
+      <section>
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <MonAppareilFilter basePath="/recettes" />
+          <Link
+            href="/recettes?temps=express"
+            className="px-4 py-2 rounded-full text-sm font-medium bg-accent/10 text-accent border border-accent/20 hover:bg-accent/20 transition-all"
+          >
+            ⚡ Express
+          </Link>
+          <Link
+            href="/recettes?temps=rapide"
+            className="px-4 py-2 rounded-full text-sm font-medium bg-accent/10 text-accent border border-accent/20 hover:bg-accent/20 transition-all"
+          >
+            🕒 Rapide
+          </Link>
+          {CATEGORIES.map((cat) => (
+            <Link
+              key={cat.value}
+              href={`/recettes?categorie=${cat.value}`}
+              className="px-4 py-2 rounded-full text-sm font-medium bg-card border border-border hover:bg-accent/10 hover:text-accent hover:border-accent/20 transition-all"
+            >
+              {cat.label}
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      {/* Tendances — Bento grid */}
+      <section className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="font-display font-bold flex items-center gap-2">
+            <Flame className="w-6 h-6 text-accent" />
+            Tendances
+          </h2>
+          <Link
+            href="/recettes?tri=populaire"
+            className="flex items-center gap-1 text-sm text-accent hover:underline"
+          >
+            Tout voir <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
+
+        <Suspense fallback={<SkeletonGrid count={7} />}>
+          <TendancesGrid />
+        </Suspense>
+      </section>
+
+      {/* Dernières recettes */}
+      <section className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="font-display font-bold flex items-center gap-2">
+            <Clock className="w-6 h-6 text-accent" />
+            Dernières recettes
+          </h2>
+          <Link
+            href="/recettes"
+            className="flex items-center gap-1 text-sm text-accent hover:underline"
+          >
+            Tout voir <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
+
+        <Suspense fallback={<SkeletonGrid count={6} />}>
+          <DernieresGrid />
+        </Suspense>
+      </section>
+
+      {/* Newsletter */}
+      <section className="max-w-xl mx-auto text-center space-y-4">
+        <h2 className="font-display font-bold">
+          Recevez nos meilleures recettes
+        </h2>
+        <p className="text-muted-foreground">
+          Inscrivez-vous à notre newsletter pour recevoir chaque semaine de
+          nouvelles recettes pour votre Robot Cuiseur Multifonction directement
+          dans votre boîte mail.
+        </p>
+        <NewsletterForm />
+      </section>
+    </div>
+  );
+}
+
+// ─── Async Server Components ─────────────────────────────────
+
+async function TendancesGrid() {
+  const recettes = await getRecettesTendances(7);
+  return <RecetteGrid recettes={recettes} bento />;
+}
+
+async function DernieresGrid() {
+  const recettes = await getDernieresRecettes(6);
+  return <RecetteGrid recettes={recettes} />;
+}
+</file>
+
+<file path="components/layout/Footer.tsx">
+import Link from "next/link";
+import Logo from "@/components/ui/Logo";
+import { SITE_NAME } from "@/lib/constants";
+import NewsletterForm from "@/components/ui/NewsletterForm";
+
+export default function Footer() {
+  const year = new Date().getFullYear();
+
+  return (
+    <footer className="border-t border-border mt-16 pb-20 md:pb-0 no-print">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
+          {/* Brand */}
+          <div className="md:col-span-1">
+            <Link
+              href="/"
+              className="flex items-center gap-2 text-accent font-display font-bold text-lg"
+            >
+              <Logo className="w-10 h-auto" />
+              {SITE_NAME}
+            </Link>
+            <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
+              Recettes au robot cuiseur multifonction, originales et gourmandes.
+              Simulateur intégré, planificateur de repas.
+            </p>
+          </div>
+          {/* Recettes */}
+          <div>
+            <h3 className="font-display font-semibold text-sm uppercase tracking-wider mb-4 text-muted-foreground">
+              Recettes
+            </h3>
+            <ul className="space-y-2">
+              {[
+                { href: "/recettes?categorie=plat", label: "Plats" },
+                { href: "/recettes?categorie=dessert", label: "Desserts" },
+                { href: "/recettes?categorie=soupe", label: "Soupes" },
+                {
+                  href: "/recettes?categorie=boulangerie",
+                  label: "Boulangerie",
+                },
+              ].map((link) => (
+                <li key={link.href}>
+                  <Link
+                    href={link.href}
+                    className="text-sm text-muted-foreground hover:text-accent transition-colors"
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+          {/* Navigation */}
+          <div>
+            <h3 className="font-display font-semibold text-sm uppercase tracking-wider mb-4 text-muted-foreground">
+              Navigation
+            </h3>
+            <ul className="space-y-2">
+              {[
+                { href: "/planificateur", label: "Planificateur" },
+                { href: "/favoris", label: "Mes Favoris" },
+                { href: "/profil", label: "Mon Profil" },
+              ].map((link) => (
+                <li key={link.href}>
+                  <Link
+                    href={link.href}
+                    className="text-sm text-muted-foreground hover:text-accent transition-colors"
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+          {/* Informations légales */}
+          <div>
+            <h3 className="font-display font-semibold text-sm uppercase tracking-wider mb-4 text-muted-foreground">
+              Informations
+            </h3>
+            <ul className="space-y-2">
+              <li>
+                <Link
+                  href="/a-propos"
+                  className="text-sm text-muted-foreground hover:text-accent transition-colors"
+                >
+                  À propos
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/mentions-legales"
+                  className="text-sm text-muted-foreground hover:text-accent transition-colors"
+                >
+                  Mentions légales
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/conditions"
+                  className="text-sm text-muted-foreground hover:text-accent transition-colors"
+                >
+                  Conditions d'utilisation
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/confidentialite"
+                  className="text-sm text-muted-foreground hover:text-accent transition-colors"
+                >
+                  Politique de confidentialité
+                </Link>
+              </li>
+            </ul>
+          </div>
+          {/* Modèles */}
+          <div>
+            <h3 className="font-display font-semibold text-sm uppercase tracking-wider mb-4 text-muted-foreground">
+              Par appareil
+            </h3>
+            <ul className="space-y-2">
+              {[
+                { modele: "TM6", label: "Thermomix TM6" },
+                { modele: "COMPANION", label: "Moulinex Companion" },
+                { modele: "COOK_EXPERT", label: "Magimix Cook Expert" },
+              ].map((item) => (
+                <li key={item.modele}>
+                  <Link
+                    href={`/recettes?modele=${item.modele}`}
+                    className="text-sm text-muted-foreground hover:text-accent transition-colors"
+                  >
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+
+        {/* Newsletter */}
+        <div className="mt-10 pt-8 border-t border-border">
+          <div className="max-w-md">
+            <h3 className="font-display font-semibold text-sm uppercase tracking-wider mb-3 text-muted-foreground">
+              Newsletter
+            </h3>
+            <p className="text-sm text-muted-foreground mb-3">
+              Recevez nos nouvelles recettes chaque semaine.
+            </p>
+            <NewsletterForm source="footer" compact />
+          </div>
+        </div>
+
+        {/* Bottom */}
+        <div className="mt-12 pt-8 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-xs text-muted-foreground">
+            © {year} {SITE_NAME}. Tous droits réservés.
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Kitchen Mix est un site indépendant, non affilié à Vorwerk,
+            Thermomix®, Magimix, Moulinex ou toute autre marque. Les noms de
+            marques sont utilisés uniquement à titre informatif.
+          </p>
+        </div>
+      </div>
+    </footer>
   );
 }
 </file>
@@ -32780,6 +34022,93 @@ export async function getRecettesEnAttente(): Promise<Recette[]> {
 
   if (error) throw new Error(error.message);
   return (data || []) as Recette[];
+}
+</file>
+
+<file path="app/actions/recherche.ts">
+"use server";
+
+import { createServerSupabase } from "@/lib/supabase/server";
+import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
+import type { RecetteFilters, RecetteCard } from "@/types";
+
+const CARD_FIELDS = `
+  id, slug, titre, description, image_url,
+  temps_preparation, temps_cuisson, difficulte,
+  nombre_portions, modele_thermomix, categories,
+  regime, note_moyenne, nombre_notes,
+  nutriscore, calories_par_portion
+`;
+
+export async function rechercherRecettes(
+  query: string,
+  filters: RecetteFilters = {},
+): Promise<{ data: RecetteCard[]; count: number }> {
+  const supabase = await createServerSupabase();
+  const page = filters.page || 1;
+  const limit = filters.limit || DEFAULT_PAGE_SIZE;
+  const offset = (page - 1) * limit;
+
+  let dbQuery = supabase
+    .from("recettes")
+    .select(CARD_FIELDS, { count: "exact" })
+    .eq("approuve", true)
+    .eq("publie", true);
+
+  if (query && query.trim().length > 0) {
+    const safeQuery = query.replace(/[%_,]/g, "\\$&").trim();
+    dbQuery = dbQuery.or(
+      `titre.ilike.%${safeQuery}%,description.ilike.%${safeQuery}%`,
+    );
+  }
+
+  if (filters.categorie) {
+    dbQuery = dbQuery.contains("categories", [filters.categorie]);
+  }
+  if (filters.modele) {
+    dbQuery = dbQuery.contains("modele_thermomix", [filters.modele]);
+  }
+  if (filters.difficulte) {
+    dbQuery = dbQuery.eq("difficulte", filters.difficulte);
+  }
+  if (filters.regime) {
+    dbQuery = dbQuery.contains("regime", [filters.regime]);
+  }
+  if (filters.nutriscore) {
+    dbQuery = dbQuery.eq("nutriscore", filters.nutriscore);
+  }
+
+  if (filters.temps_min !== undefined) {
+    dbQuery = dbQuery.gte("temps_total", filters.temps_min);
+  }
+  if (filters.temps_max !== undefined && filters.temps_max < 9999) {
+    dbQuery = dbQuery.lte("temps_total", filters.temps_max);
+  }
+
+  switch (filters.tri) {
+    case "populaire":
+      dbQuery = dbQuery.order("vues", { ascending: false });
+      break;
+    case "mieux_note":
+      dbQuery = dbQuery.order("note_moyenne", { ascending: false });
+      break;
+    case "rapide":
+      dbQuery = dbQuery.order("temps_total", { ascending: true });
+      break;
+    default:
+      dbQuery = dbQuery.order("created_at", { ascending: false });
+  }
+
+  dbQuery = dbQuery.range(offset, offset + limit - 1);
+
+  const { data, count, error } = await dbQuery;
+
+  if (error) throw new Error(error.message);
+
+  return {
+    data: (data || []) as RecetteCard[],
+    count: count || 0,
+  };
 }
 </file>
 
@@ -34312,7 +35641,8 @@ export type NotificationType =
   | "comment_reply"
   | "recipe_comment"
   | "recipe_favorite"
-  | "recipe_rating";
+  | "recipe_rating"
+  | "planning_unsaved_reminder"; // NEW: rappel système pour sauvegarder le planning
 
 export interface NotificationMetadata {
   recette_titre?: string | null;
@@ -34440,8 +35770,6 @@ export default function SimulateurThermomix({
   }, []);
 
   // ─── Scroll lock ALLÉGÉ (overflow:hidden sans body:fixed) ──────────
-  // Évite le bug des fixed-descendants qui se décalent vers le bas
-  // quand body passe en position:fixed avec un scrollY élevé.
   useEffect(() => {
     if (!isOpen) return;
     const body = document.body;
@@ -34491,21 +35819,41 @@ export default function SimulateurThermomix({
     };
   }, [isOpen, requestWakeLock, releaseWakeLock]);
 
-  // ─── Bouton RETOUR Android ────────────────────────────────────────
+  // ─── Bouton RETOUR Android — StrictMode-safe ───────────────────────
+  // Le pushState/history.back() est déféré via setTimeout(0) pour
+  // survivre au double-invoke de StrictMode en dev Next.js. Sans ça :
+  //   1) Mount : pushState
+  //   2) Cleanup StrictMode simulé : history.back() (async)
+  //   3) Re-mount : pushState de nouveau
+  //   4) Le history.back() de l'étape 2 fire popstate → onClose()
+  //   5) Le simulateur se referme juste après s'être ouvert = FLICKER
+  // Avec setTimeout, le timer du premier cycle est annulé avant de
+  // fire, donc pushState ne s'exécute qu'une seule fois au re-mount.
   useEffect(() => {
     if (!isOpen) return;
 
-    window.history.pushState({ kmxSimulateur: true }, "");
-    pushedHistoryRef.current = true;
+    let cancelled = false;
+    let listenerAdded = false;
 
     const onPop = () => {
       pushedHistoryRef.current = false;
       onClose();
     };
 
-    window.addEventListener("popstate", onPop);
+    const timerId = setTimeout(() => {
+      if (cancelled) return;
+      window.history.pushState({ kmxSimulateur: true }, "");
+      pushedHistoryRef.current = true;
+      window.addEventListener("popstate", onPop);
+      listenerAdded = true;
+    }, 0);
+
     return () => {
-      window.removeEventListener("popstate", onPop);
+      cancelled = true;
+      clearTimeout(timerId);
+      if (listenerAdded) {
+        window.removeEventListener("popstate", onPop);
+      }
       if (pushedHistoryRef.current) {
         pushedHistoryRef.current = false;
         window.history.back();
@@ -34562,9 +35910,6 @@ export default function SimulateurThermomix({
 
   const content = (
     <div
-      // Position via styles inline : pas d'ambiguïté, ni de h-[100dvh]
-      // qui pourrait mal s'interpréter. top:0 + bottom:0 définissent
-      // naturellement la hauteur depuis le containing block (viewport).
       style={{
         position: "fixed",
         top: 0,
@@ -34706,8 +36051,6 @@ export default function SimulateurThermomix({
     </div>
   );
 
-  // Render via Portal pour sortir complètement de la hiérarchie React
-  // et devenir enfant direct de <body>
   return createPortal(content, document.body);
 }
 
@@ -35252,7 +36595,13 @@ export default function AdminPage() {
     { id: string; pseudo: string | null; email: string; created_at: string }[]
   >([]);
   const [bannedUsers, setBannedUsers] = useState<
-    { id: string; email: string; reason: string | null; banned_at: string }[]
+    {
+      id: string;
+      email: string;
+      reason: string | null;
+      banned_at: string;
+      user_id: string | null;
+    }[]
   >([]);
   // Erreurs visibles dans l'UI pour le debug
   const [loadErrors, setLoadErrors] = useState<string[]>([]);
@@ -35832,9 +37181,12 @@ export default function AdminPage() {
                 className="glass-card p-4 flex items-center justify-between"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-bold truncate">
+                  <Link
+                    href={`/profil/${u.id}`}
+                    className="text-sm font-bold truncate hover:text-accent hover:underline transition-colors"
+                  >
                     {u.pseudo || "Sans pseudo"}
-                  </p>
+                  </Link>
                   <p className="text-xs text-muted-foreground">{u.email}</p>
                   <p className="text-[10px] text-muted-foreground mt-0.5">
                     Inscrit le{" "}
@@ -35870,7 +37222,16 @@ export default function AdminPage() {
                 className="glass-card p-4 flex items-center justify-between border-l-4 border-error"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-bold text-error">{b.email}</p>
+                  {b.user_id ? (
+                    <Link
+                      href={`/profil/${b.user_id}`}
+                      className="text-sm font-bold text-error hover:underline hover:text-error/80 transition-colors"
+                    >
+                      {b.email}
+                    </Link>
+                  ) : (
+                    <p className="text-sm font-bold text-error">{b.email}</p>
+                  )}
                   {b.reason && (
                     <p className="text-xs text-muted-foreground italic mt-0.5">
                       Raison : {b.reason}
@@ -36256,17 +37617,19 @@ export default function Navbar() {
 <file path="app/planificateur/page.tsx">
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
   Calendar,
   ShoppingCart,
   X,
   Loader2,
-  Save,
   Check,
   Printer,
   Share2,
   RotateCw,
+  Pencil,
+  Lock,
+  Globe,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { createClient } from "@/lib/supabase/client";
@@ -36276,6 +37639,7 @@ import Link from "next/link";
 import { getShoppingListForDays } from "@/app/actions/shoppingList";
 import Image from "next/image";
 import SavePlanningModal from "@/components/planificateur/SavePlanningModal";
+import PendingRecipeBanner from "@/components/planificateur/PendingRecipeBanner";
 import { useRouter, useSearchParams } from "next/navigation";
 import RecipePreviewModal from "@/components/planificateur/RecipePreviewModal";
 import { useMealPlans } from "@/hooks/useMealPlans";
@@ -36283,6 +37647,12 @@ import { useToast } from "@/components/ui/Toast";
 import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 import { useQueryClient } from "@tanstack/react-query";
 import type { MealPlanRow } from "@/hooks/useMealPlans";
+import { updatePlanningData } from "@/app/actions/plannings";
+import {
+  getPendingRecipe,
+  clearPendingRecipe,
+  type PendingRecipe,
+} from "@/lib/pending-recipe";
 
 /* ─── Types ───────────────────────────────────────────────── */
 
@@ -36304,6 +37674,14 @@ interface ListeItem {
   categorie: string;
 }
 
+/** Planning enregistré actuellement chargé. Null = brouillon non enregistré. */
+interface SavedPlanningInfo {
+  id: string;
+  name: string;
+  description: string | null;
+  is_public: boolean;
+}
+
 const JOURS = [
   "Lundi",
   "Mardi",
@@ -36322,7 +37700,14 @@ export default function PlanificateurPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const loadPlanningId = searchParams.get("load");
-  const { toastSuccess, toastError } = useToast();
+  const { toastSuccess, toastError, toastInfo } = useToast();
+
+  // Snapshot des params d'URL initiaux — indispensable car on nettoie
+  // l'URL après traitement.
+  const [initialParams] = useState(() => ({
+    isNewMode: searchParams.get("new") === "1",
+    isPendingMode: searchParams.get("pending") === "1",
+  }));
 
   const semaine = useMemo(() => toDateString(getMondayOfWeek()), []);
   const [plan, setPlan] = useState<WeekPlan>({});
@@ -36342,8 +37727,7 @@ export default function PlanificateurPage() {
     refetch: refetchPlan,
   } = useMealPlans(user?.id, semaine);
 
-  // Construction du WeekPlan
-  // APRÈS
+  // Construction du WeekPlan depuis la DB
   useEffect(() => {
     if (!mealPlanRows) return;
 
@@ -36358,8 +37742,7 @@ export default function PlanificateurPage() {
     }
 
     // Garde-fou : si la DB renvoie vide mais qu'on a déjà un plan non-vide
-    // en mémoire (hydraté depuis localStorage), on ne l'écrase pas. Ça couvre
-    // le cas d'un cache RQ stale qui renverrait [] avant refetch.
+    // en mémoire (hydraté depuis localStorage), on ne l'écrase pas.
     const dbIsEmpty = mealPlanRows.length === 0;
     const stateHasData = Object.values(plan).some((slots) =>
       slots.some((s) => s !== null),
@@ -36370,9 +37753,7 @@ export default function PlanificateurPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mealPlanRows]);
 
-  // Hydrate le plan depuis localStorage en priorité (avant que la DB réponde).
-  // Ça évite le "flash de planning vide" quand on revient sur la page et
-  // fait office de filet de secours si l'écriture DB a foiré.
+  // Hydrate le plan depuis localStorage en priorité
   useEffect(() => {
     if (!localStorageKey) return;
     try {
@@ -36397,7 +37778,7 @@ export default function PlanificateurPage() {
     }
   }, [planError]);
 
-  // États restants
+  // États UI
   const [selectingDay, setSelectingDay] = useState<number | null>(null);
   const [selectingSlot, setSelectingSlot] = useState<number>(0);
   const [searchQuery, setSearchQuery] = useState("");
@@ -36407,20 +37788,40 @@ export default function PlanificateurPage() {
   const [selectedDays, setSelectedDays] = useState<Set<number>>(new Set());
   const [listeItems, setListeItems] = useState<ListeItem[]>([]);
   const [listeLoading, setListeLoading] = useState(false);
-  const [openDay, setOpenDay] = useState<number | null>(null);
+
+  // ═══ État "planning enregistré" ═══
+  // null = brouillon non enregistré
+  // non-null = planning user_plannings existant → auto-save activé
+  const [savedPlanning, setSavedPlanning] = useState<SavedPlanningInfo | null>(
+    null,
+  );
+
+  // ═══ Modal d'enregistrement ═══
   const [showSaveModal, setShowSaveModal] = useState(false);
-  const [loadedPlanning, setLoadedPlanning] = useState<{
-    name: string;
-    description: string | null;
-  } | null>(null);
+  // Mode "édition" : quand l'utilisateur clique sur le crayon pour
+  // modifier un planning déjà enregistré.
+  const [editingMeta, setEditingMeta] = useState(false);
+
   const [previewRecipe, setPreviewRecipe] = useState<RecetteMin | null>(null);
   const [activeTab, setActiveTab] = useState<"search" | "favoris">("search");
   const [favoris, setFavoris] = useState<RecetteMin[]>([]);
   const [favorisLoaded, setFavorisLoaded] = useState(false);
   const [favorisLoading, setFavorisLoading] = useState(false);
 
-  // === Scroll lock global : dès qu'un modal de la page est ouvert, on gèle
-  // le body pour empêcher la barre d'adresse/onglets mobiles de bouger. ===
+  // ═══ Pending Recipe (ajout depuis une page recette) ═══
+  const [pendingRecipe, setPendingRecipeState] =
+    useState<PendingRecipe | null>(null);
+
+  // Hydrate le pendingRecipe au mount si ?pending=1
+  useEffect(() => {
+    if (!initialParams.isPendingMode) return;
+    const pending = getPendingRecipe();
+    if (pending) {
+      setPendingRecipeState(pending);
+    }
+  }, [initialParams.isPendingMode]);
+
+  // === Scroll lock global pour tous les modaux ===
   const anyModalOpen =
     selectingDay !== null ||
     showListe ||
@@ -36429,26 +37830,36 @@ export default function PlanificateurPage() {
     showSaveModal;
   useBodyScrollLock(anyModalOpen);
 
-  /* ─── Save plan ─────────────────────────────────────────── */
+  // Ref pour éviter d'ouvrir le modal d'enregistrement plusieurs fois
+  // lors du même cycle (ex : double setState de React, ou double
+  // ajout quasi-simultané).
+  const saveModalTriggeredRef = useRef(false);
 
-  // APRÈS
+  /* ─── Save plan (persistance brouillon + auto-save planning) ─────────
+
+     Point d'entrée unique pour toute modification du planning :
+     1. Met à jour le state local + localStorage (optimiste)
+     2. Synchronise le cache React Query
+     3. Persiste dans meal_plans (brouillon DB) — toujours
+     4. Si un planning est enregistré (savedPlanning.id), met aussi
+        à jour user_plannings.data — auto-save silencieux
+     ─────────────────────────────────────────────────────────── */
+
   const savePlan = useCallback(
     async (newPlan: WeekPlan) => {
       if (!user) return;
       setPlan(newPlan);
 
-      // 1) Backup localStorage : survit aux navigations + aux pannes réseau
+      // 1) Backup localStorage
       if (localStorageKey) {
         try {
           localStorage.setItem(localStorageKey, JSON.stringify(newPlan));
         } catch {
-          // quota plein ou mode privé : on ignore, la DB reste la source
+          // quota plein ou mode privé : on ignore
         }
       }
 
-      // 2) Synchronise le cache React Query pour que les prochaines lectures
-      //    (retour sur la page avant expiration du staleTime) voient les nouvelles
-      //    données au lieu du cache périmé.
+      // 2) Synchronise le cache React Query
       const mealPlanRowsCache: MealPlanRow[] = [];
       const dbRows: {
         user_id: string;
@@ -36484,7 +37895,7 @@ export default function PlanificateurPage() {
         mealPlanRowsCache,
       );
 
-      // 3) Persist DB
+      // 3) Persist meal_plans (brouillon DB)
       await supabase
         .from("meal_plans")
         .delete()
@@ -36494,20 +37905,44 @@ export default function PlanificateurPage() {
       if (dbRows.length > 0) {
         await supabase.from("meal_plans").insert(dbRows);
       }
+
+      // 4) Auto-save user_plannings si un planning est enregistré
+      if (savedPlanning?.id) {
+        try {
+          const planningData: Record<number, (string | null)[]> = {};
+          for (let d = 0; d < 7; d++) {
+            const slots = newPlan[d] || [null, null, null];
+            planningData[d] = slots.map((r) => r?.id ?? null);
+          }
+          await updatePlanningData(savedPlanning.id, planningData);
+        } catch (err) {
+          console.error("[planificateur] auto-save planning error:", err);
+          toastError(
+            "La synchronisation du planning a échoué. Réessayez dans un instant.",
+          );
+        }
+      }
     },
-    [user, semaine, supabase, queryClient, localStorageKey],
+    [
+      user,
+      semaine,
+      supabase,
+      queryClient,
+      localStorageKey,
+      savedPlanning,
+      toastError,
+    ],
   );
 
-  /* ─── Charger un planning sauvegardé ──── */
+  /* ─── Charger un planning sauvegardé via ?load=<id> ──── */
   useEffect(() => {
     if (!loadPlanningId || !user || authLoading) return;
-    let cancelled = false;
 
     const loadSavedPlanning = async () => {
       try {
         const { data: planning } = await supabase
           .from("user_plannings")
-          .select("name, description, data")
+          .select("id, name, description, is_public, data")
           .eq("id", loadPlanningId)
           .single();
 
@@ -36518,16 +37953,17 @@ export default function PlanificateurPage() {
         for (const slots of Object.values(planData)) {
           for (const rid of slots) if (rid) recetteIds.add(rid);
         }
-        if (recetteIds.size === 0) return;
-
-        const { data: recettes } = await supabase
-          .from("recettes")
-          .select("id, slug, titre, ingredients, image_url")
-          .in("id", Array.from(recetteIds));
 
         const recettesMap: Record<string, RecetteMin> = {};
-        for (const r of recettes || []) {
-          recettesMap[r.id] = r as RecetteMin;
+        if (recetteIds.size > 0) {
+          const { data: recettes } = await supabase
+            .from("recettes")
+            .select("id, slug, titre, ingredients, image_url")
+            .in("id", Array.from(recetteIds));
+
+          for (const r of recettes || []) {
+            recettesMap[r.id] = r as RecetteMin;
+          }
         }
 
         const loaded: WeekPlan = {};
@@ -36537,24 +37973,222 @@ export default function PlanificateurPage() {
           while (loaded[d].length < 3) loaded[d].push(null);
         }
 
-        await savePlan(loaded);
-        setLoadedPlanning({
+        // IMPORTANT : set savedPlanning AVANT de persister le plan
+        // → l'auto-save user_plannings sera activé dès le 1er ajout
+        setSavedPlanning({
+          id: planning.id,
           name: planning.name,
           description: planning.description,
+          is_public: planning.is_public,
         });
-        window.history.replaceState({}, "", "/planificateur");
+        saveModalTriggeredRef.current = true; // déjà enregistré → pas de modal à proposer
+
+        // Persiste le brouillon meal_plans sans repasser par savePlan
+        // (qui déclencherait un update user_plannings redondant)
+        setPlan(loaded);
+        if (localStorageKey) {
+          try {
+            localStorage.setItem(localStorageKey, JSON.stringify(loaded));
+          } catch {
+            /* quota plein : on ignore */
+          }
+        }
+
+        const dbRows: {
+          user_id: string;
+          week_start: string;
+          day_index: number;
+          slot: number;
+          recette_id: string;
+        }[] = [];
+        for (let d = 0; d < 7; d++) {
+          for (let s = 0; s < MAX_SLOTS; s++) {
+            const r = loaded[d]?.[s];
+            if (r) {
+              dbRows.push({
+                user_id: user.id,
+                week_start: semaine,
+                day_index: d,
+                slot: s,
+                recette_id: r.id,
+              });
+            }
+          }
+        }
+        await supabase
+          .from("meal_plans")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("week_start", semaine);
+        if (dbRows.length > 0) {
+          await supabase.from("meal_plans").insert(dbRows);
+        }
+
+        // Nettoie l'URL mais préserve ?pending si présent
+        const url = new URL(window.location.href);
+        url.searchParams.delete("load");
+        window.history.replaceState({}, "", url.pathname + url.search);
       } catch (err) {
         console.error("Erreur chargement planning sauvegardé:", err);
       }
     };
 
     loadSavedPlanning();
-    return () => {
-      cancelled = true;
-    };
-  }, [loadPlanningId, user, authLoading, supabase, savePlan]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadPlanningId, user, authLoading]);
 
-  /* ─── Actions ───────────────────────────────────────────── */
+  /* ─── Reset planning (nouveau brouillon vierge) ──────────── */
+
+  const resetPlanning = useCallback(
+    async (silent = false) => {
+      if (!user) return;
+      const emptyPlan: WeekPlan = {};
+      for (let d = 0; d < 7; d++) emptyPlan[d] = [null, null, null];
+
+      // Clear savedPlanning AVANT : l'auto-save ne doit plus pointer
+      // sur l'ancien planning quand on crée un nouveau brouillon.
+      setSavedPlanning(null);
+      saveModalTriggeredRef.current = false;
+
+      setPlan(emptyPlan);
+      if (localStorageKey) {
+        try {
+          localStorage.setItem(localStorageKey, JSON.stringify(emptyPlan));
+        } catch {
+          /* ignore */
+        }
+      }
+
+      queryClient.setQueryData(["meal_plans", user.id, semaine], []);
+
+      await supabase
+        .from("meal_plans")
+        .delete()
+        .eq("user_id", user.id)
+        .eq("week_start", semaine);
+
+      setSelectedDays(new Set());
+      setListeItems([]);
+      setShowListe(false);
+
+      if (!silent) {
+        toastSuccess("Nouveau planning vide créé !");
+      }
+    },
+    [user, localStorageKey, queryClient, semaine, supabase, toastSuccess],
+  );
+
+  /* ─── Mode "Nouveau planning" via URL (?new=1) ─────── */
+  const newModeHandledRef = useRef(false);
+  useEffect(() => {
+    if (!initialParams.isNewMode) return;
+    if (newModeHandledRef.current) return;
+    if (!user || authLoading) return;
+    newModeHandledRef.current = true;
+    resetPlanning(true);
+    toastInfo("Nouveau planning prêt ! Placez votre recette.");
+    const url = new URL(window.location.href);
+    url.searchParams.delete("new");
+    window.history.replaceState({}, "", url.pathname + url.search);
+  }, [initialParams.isNewMode, user, authLoading, resetPlanning, toastInfo]);
+
+  /* ─── Déclencheur du modal "première recette" ────────────
+     Règle : brouillon + 1ère recette ajoutée → ouvre SavePlanningModal
+     pour nommer/décrire/choisir visibilité.
+     ────────────────────────────────────────────────────────── */
+  const maybeTriggerSaveModal = useCallback(
+    (recipeCountAfter: number) => {
+      if (savedPlanning) return; // déjà enregistré → auto-save
+      if (saveModalTriggeredRef.current) return; // déjà proposé
+      if (recipeCountAfter !== 1) return; // seulement à la 1ère recette
+      saveModalTriggeredRef.current = true;
+      setEditingMeta(false);
+      setShowSaveModal(true);
+    },
+    [savedPlanning],
+  );
+
+  /* ─── Placer la pending recipe sur un slot ────────── */
+
+  const placePendingRecipe = useCallback(
+    async (dayIdx: number, slotIdx: number) => {
+      if (!pendingRecipe) return false;
+      try {
+        const { data } = await supabase
+          .from("recettes")
+          .select("id, slug, titre, ingredients, image_url")
+          .eq("id", pendingRecipe.id)
+          .eq("approuve", true)
+          .eq("publie", true)
+          .single();
+
+        if (!data) {
+          toastError(
+            "Cette recette n'est plus disponible. Veuillez en choisir une autre.",
+          );
+          setPendingRecipeState(null);
+          clearPendingRecipe();
+          return false;
+        }
+
+        const newPlan = { ...plan };
+        if (!newPlan[dayIdx]) newPlan[dayIdx] = [null, null, null];
+        newPlan[dayIdx][slotIdx] = data as RecetteMin;
+
+        const countAfter = Object.values(newPlan)
+          .flat()
+          .filter(Boolean).length;
+
+        await savePlan(newPlan);
+
+        toastSuccess(
+          `« ${pendingRecipe.titre} » ajoutée au ${JOURS[dayIdx]} !`,
+        );
+        setPendingRecipeState(null);
+        clearPendingRecipe();
+
+        // Ouvre SavePlanningModal si 1ère recette d'un nouveau planning
+        maybeTriggerSaveModal(countAfter);
+
+        return true;
+      } catch (err) {
+        console.error("[planificateur] placePendingRecipe error:", err);
+        toastError("Erreur lors de l'ajout de la recette.");
+        return false;
+      }
+    },
+    [
+      pendingRecipe,
+      plan,
+      savePlan,
+      supabase,
+      toastError,
+      toastSuccess,
+      maybeTriggerSaveModal,
+    ],
+  );
+
+  const cancelPendingRecipe = useCallback(() => {
+    setPendingRecipeState(null);
+    clearPendingRecipe();
+    toastInfo("Ajout annulé.");
+  }, [toastInfo]);
+
+  /* ─── Handler unifié "Ajouter un repas" ─────────────── */
+
+  const handleSlotClick = useCallback(
+    async (dayIdx: number, slotIdx: number) => {
+      if (pendingRecipe) {
+        await placePendingRecipe(dayIdx, slotIdx);
+        return;
+      }
+      setSelectingDay(dayIdx);
+      setSelectingSlot(slotIdx);
+    },
+    [pendingRecipe, placePendingRecipe],
+  );
+
+  /* ─── Actions ───────────────────────────────────────── */
 
   const searchRecipes = async (q: string) => {
     setSearchQuery(q);
@@ -36574,7 +38208,6 @@ export default function PlanificateurPage() {
     setSearchResults((data || []) as RecetteMin[]);
   };
 
-  // APRÈS
   const loadFavoris = useCallback(
     async (force = false) => {
       if ((favorisLoaded && !force) || !user) return;
@@ -36596,10 +38229,8 @@ export default function PlanificateurPage() {
     [favorisLoaded, user, supabase],
   );
 
-  // Handler appelé par RecipePreviewModal quand les favoris changent
   const handleFavorisChange = useCallback(() => {
     setFavorisLoaded(false);
-    // Si l'onglet Favoris est déjà affiché, on recharge immédiatement
     if (activeTab === "favoris") {
       loadFavoris(true);
     }
@@ -36613,10 +38244,15 @@ export default function PlanificateurPage() {
     const newPlan = { ...plan };
     if (!newPlan[dayIndex]) newPlan[dayIndex] = [null, null, null];
     newPlan[dayIndex][slot] = recette;
+
+    const countAfter = Object.values(newPlan).flat().filter(Boolean).length;
+
     savePlan(newPlan);
     setSelectingDay(null);
     setSearchQuery("");
     setSearchResults([]);
+
+    maybeTriggerSaveModal(countAfter);
   };
 
   const removeRecipe = (dayIndex: number, slot: number) => {
@@ -36628,21 +38264,7 @@ export default function PlanificateurPage() {
   const getFilledSlots = (dayIndex: number): number =>
     (plan[dayIndex] || []).filter(Boolean).length;
 
-  /* ─── Nouveau planning (point 3) ────────────────────────── */
-
-  const resetPlanning = async () => {
-    if (!user) return;
-    const emptyPlan: WeekPlan = {};
-    for (let d = 0; d < 7; d++) emptyPlan[d] = [null, null, null];
-    await savePlan(emptyPlan);
-    setLoadedPlanning(null);
-    setSelectedDays(new Set());
-    setListeItems([]);
-    setShowListe(false);
-    toastSuccess("Nouveau planning vide créé !");
-  };
-
-  /* ─── Liste de courses ──────────────────────────────────── */
+  /* ─── Liste de courses ──────────────────────────────── */
 
   const toggleDayForListe = (d: number) => {
     const next = new Set(selectedDays);
@@ -36748,7 +38370,7 @@ export default function PlanificateurPage() {
     win.print();
   };
 
-  /* ─── RENDU ───────────────────────────────────────────────── */
+  /* ─── RENDU ─────────────────────────────────────────── */
 
   if (authLoading) {
     return (
@@ -36820,33 +38442,29 @@ export default function PlanificateurPage() {
 
   const totalRecipes = Object.values(plan).flat().filter(Boolean).length;
 
-  /* ─── Bouton Sauvegarder (réutilisé) ────────────────────── */
-  const SaveButton = ({ className = "" }: { className?: string }) =>
-    totalRecipes >= 1 ? (
+  /* ─── Bouton "Enregistrer ce brouillon" (si l'utilisateur a fermé
+     le modal mais veut enregistrer plus tard) ──────────────── */
+  const DraftSaveButton = () =>
+    !savedPlanning && totalRecipes >= 1 ? (
       <button
-        onClick={() => setShowSaveModal(true)}
-        className={cn(
-          "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border border-accent/30 text-accent hover:bg-accent/10 transition-colors",
-          className,
-        )}
+        onClick={() => {
+          setEditingMeta(false);
+          setShowSaveModal(true);
+        }}
+        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-medium border border-accent/30 text-accent hover:bg-accent/10 transition-colors"
       >
-        <Save className="w-4 h-4" />
-        Sauvegarder
+        💾 Enregistrer ce planning
       </button>
     ) : null;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
+    <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
       {/* Header */}
       <div className="space-y-1">
         <div className="flex items-center justify-between gap-2">
           <h1 className="font-display font-bold text-3xl flex items-center gap-3">
             <Calendar className="w-8 h-8 text-accent" /> Planificateur
           </h1>
-          {/* Bouton Sauvegarder — desktop uniquement (point 1) */}
-          <div className="hidden md:block">
-            <SaveButton />
-          </div>
         </div>
         <div className="flex flex-col gap-2">
           <p className="text-muted-foreground mt-1">
@@ -36861,39 +38479,57 @@ export default function PlanificateurPage() {
             <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-accent/10 text-accent text-[10px] font-bold border border-accent/20 uppercase tracking-wider">
               Les quantités sont pour 4 personnes / portions par défaut
             </span>
-            {/* Bouton Nouveau planning (point 3) */}
             <button
-              onClick={resetPlanning}
+              onClick={() => resetPlanning()}
               className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-medium border border-border text-muted-foreground hover:text-accent hover:border-accent/30 transition-colors"
             >
               <RotateCw className="w-3 h-3" />
               Nouveau planning
             </button>
+            <DraftSaveButton />
           </div>
         </div>
       </div>
 
-      {/* Planning chargé */}
-      {loadedPlanning && (
+      {/* Bannière "Recette à placer" — sticky */}
+      {pendingRecipe && (
+        <PendingRecipeBanner
+          recipe={pendingRecipe}
+          onCancel={cancelPendingRecipe}
+        />
+      )}
+
+      {/* Bannière planning enregistré + bouton "Modifier les infos" */}
+      {savedPlanning && (
         <div className="glass-card px-5 py-4 rounded-xl border border-accent/20 bg-accent/5 flex items-start justify-between gap-4">
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-accent mb-1">
-              Planning chargé
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-accent mb-1 flex items-center gap-1.5">
+              {savedPlanning.is_public ? (
+                <Globe className="w-3 h-3" />
+              ) : (
+                <Lock className="w-3 h-3" />
+              )}
+              Planning enregistré · synchronisé automatiquement
             </p>
-            <h3 className="font-display font-bold text-lg">
-              {loadedPlanning.name}
+            <h3 className="font-display font-bold text-lg truncate">
+              {savedPlanning.name}
             </h3>
-            {loadedPlanning.description && (
-              <p className="text-sm text-muted-foreground mt-0.5">
-                {loadedPlanning.description}
+            {savedPlanning.description && (
+              <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2">
+                {savedPlanning.description}
               </p>
             )}
           </div>
           <button
-            onClick={() => setLoadedPlanning(null)}
-            className="text-muted-foreground hover:text-foreground shrink-0 mt-1"
+            onClick={() => {
+              setEditingMeta(true);
+              setShowSaveModal(true);
+            }}
+            className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium border border-border text-muted-foreground hover:text-accent hover:border-accent/30 transition-colors"
+            aria-label="Modifier les informations du planning"
           >
-            <X className="w-4 h-4" />
+            <Pencil className="w-3.5 h-3.5" />
+            Modifier
           </button>
         </div>
       )}
@@ -36906,7 +38542,12 @@ export default function PlanificateurPage() {
           return (
             <div
               key={dayIdx}
-              className="glass-card p-3 min-h-[14rem] flex flex-col"
+              className={cn(
+                "glass-card p-3 min-h-[14rem] flex flex-col transition-all",
+                pendingRecipe &&
+                  filled < MAX_SLOTS &&
+                  "ring-1 ring-accent/30 bg-accent/5",
+              )}
             >
               <h3 className="font-display font-semibold text-sm mb-2 text-accent flex items-center justify-between">
                 {jour}
@@ -36952,13 +38593,15 @@ export default function PlanificateurPage() {
                       filled < MAX_SLOTS &&
                       slotIdx === filled && (
                         <button
-                          onClick={() => {
-                            setSelectingDay(dayIdx);
-                            setSelectingSlot(slotIdx);
-                          }}
-                          className="w-full py-1.5 border border-dashed border-border rounded-lg text-xs text-muted-foreground hover:text-accent hover:border-accent/30 transition-colors"
+                          onClick={() => handleSlotClick(dayIdx, slotIdx)}
+                          className={cn(
+                            "w-full py-1.5 border border-dashed rounded-lg text-xs transition-colors",
+                            pendingRecipe
+                              ? "border-accent bg-accent/10 text-accent hover:bg-accent/20 font-semibold"
+                              : "border-border text-muted-foreground hover:text-accent hover:border-accent/30",
+                          )}
                         >
-                          + Ajouter
+                          {pendingRecipe ? "✓ Placer ici" : "+ Ajouter"}
                         </button>
                       )
                     )}
@@ -36985,7 +38628,12 @@ export default function PlanificateurPage() {
           return (
             <div
               key={dayIdx}
-              className="glass-card p-3 min-h-[14rem] flex flex-col"
+              className={cn(
+                "glass-card p-3 min-h-[14rem] flex flex-col transition-all",
+                pendingRecipe &&
+                  filled < MAX_SLOTS &&
+                  "ring-1 ring-accent/30 bg-accent/5",
+              )}
             >
               <h3 className="font-display font-semibold text-sm mb-2 text-accent flex items-center justify-between">
                 {jour}
@@ -37031,13 +38679,15 @@ export default function PlanificateurPage() {
                       filled < MAX_SLOTS &&
                       slotIdx === filled && (
                         <button
-                          onClick={() => {
-                            setSelectingDay(dayIdx);
-                            setSelectingSlot(slotIdx);
-                          }}
-                          className="w-full py-1.5 border border-dashed border-border rounded-lg text-xs text-muted-foreground hover:text-accent hover:border-accent/30 transition-colors"
+                          onClick={() => handleSlotClick(dayIdx, slotIdx)}
+                          className={cn(
+                            "w-full py-1.5 border border-dashed rounded-lg text-xs transition-colors",
+                            pendingRecipe
+                              ? "border-accent bg-accent/10 text-accent hover:bg-accent/20 font-semibold"
+                              : "border-border text-muted-foreground hover:text-accent hover:border-accent/30",
+                          )}
                         >
-                          + Ajouter
+                          {pendingRecipe ? "✓ Placer ici" : "+ Ajouter"}
                         </button>
                       )
                     )}
@@ -37054,11 +38704,6 @@ export default function PlanificateurPage() {
             </div>
           );
         })}
-      </div>
-
-      {/* ─── Bouton Sauvegarder mobile (point 1) — entre planning et liste ─── */}
-      <div className="md:hidden">
-        <SaveButton className="w-full justify-center py-3" />
       </div>
 
       {/* Liste de courses */}
@@ -37109,17 +38754,21 @@ export default function PlanificateurPage() {
 
           <button
             onClick={generateListe}
-            disabled={selectedDays.size === 0}
+            disabled={selectedDays.size === 0 || listeLoading}
             className="flex items-center gap-2 px-6 py-3 rounded-xl bg-accent text-black font-medium text-sm hover:bg-accent-hover disabled:opacity-40 transition-colors"
           >
-            <ShoppingCart className="w-4 h-4" />
+            {listeLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <ShoppingCart className="w-4 h-4" />
+            )}
             Générer la liste ({selectedDays.size} jour
             {selectedDays.size > 1 ? "s" : ""})
           </button>
         </div>
       )}
 
-      {/* Modal détail jour — FIX : z-[100] au-dessus de BottomNav + h-[100dvh] pour iOS */}
+      {/* Modal détail jour */}
       {dayModalOpen !== null && (
         <div className="fixed inset-0 z-[100] h-[100dvh] overscroll-none flex items-center justify-center p-4">
           <div
@@ -37182,16 +38831,28 @@ export default function PlanificateurPage() {
                       getFilledSlots(dayModalOpen) < MAX_SLOTS &&
                       slotIdx === getFilledSlots(dayModalOpen) && (
                         <button
-                          onClick={() => {
+                          onClick={async () => {
+                            const dayIdx = dayModalOpen;
                             setDayModalOpen(null);
-                            setTimeout(() => {
-                              setSelectingDay(dayModalOpen);
-                              setSelectingSlot(slotIdx);
-                            }, 150);
+                            if (pendingRecipe) {
+                              await placePendingRecipe(dayIdx, slotIdx);
+                            } else {
+                              setTimeout(() => {
+                                setSelectingDay(dayIdx);
+                                setSelectingSlot(slotIdx);
+                              }, 150);
+                            }
                           }}
-                          className="w-full py-3 border border-dashed border-border rounded-xl text-sm text-muted-foreground hover:text-accent hover:border-accent/30 transition-colors"
+                          className={cn(
+                            "w-full py-3 border border-dashed rounded-xl text-sm transition-colors",
+                            pendingRecipe
+                              ? "border-accent bg-accent/10 text-accent hover:bg-accent/20 font-semibold"
+                              : "border-border text-muted-foreground hover:text-accent hover:border-accent/30",
+                          )}
                         >
-                          + Ajouter une recette
+                          {pendingRecipe
+                            ? "✓ Placer la recette ici"
+                            : "+ Ajouter une recette"}
                         </button>
                       )
                     )}
@@ -37203,12 +38864,7 @@ export default function PlanificateurPage() {
         </div>
       )}
 
-      {/* Modal sélection recette — FIX MOBILE :
-          - z-[100] : passe AU-DESSUS de la BottomNav (qui est z-50).
-            Avant, la BottomNav "mangeait" la moitié inférieure du modal.
-          - h-[100dvh] : borne le wrapper au viewport visible sur iOS.
-            Sans ça, `fixed inset-0` déborde sous la toolbar Safari.
-          - pb-safe : respecte la zone home indicator iPhone. */}
+      {/* Modal sélection recette (recherche classique) */}
       {selectingDay !== null && (
         <div className="fixed inset-0 z-[100] h-[100dvh] overscroll-none flex items-end sm:items-center justify-center">
           <div
@@ -37220,17 +38876,11 @@ export default function PlanificateurPage() {
               setSearchResults([]);
             }}
           />
-          {/* Bottom sheet sur mobile (h-[85dvh] = prend 85% de l'écran dès
-              l'ouverture, plus de modal rabougri qui colle en bas).
-              Sur desktop (sm+), retour à un modal centré auto-dimensionné. */}
           <div
             className="relative z-10 w-full h-[85dvh] sm:h-auto sm:max-h-[85dvh] sm:max-w-md sm:mx-4 rounded-t-2xl sm:rounded-2xl p-5 sm:p-6 space-y-4 flex flex-col animate-slide-up pb-safe"
-            style={{
-              backgroundColor: "var(--color-bg)",
-            }}
+            style={{ backgroundColor: "var(--color-bg)" }}
           >
             <div className="flex items-center justify-between flex-shrink-0">
-              {/* Poignée mobile */}
               <div className="absolute top-2 left-1/2 -translate-x-1/2 w-10 h-1 rounded-full bg-border sm:hidden" />
               <h3 className="font-display font-bold text-lg">
                 {JOURS[selectingDay]} — Repas {selectingSlot + 1}
@@ -37362,7 +39012,7 @@ export default function PlanificateurPage() {
         </div>
       )}
 
-      {/* Modal liste de courses — FIX : z-[100] + h-[100dvh] */}
+      {/* Modal liste de courses */}
       {showListe && (
         <div className="fixed inset-0 z-[100] h-[100dvh] overscroll-none flex items-center justify-center">
           <div
@@ -37418,7 +39068,7 @@ export default function PlanificateurPage() {
         </div>
       )}
 
-      {/* Modal preview recette */}
+      {/* Modal preview recette (depuis modal de recherche) */}
       {previewRecipe && selectingDay !== null && (
         <RecipePreviewModal
           recetteId={previewRecipe.id}
@@ -37431,7 +39081,7 @@ export default function PlanificateurPage() {
         />
       )}
 
-      {/* Modal sauvegarde planning */}
+      {/* Modal d'enregistrement / modification du planning */}
       {showSaveModal && (
         <SavePlanningModal
           weekStart={semaine}
@@ -37441,12 +39091,49 @@ export default function PlanificateurPage() {
               slots.map((r) => r?.id ?? null),
             ]),
           )}
-          onClose={() => setShowSaveModal(false)}
-          onSaved={(id) => {
+          editingPlanning={editingMeta ? savedPlanning : null}
+          title={
+            editingMeta
+              ? "Modifier le planning"
+              : savedPlanning
+                ? "Enregistrer le planning"
+                : "Enregistrez votre nouveau planning"
+          }
+          onClose={() => {
             setShowSaveModal(false);
-            toastSuccess(
-              "Planning sauvegardé ! Retrouvez-le dans votre profil.",
-            );
+            setEditingMeta(false);
+          }}
+          onSaved={async (result) => {
+            const wasEditing = editingMeta;
+            setSavedPlanning({
+              id: result.id,
+              name: result.name,
+              description: result.description,
+              is_public: result.is_public,
+            });
+            setShowSaveModal(false);
+            setEditingMeta(false);
+
+            // Si on vient de CRÉER le planning : on resync le data
+            // pour être sûr que les dernières modifs faites pendant
+            // que le modal était ouvert sont bien dans user_plannings.
+            if (!wasEditing) {
+              try {
+                const planningData: Record<number, (string | null)[]> = {};
+                for (let d = 0; d < 7; d++) {
+                  const slots = plan[d] || [null, null, null];
+                  planningData[d] = slots.map((r) => r?.id ?? null);
+                }
+                await updatePlanningData(result.id, planningData);
+              } catch {
+                /* silent — pas bloquant */
+              }
+              toastSuccess(
+                `« ${result.name} » enregistré. Les modifs suivantes se synchronisent toutes seules.`,
+              );
+            } else {
+              toastSuccess("Infos du planning mises à jour.");
+            }
           }}
         />
       )}

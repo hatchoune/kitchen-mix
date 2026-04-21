@@ -12,9 +12,12 @@ import {
   RotateCw,
   Check,
   X,
+  Mic,
+  MicOff,
 } from "lucide-react";
 import type { EtapeThermomix } from "@/types";
 import { useWakeLock } from "@/hooks/useWakeLock";
+import { useVoiceCommand } from "@/hooks/useVoiceCommand"; // <-- NOUVEAU HOOK
 
 interface SimulateurProps {
   isOpen: boolean;
@@ -35,6 +38,27 @@ export default function SimulateurThermomix({
   const { request: requestWakeLock, release: releaseWakeLock } = useWakeLock();
   const touchStartX = useRef<number | null>(null);
   const pushedHistoryRef = useRef(false);
+
+  // ─── Contrôle vocal ────────────────────────────────────────────
+  const [voiceEnabled, setVoiceEnabled] = useState(false);
+
+  const handleVoiceCommand = useCallback((command: string) => {
+    // Le hook appelle déjà la fonction, mais on pourrait logger ici si besoin
+    console.log(`[Voice] Commande reconnue: ${command}`);
+  }, []);
+
+  const { isListening, error: voiceError, isSupported } = useVoiceCommand({
+    enabled: voiceEnabled && isOpen, // Actif seulement si le modal est ouvert et le toggle activé
+    lang: "fr-FR",
+    commands: {
+      "suivant": goNext,
+      "avance": goNext,
+      "ok": goNext,
+      "précédent": goPrev,
+      "retour": goPrev,
+    },
+    onCommand: handleVoiceCommand,
+  });
 
   // ─── Portal mount guard (évite hydration mismatch SSR) ─────────────
   useEffect(() => {
@@ -80,6 +104,8 @@ export default function SimulateurThermomix({
   // ─── Reset au step 0 à chaque ouverture ───────────────────────────
   useEffect(() => {
     if (isOpen) setCurrentStep(0);
+    // Désactiver le micro quand on ferme le modal
+    if (!isOpen) setVoiceEnabled(false);
   }, [isOpen]);
 
   // ─── WakeLock ──────────────────────────────────────────────────────
@@ -91,41 +117,21 @@ export default function SimulateurThermomix({
     };
   }, [isOpen, requestWakeLock, releaseWakeLock]);
 
-  // ─── Bouton RETOUR Android — StrictMode-safe ───────────────────────
-  // Le pushState/history.back() est déféré via setTimeout(0) pour
-  // survivre au double-invoke de StrictMode en dev Next.js. Sans ça :
-  //   1) Mount : pushState
-  //   2) Cleanup StrictMode simulé : history.back() (async)
-  //   3) Re-mount : pushState de nouveau
-  //   4) Le history.back() de l'étape 2 fire popstate → onClose()
-  //   5) Le simulateur se referme juste après s'être ouvert = FLICKER
-  // Avec setTimeout, le timer du premier cycle est annulé avant de
-  // fire, donc pushState ne s'exécute qu'une seule fois au re-mount.
+  // ─── Bouton RETOUR Android ────────────────────────────────────────
   useEffect(() => {
     if (!isOpen) return;
 
-    let cancelled = false;
-    let listenerAdded = false;
+    window.history.pushState({ kmxSimulateur: true }, "");
+    pushedHistoryRef.current = true;
 
     const onPop = () => {
       pushedHistoryRef.current = false;
       onClose();
     };
 
-    const timerId = setTimeout(() => {
-      if (cancelled) return;
-      window.history.pushState({ kmxSimulateur: true }, "");
-      pushedHistoryRef.current = true;
-      window.addEventListener("popstate", onPop);
-      listenerAdded = true;
-    }, 0);
-
+    window.addEventListener("popstate", onPop);
     return () => {
-      cancelled = true;
-      clearTimeout(timerId);
-      if (listenerAdded) {
-        window.removeEventListener("popstate", onPop);
-      }
+      window.removeEventListener("popstate", onPop);
       if (pushedHistoryRef.current) {
         pushedHistoryRef.current = false;
         window.history.back();
@@ -134,13 +140,13 @@ export default function SimulateurThermomix({
   }, [isOpen, onClose]);
 
   // ─── Navigation ────────────────────────────────────────────────────
-  const goNext = useCallback(() => {
+  function goNext() {
     setCurrentStep((s) => Math.min(etapes.length - 1, s + 1));
-  }, [etapes.length]);
+  }
 
-  const goPrev = useCallback(() => {
+  function goPrev() {
     setCurrentStep((s) => Math.max(0, s - 1));
-  }, []);
+  }
 
   // ─── Raccourcis clavier ────────────────────────────────────────────
   useEffect(() => {
@@ -152,7 +158,7 @@ export default function SimulateurThermomix({
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [isOpen, onClose, goNext, goPrev]);
+  }, [isOpen, onClose]);
 
   // ─── Swipe horizontal ──────────────────────────────────────────────
   const onTouchStart = (e: React.TouchEvent) => {
@@ -243,6 +249,29 @@ export default function SimulateurThermomix({
             {titre}
           </h3>
 
+          {/* ─── BOUTON CONTRÔLE VOCAL ───────────────────────────────── */}
+          {isSupported && (
+            <button
+              onClick={() => setVoiceEnabled((prev) => !prev)}
+              className={cn(
+                "shrink-0 p-2 rounded-full transition-all shadow-md relative",
+                voiceEnabled
+                  ? "bg-blue-500 text-white hover:bg-blue-600"
+                  : "bg-white/10 text-gray-400 hover:bg-white/20"
+              )}
+              aria-label={voiceEnabled ? "Désactiver le contrôle vocal" : "Activer le contrôle vocal"}
+              title={voiceEnabled ? "Micro actif - Dites 'Suivant' ou 'Précédent'" : "Activer la commande vocale"}
+            >
+              {voiceEnabled ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
+              {isListening && (
+                <span className="absolute -top-0.5 -right-0.5 flex h-3 w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                </span>
+              )}
+            </button>
+          )}
+
           <div className="shrink-0 text-[10px] sm:text-xs font-mono bg-accent/20 text-accent px-2.5 py-1 rounded-full border border-accent/30 whitespace-nowrap">
             {currentStep + 1} / {etapes.length}
           </div>
@@ -272,6 +301,13 @@ export default function SimulateurThermomix({
             )}
           </button>
         </div>
+
+        {/* Petite alerte si erreur micro */}
+        {voiceError && voiceEnabled && (
+          <div className="text-[10px] text-red-400 text-center pb-1">
+            {voiceError}
+          </div>
+        )}
 
         <div className="h-1 w-full bg-white/10 overflow-hidden">
           <div
@@ -323,6 +359,7 @@ export default function SimulateurThermomix({
     </div>
   );
 
+  // Render via Portal
   return createPortal(content, document.body);
 }
 
@@ -341,4 +378,9 @@ function CircleParam({ icon: Icon, value, unit, label }: any) {
       </span>
     </div>
   );
+}
+
+// Helper cn pour les classes (si tu ne l'as pas déjà importé)
+function cn(...classes: (string | false | null | undefined)[]): string {
+  return classes.filter(Boolean).join(" ");
 }

@@ -1,15 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Heart, Printer, Share2, PlayCircle } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useFavoris } from "@/hooks/useFavoris";
 import { useRatings } from "@/hooks/useRatings";
 import StarRating from "@/components/ui/StarRating";
 import SimulateurThermomix from "@/components/recettes/SimulateurThermomix";
+import AddToPlanningButton from "@/components/recettes/AddToPlanningButton";
 import type { Recette } from "@/types";
 import { cn } from "@/lib/utils";
-import Link from "next/link";
 
 interface RecetteDetailClientProps {
   recette: Recette;
@@ -39,6 +39,14 @@ export default function RecetteDetailClient({
   const handlePrint = () => window.print();
   const favori = isFavori(recette.id);
 
+  // IMPORTANT : onClose DOIT être stable (useCallback sans deps)
+  // Sinon l'effet `useEffect([isOpen, onClose])` dans SimulateurThermomix
+  // se rejoue à chaque render du parent → cleanup fait history.back() →
+  // Next.js App Router POST la page → re-render → boucle infinie de POSTs.
+  const handleSimulateurClose = useCallback(() => {
+    setSimulateurOpen(false);
+  }, []);
+
   return (
     <>
       <div className="flex flex-wrap items-center gap-4">
@@ -52,7 +60,17 @@ export default function RecetteDetailClient({
           size="lg"
         />
 
-        <div className="flex items-center gap-2 ml-auto">
+        <div className="flex items-center gap-2 ml-auto flex-wrap">
+          {/* Ajouter au planning — gère lui-même le cas non connecté */}
+          <AddToPlanningButton
+            recette={{
+              id: recette.id,
+              slug: recette.slug,
+              titre: recette.titre,
+              image_url: recette.image_url,
+            }}
+          />
+
           {/* Favori */}
           {user && (
             <button
@@ -94,6 +112,7 @@ export default function RecetteDetailClient({
 
       {/* Simulator CTA */}
       <button
+        type="button"
         onClick={() => setSimulateurOpen(true)}
         className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-accent text-black font-display font-bold text-sm hover:bg-accent-hover transition-colors no-print"
       >
@@ -101,49 +120,11 @@ export default function RecetteDetailClient({
         Lancer la recette guidée
       </button>
 
-      {/* Simulator Modal — bloqué si non connecté */}
-      {simulateurOpen && !user && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          {/* Fond flouté */}
-          <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={() => setSimulateurOpen(false)}
-          />
-          {/* Carte centrale */}
-          <div
-            className="relative z-10 w-full max-w-sm rounded-2xl p-8 flex flex-col items-center gap-5 text-center animate-scale-in"
-            style={{ backgroundColor: "var(--color-bg)" }}
-          >
-            <div className="w-16 h-16 rounded-full bg-accent/10 flex items-center justify-center">
-              <PlayCircle className="w-8 h-8 text-accent" />
-            </div>
-            <div className="space-y-2">
-              <h3 className="font-display font-bold text-xl">Recette guidée</h3>
-              <p className="text-sm text-muted-foreground">
-                Connectez-vous pour accéder au mode cuisine guidée pas à pas.
-              </p>
-            </div>
-            <Link
-              href={`/connexion?next=/recettes/${recette.slug}`}
-              className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-accent text-black font-display font-bold text-sm hover:bg-accent-hover transition-colors"
-            >
-              Se connecter
-            </Link>
-            <button
-              onClick={() => setSimulateurOpen(false)}
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Annuler
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Simulator Modal — accessible si connecté */}
-      {simulateurOpen && user && (
+      {/* Simulator Modal — ouverture directe, pas de gate auth */}
+      {simulateurOpen && (
         <SimulateurThermomix
           isOpen={simulateurOpen}
-          onClose={() => setSimulateurOpen(false)}
+          onClose={handleSimulateurClose}
           etapes={recette.etapes}
           titre={recette.titre}
         />

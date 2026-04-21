@@ -19,13 +19,17 @@ import type {
      car l'acteur (auth.uid()) est différent du destinataire.
    - Les LECTURES / MARQUAGES passent par le client utilisateur
      et sont filtrées par RLS (user_id = auth.uid()).
+   - Les notifications SYSTÈME (actor_id = null) comme les
+     rappels de sauvegarde de planning contournent la règle
+     "pas de notif à soi-même" car elles ne viennent d'aucun
+     utilisateur tiers.
    ============================================================= */
 
 // ─── Helper interne (non exporté) ───────────────────────────
 
 interface InsertParams {
   recipientId: string;
-  actorId: string;
+  actorId: string | null; // null pour notifications système
   type: NotificationType;
   recetteId?: string | null;
   commentId?: string | null;
@@ -33,8 +37,11 @@ interface InsertParams {
 }
 
 async function insertNotification(params: InsertParams): Promise<void> {
-  // Jamais de notification à soi-même.
-  if (params.recipientId === params.actorId) return;
+  // Jamais de notification à soi-même — SAUF pour les notifs système
+  // (actor_id == null) qui sont des rappels légitimes du système.
+  if (params.actorId !== null && params.recipientId === params.actorId) {
+    return;
+  }
 
   const admin = createAdminSupabase();
   const { error } = await admin.from("notifications").insert({
@@ -262,6 +269,51 @@ export async function notifyRecipeRating(
     });
   } catch (err) {
     console.error("[notifications] notifyRecipeRating error:", err);
+  }
+}
+
+/**
+ * Rappel système pour sauvegarder un planning en cours.
+ *
+ * - actor_id = NULL → c'est une notification système (pas d'utilisateur tiers)
+ * - Anti-spam serveur : ne crée pas de nouvelle notif si une existe déjà
+ *   non lue sur les 24 dernières heures pour cet utilisateur.
+ * - Le plafond "3 rappels à vie" est géré côté client (localStorage) via
+ *   lib/pending-recipe.ts (canShowSaveBellNotif / incrementSaveReminderCount).
+ */
+export async function notifyUnsavedPlanning(): Promise<{ sent: boolean }> {
+  try {
+    const supabase = await createServerSupabase();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return { sent: false };
+
+    const admin = createAdminSupabase();
+
+    // Anti-spam : pas de nouvelle notif si une existe déjà (lue ou non)
+    // sur les 24 dernières heures pour ce user.
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { count } = await admin
+      .from("notifications")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .eq("type", "planning_unsaved_reminder")
+      .gte("created_at", since);
+
+    if ((count ?? 0) > 0) return { sent: false };
+
+    await insertNotification({
+      recipientId: user.id,
+      actorId: null, // notification système
+      type: "planning_unsaved_reminder",
+    });
+
+    revalidatePath("/notifications");
+    return { sent: true };
+  } catch (err) {
+    console.error("[notifications] notifyUnsavedPlanning error:", err);
+    return { sent: false };
   }
 }
 
