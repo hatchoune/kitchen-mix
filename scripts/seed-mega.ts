@@ -16,6 +16,10 @@ import { SEED_KITCHENAID } from "../lib/seed-mega-kitchenaid";
 import { SEED_COOKEO } from "../lib/seed-mega-cookeo";
 import { SEED_MULTICUISEUR } from "../lib/seed-mega-multicuiseur";
 import { SEED_PETITS_APPAREILS } from "../lib/seed-mega-petits-appareils";
+// ─── Sessions extra (2026) ───────────────────────────────────
+import { SEED_EXTRA_2026 } from "../lib/seed-extra-2026";
+import { SEED_SESSION_2 } from "../lib/seed-session-2-cuisson";
+import { SEED_SESSION_3 } from "../lib/seed-session-3-rapide";
 
 // ─── Charger .env.local ──────────────────────────────────────
 try {
@@ -57,6 +61,9 @@ const ALL_RECIPES = [
   ...SEED_COOKEO,
   ...SEED_MULTICUISEUR,
   ...SEED_PETITS_APPAREILS,
+  ...SEED_EXTRA_2026,
+  ...SEED_SESSION_2,
+  ...SEED_SESSION_3,
 ];
 
 async function seed() {
