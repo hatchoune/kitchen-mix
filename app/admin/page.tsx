@@ -101,7 +101,7 @@ export default function AdminPage() {
       "Historique commentaires",
     )) as RecipeComment[] | null;
     const usersData = await safeFetch(
-      () => getUsers(50),
+      () => getUsers(5000),
       "Liste des utilisateurs",
     );
     const bannedData = await safeFetch(

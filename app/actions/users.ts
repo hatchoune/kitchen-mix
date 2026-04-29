@@ -152,7 +152,7 @@ export async function getBannedUsers() {
 
 // ─── Liste des utilisateurs (pour le panel admin) ────────────
 
-export async function getUsers(limit = 50) {
+export async function getUsers(limit = 5000) {
   await requireAdmin();
   const adminClient = createAdminSupabase();
 

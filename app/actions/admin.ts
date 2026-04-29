@@ -53,13 +53,14 @@ export async function getAdminAllComments() {
   await requireAdmin();
   const adminClient = createAdminSupabase();
 
+  // FIX: range(0, 9999) au lieu de limit(100) — récupère jusqu'à 10 000 commentaires
   const { data, error } = await adminClient
     .from("recipe_comments")
     .select(
       "*, profils:user_id(pseudo, avatar_url), recettes:recette_id(slug, titre)",
     )
     .order("created_at", { ascending: false })
-    .limit(100);
+    .range(0, 9999);
 
   if (!error) return data || [];
 
@@ -69,7 +70,7 @@ export async function getAdminAllComments() {
     .from("recipe_comments")
     .select("*")
     .order("created_at", { ascending: false })
-    .limit(100);
+    .range(0, 9999);
 
   if (rawErr) throw new Error(`Historique inaccessible: ${rawErr.message}`);
 
@@ -94,15 +95,10 @@ async function enrichComments(
       .from("profils")
       .select("id, pseudo, avatar_url")
       .in("id", userIds),
-    adminClient
-      .from("recettes")
-      .select("id, slug, titre")
-      .in("id", recetteIds),
+    adminClient.from("recettes").select("id, slug, titre").in("id", recetteIds),
   ]);
 
-  const profilMap = new Map(
-    (profilsRes.data || []).map((p: any) => [p.id, p]),
-  );
+  const profilMap = new Map((profilsRes.data || []).map((p: any) => [p.id, p]));
   const recetteMap = new Map(
     (recettesRes.data || []).map((r: any) => [r.id, r]),
   );
@@ -138,11 +134,13 @@ export async function getAdminAllRecettes() {
   await requireAdmin();
   const adminClient = createAdminSupabase();
 
+  // FIX: range(0, 9999) au lieu de limit(100) — récupère jusqu'à 10 000 recettes
+  // Le cap de 100 cachait le vrai compteur dans le label "Toutes les recettes (X)"
   const { data, error } = await adminClient
     .from("recettes")
     .select("*")
     .order("created_at", { ascending: false })
-    .limit(100);
+    .range(0, 9999);
 
   if (error) throw new Error(error.message);
   return data || [];
