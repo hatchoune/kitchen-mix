@@ -11,6 +11,12 @@ const nextConfig: NextConfig = {
     root: __dirname,
   },
   images: {
+    // ─── Désactive l'optimisation Vercel ────────────────────────
+    // Les images sont déjà compressées en WebP 1200×800 q80 par
+    // scripts/upload-images.ts (sharp) avant upload sur Supabase.
+    // Inutile de payer une 2e couche d'optim côté Vercel et de
+    // consommer le quota de 5000 transformations/mois du free tier.
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: "https",
