@@ -188,208 +188,6 @@ hooks/
   useRecettes.ts
   useTheme.ts
   useWakeLock.ts
-images-recettes/
-  images faites/
-    ailes-poulet-bbq-airfryer.png
-    artichauts-vapeur-vinaigrette-cuiseur-vapeur.jpg
-    asperges-vapeur-hollandaise-cuiseur-vapeur.jpg
-    avocado-toast-grille-pain.png
-    baguette-tradition-machine.jpg
-    beef-jerky-deshydrateur.png
-    beurre-maison-kitchenaid.png
-    beurre-noisette-cookexpert.jpg
-    biriyani-poulet-cuiseur-riz.jpg
-    blanquette-veau-cookeo.jpg
-    blinis-maison-thermomix.jpg
-    boeuf-stroganoff-cookeo.jpg
-    boudin-pommes-multicuiseur.jpg
-    boudoirs-vapeur-vanille-cuiseur-vapeur.jpg
-    brioche-kitchenaid.png
-    brioche-machine-pain.png
-    brocoli-vapeur-sauce-miso.png
-    brownies-airfryer.jpg
-    bruschetta-tomates-grille-pain.png
-    cake-marbré-kitchenaid.png
-    cake-olives-jambon-companion.jpg
-    caramel-beurre-sale-induction.png
-    chantilly-maison-kitchenaid.png
-    cheesecake-vapeur-multicuiseur.jpg
-    chili-cookeo.jpg
-    chips-pommes-deshydrateur.png
-    chocolat-chaud-bouilloire.png
-    choucroute-alsacienne-multicuiseur.jpg
-    churros-cannelle-airfryer.jpg
-    chutney-mangue-cookexpert.jpg
-    cinnamon-rolls-kitchenaid.png
-    clafoutis-cerises-cookexpert.jpg
-    compote-pommes-cannelle-thermomix.jpg
-    compote-pommes-micro-ondes.png
-    compotee-pommes-cookeo.jpg
-    confit-canard-cookexpert.jpg
-    confiture-abricots-multicuiseur.jpg
-    confiture-fraise-machine.jpg
-    congee-poulet-cuiseur-riz.png
-    cookie-dough-kitchenaid.png
-    cookies-pepites-chocolat-thermomix.jpg
-    cookies-rapides-airfryer.jpg
-    coq-au-vin-multicuiseur.jpg
-    cordon-bleu-maison-airfryer.jpg
-    couscous-royal-cookexpert.jpg
-    couscous-vapeur-cuiseur-vapeur.jpg
-    crevettes-tempura-airfryer.jpg
-    croissants-maison-kitchenaid.png
-    croque-gaufre-gaufrier.png
-    croque-monsieur-grille-pain.png
-    crostini-pesto-mozzarella-grille-pain.jpg
-    curry-poulet-coco-thermomix.jpg
-    dahl-lentilles-corail-multicuiseur.jpg
-    dahl-lentilles-corail-thermomix.jpg
-    dim-sum-vapeur.png
-    donuts-glaces-airfryer.jpg
-    dorade-vapeur-citron-companion.jpg
-    filet-mignon-porc-vapeur-cuiseur-vapeur.jpg
-    focaccia-romarin-kitchenaid.png
-    fondant-chocolat-cookexpert.jpg
-    fondant-citron-meringue-thermomix.jpg
-    fondue-chocolat-cookexpert.jpg
-    frites-maison-airfryer.png
-    gaufres-bruxelles-gaufrier.png
-    gaufres-liege-gaufrier.png
-    genoise-batteur-socle.png
-    glace-vanille-sorbetiere.png
-    granita-cafe-sorbetiere.png
-    gratin-blettes-bechamel-thermomix.jpg
-    guacamole-cookexpert.jpg
-    guimauve-maison-kitchenaid.png
-    houmous-maison-thermomix.jpg
-    infusion-gingembre-citron-bouilloire.png
-    jarret-veau-cookeo.jpg
-    joue-boeuf-cookeo.jpg
-    jus-carotte-orange-centrifugeuse.png
-    jus-vert-detox-centrifugeuse.png
-    lasagnes-bolognaise-cookexpert.jpg
-    legumes-grilles-airfryer.png
-    legumes-vapeur-aioli-cuiseur-vapeur.jpg
-    lentilles-cookeo.jpg
-    madeleines-coquilles-cookexpert.jpg
-    mayonnaise-maison-thermomix.jpg
-    meringue-francaise-kitchenaid.png
-    milkshake-fraise-cookexpert.jpg
-    moules-mariniere-cookeo.jpg
-    mousse-chocolat-batteur.png
-    mousseline-pommes-de-terre-cookexpert.jpg
-    muffins-myrtilles-kitchenaid.png
-    mug-cake-chocolat-micro-ondes.png
-    Navarin d'agneau printanier.jpg
-    nuggets-poulet-airfryer.png
-    oeuf-mollet-parfait-sous-vide.png
-    oeufs-brouilles-micro-ondes.png
-    oeufs-cocottes-cookeo.jpg
-    omelette-fines-herbes-induction.png
-    osso-buco-milanese-cookeo.jpg
-    Pad-thai-crevettes-companion.jpg
-    Pain blanc moelleux.png
-    pain-aux-noix-machine.png
-    pain-aux-raisins-machine.jpg
-    pain-campagne-kitchenaid.png
-    pain-cereales-machine.jpg
-    pain-chocolat-machine.jpg
-    pain-complet-graines-machine.jpg
-    pain-mie-toast-machine.jpg
-    pain-olives-tomates-machine.jpg
-    pain-perdu-grille-pain.jpg
-    pain-sans-gluten-machine.jpg
-    panettone-kitchenaid.png
-    panna-cotta-vapeur-cuiseur-vapeur.jpg
-    papillote-cabillaud-vapeur-cuiseur-vapeur.jpg
-    parmentier-canard-companion.jpg
-    patates-douces-rotis-airfryer.jpg
-    pate-a-crepes-kitchenaid.png
-    pate-a-tartiner-companion.jpg
-    pates-bolognaise-cookeo.jpg
-    pavlova-batteur-socle.png
-    penne-arrabiata-cookeo.jpg
-    pesto-basilic-thermomix.jpg
-    pizza-dough-kitchenaid.png
-    pizza-dough-machine.jpg
-    poele-gnocchis-companion.jpg
-    poisson-vapeur-gingembre.png
-    pommes-noisettes-airfryer.jpg
-    porc-effiloche-cookeo.jpg
-    porridge-avoine-fruits-cuiseur-riz.jpg
-    pot-au-feu-cookeo.jpg
-    poulet-basquaise-companion.jpg
-    poulet-moutarde-cookeo.jpg
-    poulet-tendre-sous-vide.png
-    poulet-tikka-masala-cookexpert.jpg
-    puree-patate-douce-companion.jpg
-    quiche-lorraine-cookexpert.jpg
-    quinoa-legumes-cuiseur-riz.jpg
-    ratatouille-provencale-cookexpert.jpg
-    ravioles-chinois-vapeur-cuiseur-vapeur.jpg
-    risotto-champignons-cookeo.jpg
-    risotto-encre-seiche-cuiseur-riz.jpg
-    risotto-fruits-mer-multicuiseur.jpg
-    risotto-parmesan-thermomix.jpg
-    riz-au-lait-cuiseur-riz.jpg
-    riz-basmati-safran-cuiseur.png
-    riz-cantonais-cuiseur-riz.jpg
-    riz-coco-cuiseur-riz.jpg
-    riz-jollof-cuiseur-riz.jpg
-    riz-pilaf-cookeo.jpg
-    riz-pilaf-legumes-cuiseur-riz.jpg
-    riz-pudding-mangue-cuiseur-riz.jpg
-    riz-sushi-cuiseur.png
-    rogan-josh-cookeo.jpg
-    samossas-airfryer.png
-    sauce-bechamel-companion.jpg
-    sauce-tomate-conserve-cookeo.jpg
-    sauce-tomate-express-thermomix.jpg
-    saumon-sous-vide.png
-    saumon-teriyaki-airfryer.jpg
-    saumon-vapeur-aneth-cuiseur-vapeur.jpg
-    smoothie-bowl-acai-companion.jpg
-    smoothie-mangue-coco-thermomix.jpg
-    sorbet-framboise-sorbetiere.png
-    soupe-asperges-cookexpert.jpg
-    soupe-butternut-cookexpert.jpg
-    soupe-carotte-gingembre-companion.jpg
-    soupe-legumes-cookeo.jpg
-    soupe-miso-express-cookexpert.jpg
-    soupe-poireaux-pommes-de-terre-thermomix.jpg
-    soupe-poisson-rouille-cookeo.jpg
-    soupe-potiron-companion.jpg
-    soupe-thai-tom-kha-cookeo.jpg
-    soupe-tomate-basilic-thermomix.jpg
-    steak-saisie-parfaite-induction.png
-    taboulé-libanais-cookexpert.jpg
-    tagliatelles-fraiches-thermomix.jpg
-    tajine-agneau-pruneaux-cookexpert.jpg
-    tajine-poulet-citron-multicuiseur.jpg
-    tartare-saumon-citron-vert-companion.jpg
-    tarte-citron-meringuee-kitchenaid.png
-    tarte-tatin-pommes-cookexpert.jpg
-    tartine-banane-cacahuete-grille-pain.jpg
-    tartine-camembert-pomme-grille-pain.jpg
-    tartine-houmous-legumes-grille-pain.jpg
-    tartine-oeuf-mimosa-grille-pain.jpg
-    tartine-ricotta-courgette-grille-pain.jpg
-    tartine-thon-tomate-grille-pain.jpg
-    tartines-fromage-figues-grille-pain.jpg
-    tartines-saumon-fume-aneth-grille-pain.jpg
-    the-matcha-latte-bouilloire.png
-    tofu-croustillant-airfryer.jpg
-    tomates-sechees-deshydrateur.png
-    us-betterave-pomme-centrifugeuse.png
-    veau-marengo-multicuiseur.jpg
-    veloute-courgettes-cookexpert.jpg
-    veloute-potimarron-chataignes-companion.jpg
-    vinaigrette-universelle-thermomix.jpg
-    wok-legumes-nouilles-cookexpert.jpg
-    yaourt-fruits-yaourtiere.png
-    yaourt-nature-yaourtiere.png
-    yaourt-vanille-yaourtiere.png
-    yaourts-multicuiseur.jpg
 lib/
   supabase/
     client.ts
@@ -14718,41 +14516,6 @@ v1.43.3
 declare module "*.css";
 </file>
 
-<file path=".gitignore">
-# dependencies
-/node_modules
-/.pnp
-.pnp.*
-.yarn/install-state.gz
-
-# next.js
-/.next/
-/out/
-
-# production
-/build
-
-# misc
-.DS_Store
-*.pem
-
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
-
-.env*
-!.env.example
-
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-</file>
-
 <file path="LICENSE">
 # Licence Propriétaire - Kitchen Mix
 
@@ -25080,285 +24843,6 @@ export async function deletePlanning(id: string) {
 }
 </file>
 
-<file path="app/actions/users.ts">
-"use server";
-
-import {
-  createAdminSupabase,
-  createServerSupabase,
-} from "@/lib/supabase/server";
-import { isAdmin } from "@/lib/supabase/queries";
-
-/* =============================================================
-   Kitchen Mix — Actions admin : Gestion utilisateurs
-   ============================================================= */
-
-// ─── Helper interne ──────────────────────────────────────────
-
-async function requireAdmin() {
-  const supabase = await createServerSupabase();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Non autorisé");
-  const admin = await isAdmin(user.id);
-  if (!admin) throw new Error("Accès refusé");
-  return user;
-}
-
-// ─── Bannir un utilisateur ───────────────────────────────────
-
-export async function banUser(userId: string, reason: string) {
-  const adminUser = await requireAdmin();
-  const adminClient = createAdminSupabase();
-
-  // 1. Récupérer l'email de l'utilisateur via auth.admin
-  const { data: targetUser, error: userError } =
-    await adminClient.auth.admin.getUserById(userId);
-
-  if (userError || !targetUser?.user?.email) {
-    throw new Error("Utilisateur introuvable");
-  }
-
-  const email = targetUser.user.email.toLowerCase().trim();
-
-  // 2. Vérifier que ce n'est pas un admin
-  const { data: isTargetAdmin } = await adminClient
-    .from("admins")
-    .select("user_id")
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  if (isTargetAdmin) {
-    throw new Error("Impossible de bannir un administrateur");
-  }
-
-  // 3. Ajouter l'email à la liste des bannis
-  const { error: banError } = await adminClient.from("banned_users").upsert(
-    {
-      email,
-      user_id: userId,
-      reason: reason || "Comportement inapproprié",
-      banned_by: adminUser.id,
-    },
-    { onConflict: "email" },
-  );
-
-  if (banError) throw new Error(banError.message);
-
-  // 4. Supprimer toutes les données de l'utilisateur
-  // Commentaires
-  await adminClient.from("recipe_comments").delete().eq("user_id", userId);
-  // Votes
-  await adminClient.from("comment_votes").delete().eq("user_id", userId);
-  // Favoris
-  await adminClient.from("favoris").delete().eq("user_id", userId);
-  // Notes
-  await adminClient.from("recipe_ratings").delete().eq("user_id", userId);
-  // Meal plans
-  await adminClient.from("meal_plans").delete().eq("user_id", userId);
-  // User plannings + likes/favorites associés
-  const { data: userPlannings } = await adminClient
-    .from("user_plannings")
-    .select("id")
-    .eq("user_id", userId);
-  if (userPlannings && userPlannings.length > 0) {
-    const planIds = userPlannings.map((p) => p.id);
-    await adminClient
-      .from("planning_likes")
-      .delete()
-      .in("planning_id", planIds);
-    await adminClient
-      .from("planning_favorites")
-      .delete()
-      .in("planning_id", planIds);
-    await adminClient.from("user_plannings").delete().eq("user_id", userId);
-  }
-  // Planning likes/favorites qu'il a donnés
-  await adminClient.from("planning_likes").delete().eq("user_id", userId);
-  await adminClient.from("planning_favorites").delete().eq("user_id", userId);
-  // Achievements
-  await adminClient.from("user_achievements").delete().eq("user_id", userId);
-  // Submission log
-  await adminClient.from("submission_log").delete().eq("user_id", userId);
-  // Recettes (mettre auteur_id à null plutôt que supprimer)
-  await adminClient
-    .from("recettes")
-    .update({ auteur_id: null })
-    .eq("auteur_id", userId);
-  // Profil
-  await adminClient.from("profils").delete().eq("id", userId);
-  // Newsletter
-  await adminClient.from("newsletter_subscribers").delete().eq("email", email);
-
-  // 5. Supprimer le compte auth (dernière étape)
-  const { error: deleteError } =
-    await adminClient.auth.admin.deleteUser(userId);
-
-  if (deleteError) {
-    console.error("Erreur suppression auth:", deleteError.message);
-    // On ne throw pas — le ban est déjà en place
-  }
-
-  return { success: true, email };
-}
-
-// ─── Débannir un email ───────────────────────────────────────
-
-export async function unbanUser(email: string) {
-  await requireAdmin();
-  const adminClient = createAdminSupabase();
-
-  const { error } = await adminClient
-    .from("banned_users")
-    .delete()
-    .eq("email", email.toLowerCase().trim());
-
-  if (error) throw new Error(error.message);
-  return { success: true };
-}
-
-// ─── Liste des utilisateurs bannis ───────────────────────────
-
-export async function getBannedUsers() {
-  await requireAdmin();
-  const supabase = await createServerSupabase();
-
-  const { data, error } = await supabase
-    .from("banned_users")
-    .select("*")
-    .order("banned_at", { ascending: false });
-
-  if (error) throw new Error(error.message);
-  return data || [];
-}
-
-// ─── Liste des utilisateurs (pour le panel admin) ────────────
-
-export async function getUsers(limit = 50) {
-  await requireAdmin();
-  const adminClient = createAdminSupabase();
-
-  // Récupérer les profils avec les infos utiles
-  const { data: profils } = await adminClient
-    .from("profils")
-    .select("id, pseudo, avatar_url, created_at")
-    .order("created_at", { ascending: false })
-    .limit(limit);
-
-  if (!profils) return [];
-
-  // Récupérer les emails depuis auth
-  const userIds = profils.map((p) => p.id);
-  const usersWithEmail = [];
-
-  for (const profil of profils) {
-    try {
-      const { data } = await adminClient.auth.admin.getUserById(profil.id);
-      usersWithEmail.push({
-        ...profil,
-        email: data?.user?.email || "—",
-      });
-    } catch {
-      usersWithEmail.push({ ...profil, email: "—" });
-    }
-  }
-
-  return usersWithEmail;
-}
-
-// ─── Vérifier si un email est banni (pour l'auth) ────────────
-
-export async function checkBannedEmail(email: string): Promise<boolean> {
-  const adminClient = createAdminSupabase();
-  const { data } = await adminClient
-    .from("banned_users")
-    .select("id")
-    .eq("email", email.toLowerCase().trim())
-    .maybeSingle();
-
-  return !!data;
-}
-
-// ═══ Mise à jour du pseudo ───────────────────────────────────
-
-export async function updatePseudo(newPseudo: string) {
-  const supabase = await createServerSupabase();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) throw new Error("Non autorisé");
-
-  if (!newPseudo || newPseudo.trim().length < 2) {
-    throw new Error("Le pseudo doit contenir au moins 2 caractères.");
-  }
-  if (newPseudo.length > 30) {
-    throw new Error("Le pseudo ne doit pas dépasser 30 caractères.");
-  }
-
-  // Vérifier l'unicité du pseudo (optionnel mais recommandé)
-  const { data: existing } = await supabase
-    .from("profils")
-    .select("id")
-    .eq("pseudo", newPseudo.trim())
-    .neq("id", user.id)
-    .maybeSingle();
-
-  if (existing) {
-    throw new Error("Ce pseudo est déjà utilisé.");
-  }
-
-  const { error } = await supabase
-    .from("profils")
-    .update({ pseudo: newPseudo.trim(), updated_at: new Date().toISOString() })
-    .eq("id", user.id);
-
-  if (error) throw new Error(error.message);
-
-  return { success: true };
-}
-
-// ═══ Changement de mot de passe ──────────────────────────────
-
-export async function changePassword(oldPassword: string, newPassword: string) {
-  const supabase = await createServerSupabase();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) throw new Error("Non autorisé");
-
-  if (!oldPassword || !newPassword) {
-    throw new Error("Les deux champs sont requis.");
-  }
-  if (newPassword.length < 6) {
-    throw new Error(
-      "Le nouveau mot de passe doit contenir au moins 6 caractères.",
-    );
-  }
-
-  // Vérifier l'ancien mot de passe via signIn (éphémère)
-  const { error: signInError } = await supabase.auth.signInWithPassword({
-    email: user.email!,
-    password: oldPassword,
-  });
-
-  if (signInError) {
-    throw new Error("L'ancien mot de passe est incorrect.");
-  }
-
-  // Mettre à jour le mot de passe
-  const { error: updateError } = await supabase.auth.updateUser({
-    password: newPassword,
-  });
-
-  if (updateError) throw new Error(updateError.message);
-
-  return { success: true };
-}
-</file>
-
 <file path="app/planificateur/layout.tsx">
 import type { Metadata } from "next";
 import { Suspense } from "react";
@@ -32143,6 +31627,44 @@ async function main() {
 main().catch(console.error);
 </file>
 
+<file path=".gitignore">
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/install-state.gz
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+.env*
+!.env.example
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# local assets
+/images-recettes/
+</file>
+
 <file path="app/actions/favoris.ts">
 "use server";
 
@@ -32377,6 +31899,285 @@ export async function getShoppingListForDays(
   );
 
   return items;
+}
+</file>
+
+<file path="app/actions/users.ts">
+"use server";
+
+import {
+  createAdminSupabase,
+  createServerSupabase,
+} from "@/lib/supabase/server";
+import { isAdmin } from "@/lib/supabase/queries";
+
+/* =============================================================
+   Kitchen Mix — Actions admin : Gestion utilisateurs
+   ============================================================= */
+
+// ─── Helper interne ──────────────────────────────────────────
+
+async function requireAdmin() {
+  const supabase = await createServerSupabase();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Non autorisé");
+  const admin = await isAdmin(user.id);
+  if (!admin) throw new Error("Accès refusé");
+  return user;
+}
+
+// ─── Bannir un utilisateur ───────────────────────────────────
+
+export async function banUser(userId: string, reason: string) {
+  const adminUser = await requireAdmin();
+  const adminClient = createAdminSupabase();
+
+  // 1. Récupérer l'email de l'utilisateur via auth.admin
+  const { data: targetUser, error: userError } =
+    await adminClient.auth.admin.getUserById(userId);
+
+  if (userError || !targetUser?.user?.email) {
+    throw new Error("Utilisateur introuvable");
+  }
+
+  const email = targetUser.user.email.toLowerCase().trim();
+
+  // 2. Vérifier que ce n'est pas un admin
+  const { data: isTargetAdmin } = await adminClient
+    .from("admins")
+    .select("user_id")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (isTargetAdmin) {
+    throw new Error("Impossible de bannir un administrateur");
+  }
+
+  // 3. Ajouter l'email à la liste des bannis
+  const { error: banError } = await adminClient.from("banned_users").upsert(
+    {
+      email,
+      user_id: userId,
+      reason: reason || "Comportement inapproprié",
+      banned_by: adminUser.id,
+    },
+    { onConflict: "email" },
+  );
+
+  if (banError) throw new Error(banError.message);
+
+  // 4. Supprimer toutes les données de l'utilisateur
+  // Commentaires
+  await adminClient.from("recipe_comments").delete().eq("user_id", userId);
+  // Votes
+  await adminClient.from("comment_votes").delete().eq("user_id", userId);
+  // Favoris
+  await adminClient.from("favoris").delete().eq("user_id", userId);
+  // Notes
+  await adminClient.from("recipe_ratings").delete().eq("user_id", userId);
+  // Meal plans
+  await adminClient.from("meal_plans").delete().eq("user_id", userId);
+  // User plannings + likes/favorites associés
+  const { data: userPlannings } = await adminClient
+    .from("user_plannings")
+    .select("id")
+    .eq("user_id", userId);
+  if (userPlannings && userPlannings.length > 0) {
+    const planIds = userPlannings.map((p) => p.id);
+    await adminClient
+      .from("planning_likes")
+      .delete()
+      .in("planning_id", planIds);
+    await adminClient
+      .from("planning_favorites")
+      .delete()
+      .in("planning_id", planIds);
+    await adminClient.from("user_plannings").delete().eq("user_id", userId);
+  }
+  // Planning likes/favorites qu'il a donnés
+  await adminClient.from("planning_likes").delete().eq("user_id", userId);
+  await adminClient.from("planning_favorites").delete().eq("user_id", userId);
+  // Achievements
+  await adminClient.from("user_achievements").delete().eq("user_id", userId);
+  // Submission log
+  await adminClient.from("submission_log").delete().eq("user_id", userId);
+  // Recettes (mettre auteur_id à null plutôt que supprimer)
+  await adminClient
+    .from("recettes")
+    .update({ auteur_id: null })
+    .eq("auteur_id", userId);
+  // Profil
+  await adminClient.from("profils").delete().eq("id", userId);
+  // Newsletter
+  await adminClient.from("newsletter_subscribers").delete().eq("email", email);
+
+  // 5. Supprimer le compte auth (dernière étape)
+  const { error: deleteError } =
+    await adminClient.auth.admin.deleteUser(userId);
+
+  if (deleteError) {
+    console.error("Erreur suppression auth:", deleteError.message);
+    // On ne throw pas — le ban est déjà en place
+  }
+
+  return { success: true, email };
+}
+
+// ─── Débannir un email ───────────────────────────────────────
+
+export async function unbanUser(email: string) {
+  await requireAdmin();
+  const adminClient = createAdminSupabase();
+
+  const { error } = await adminClient
+    .from("banned_users")
+    .delete()
+    .eq("email", email.toLowerCase().trim());
+
+  if (error) throw new Error(error.message);
+  return { success: true };
+}
+
+// ─── Liste des utilisateurs bannis ───────────────────────────
+
+export async function getBannedUsers() {
+  await requireAdmin();
+  const supabase = await createServerSupabase();
+
+  const { data, error } = await supabase
+    .from("banned_users")
+    .select("*")
+    .order("banned_at", { ascending: false });
+
+  if (error) throw new Error(error.message);
+  return data || [];
+}
+
+// ─── Liste des utilisateurs (pour le panel admin) ────────────
+
+export async function getUsers(limit = 5000) {
+  await requireAdmin();
+  const adminClient = createAdminSupabase();
+
+  // Récupérer les profils avec les infos utiles
+  const { data: profils } = await adminClient
+    .from("profils")
+    .select("id, pseudo, avatar_url, created_at")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (!profils) return [];
+
+  // Récupérer les emails depuis auth
+  const userIds = profils.map((p) => p.id);
+  const usersWithEmail = [];
+
+  for (const profil of profils) {
+    try {
+      const { data } = await adminClient.auth.admin.getUserById(profil.id);
+      usersWithEmail.push({
+        ...profil,
+        email: data?.user?.email || "—",
+      });
+    } catch {
+      usersWithEmail.push({ ...profil, email: "—" });
+    }
+  }
+
+  return usersWithEmail;
+}
+
+// ─── Vérifier si un email est banni (pour l'auth) ────────────
+
+export async function checkBannedEmail(email: string): Promise<boolean> {
+  const adminClient = createAdminSupabase();
+  const { data } = await adminClient
+    .from("banned_users")
+    .select("id")
+    .eq("email", email.toLowerCase().trim())
+    .maybeSingle();
+
+  return !!data;
+}
+
+// ═══ Mise à jour du pseudo ───────────────────────────────────
+
+export async function updatePseudo(newPseudo: string) {
+  const supabase = await createServerSupabase();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) throw new Error("Non autorisé");
+
+  if (!newPseudo || newPseudo.trim().length < 2) {
+    throw new Error("Le pseudo doit contenir au moins 2 caractères.");
+  }
+  if (newPseudo.length > 30) {
+    throw new Error("Le pseudo ne doit pas dépasser 30 caractères.");
+  }
+
+  // Vérifier l'unicité du pseudo (optionnel mais recommandé)
+  const { data: existing } = await supabase
+    .from("profils")
+    .select("id")
+    .eq("pseudo", newPseudo.trim())
+    .neq("id", user.id)
+    .maybeSingle();
+
+  if (existing) {
+    throw new Error("Ce pseudo est déjà utilisé.");
+  }
+
+  const { error } = await supabase
+    .from("profils")
+    .update({ pseudo: newPseudo.trim(), updated_at: new Date().toISOString() })
+    .eq("id", user.id);
+
+  if (error) throw new Error(error.message);
+
+  return { success: true };
+}
+
+// ═══ Changement de mot de passe ──────────────────────────────
+
+export async function changePassword(oldPassword: string, newPassword: string) {
+  const supabase = await createServerSupabase();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) throw new Error("Non autorisé");
+
+  if (!oldPassword || !newPassword) {
+    throw new Error("Les deux champs sont requis.");
+  }
+  if (newPassword.length < 6) {
+    throw new Error(
+      "Le nouveau mot de passe doit contenir au moins 6 caractères.",
+    );
+  }
+
+  // Vérifier l'ancien mot de passe via signIn (éphémère)
+  const { error: signInError } = await supabase.auth.signInWithPassword({
+    email: user.email!,
+    password: oldPassword,
+  });
+
+  if (signInError) {
+    throw new Error("L'ancien mot de passe est incorrect.");
+  }
+
+  // Mettre à jour le mot de passe
+  const { error: updateError } = await supabase.auth.updateUser({
+    password: newPassword,
+  });
+
+  if (updateError) throw new Error(updateError.message);
+
+  return { success: true };
 }
 </file>
 
@@ -35425,64 +35226,6 @@ export const config = {
 };
 </file>
 
-<file path="next.config.ts">
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
-  experimental: {
-    staleTimes: {
-      dynamic: 0,
-      static: 0,
-    },
-  },
-  turbopack: {
-    root: __dirname,
-  },
-  images: {
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "*.supabase.co",
-        pathname: "/storage/v1/object/public/**",
-      },
-      {
-        protocol: "https",
-        hostname: "img.youtube.com",
-        pathname: "/vi/**",
-      },
-    ],
-  },
-  headers: async () => [
-    {
-      source: "/recettes/:slug",
-      headers: [
-        {
-          key: "Cache-Control",
-          value: "public, s-maxage=3600, stale-while-revalidate=86400",
-        },
-      ],
-    },
-    {
-      source: "/_next/image(.*)",
-      headers: [
-        { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
-      ],
-    },
-    {
-      source: "/((?!_next/static|_next/image|favicon.ico).*)",
-      headers: [
-        {
-          key: "Cache-Control",
-          value: "public, s-maxage=0, must-revalidate",
-        },
-      ],
-    },
-  ],
-};
-
-export default nextConfig;
-</file>
-
 <file path="tsconfig.json">
 {
   "compilerOptions": {
@@ -35516,270 +35259,6 @@ export default nextConfig;
     ".next/dev/types/**/*.ts"
   ],
   "exclude": ["node_modules"]
-}
-</file>
-
-<file path="app/actions/admin.ts">
-"use server";
-
-import {
-  createAdminSupabase,
-  createServerSupabase,
-} from "@/lib/supabase/server";
-import { revalidatePath } from "next/cache";
-import { isAdmin } from "@/lib/supabase/queries";
-
-// Helper interne — vérifie admin ou throw
-async function requireAdmin() {
-  const supabase = await createServerSupabase();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Non autorisé");
-  const admin = await isAdmin(user.id);
-  if (!admin) throw new Error("Accès refusé");
-}
-
-// ── Fetch commentaires pour le panel admin (bypass RLS) ──
-
-export async function getAdminPendingComments() {
-  await requireAdmin();
-  const adminClient = createAdminSupabase();
-
-  // Essai avec jointures PostgREST
-  const { data, error } = await adminClient
-    .from("recipe_comments")
-    .select(
-      "*, profils:user_id(pseudo, avatar_url), recettes:recette_id(slug, titre)",
-    )
-    .eq("approved", false)
-    .order("created_at", { ascending: true });
-
-  if (!error) return data || [];
-
-  // Jointure échouée → fallback avec requêtes séparées
-  console.error("[ADMIN] Join échouée pour pending comments:", error.message);
-
-  const { data: raw, error: rawErr } = await adminClient
-    .from("recipe_comments")
-    .select("*")
-    .eq("approved", false)
-    .order("created_at", { ascending: true });
-
-  if (rawErr) throw new Error(`Commentaires inaccessibles: ${rawErr.message}`);
-
-  return await enrichComments(adminClient, raw || []);
-}
-
-export async function getAdminAllComments() {
-  await requireAdmin();
-  const adminClient = createAdminSupabase();
-
-  const { data, error } = await adminClient
-    .from("recipe_comments")
-    .select(
-      "*, profils:user_id(pseudo, avatar_url), recettes:recette_id(slug, titre)",
-    )
-    .order("created_at", { ascending: false })
-    .limit(100);
-
-  if (!error) return data || [];
-
-  console.error("[ADMIN] Join échouée pour all comments:", error.message);
-
-  const { data: raw, error: rawErr } = await adminClient
-    .from("recipe_comments")
-    .select("*")
-    .order("created_at", { ascending: false })
-    .limit(100);
-
-  if (rawErr) throw new Error(`Historique inaccessible: ${rawErr.message}`);
-
-  return await enrichComments(adminClient, raw || []);
-}
-
-/**
- * Enrichit les commentaires avec profils + recettes
- * quand la jointure PostgREST ne fonctionne pas
- */
-async function enrichComments(
-  adminClient: ReturnType<typeof createAdminSupabase>,
-  comments: any[],
-) {
-  if (comments.length === 0) return [];
-
-  const userIds = [...new Set(comments.map((c) => c.user_id))];
-  const recetteIds = [...new Set(comments.map((c) => c.recette_id))];
-
-  const [profilsRes, recettesRes] = await Promise.all([
-    adminClient
-      .from("profils")
-      .select("id, pseudo, avatar_url")
-      .in("id", userIds),
-    adminClient
-      .from("recettes")
-      .select("id, slug, titre")
-      .in("id", recetteIds),
-  ]);
-
-  const profilMap = new Map(
-    (profilsRes.data || []).map((p: any) => [p.id, p]),
-  );
-  const recetteMap = new Map(
-    (recettesRes.data || []).map((r: any) => [r.id, r]),
-  );
-
-  return comments.map((c) => ({
-    ...c,
-    profils: profilMap.get(c.user_id) || { pseudo: null, avatar_url: null },
-    recettes: recetteMap.get(c.recette_id) || {
-      slug: "",
-      titre: "Recette supprimée",
-    },
-  }));
-}
-
-// ── Fetch recettes pour le panel admin (bypass RLS) ──
-
-export async function getAdminPendingRecettes() {
-  await requireAdmin();
-  const adminClient = createAdminSupabase();
-
-  const { data, error } = await adminClient
-    .from("recettes")
-    .select("*")
-    .eq("approuve", false)
-    .is("raison_rejet", null)
-    .order("created_at", { ascending: true });
-
-  if (error) throw new Error(error.message);
-  return data || [];
-}
-
-export async function getAdminAllRecettes() {
-  await requireAdmin();
-  const adminClient = createAdminSupabase();
-
-  const { data, error } = await adminClient
-    .from("recettes")
-    .select("*")
-    .order("created_at", { ascending: false })
-    .limit(100);
-
-  if (error) throw new Error(error.message);
-  return data || [];
-}
-
-// ── Actions de modération ──
-
-export async function approveRecette(id: string) {
-  await requireAdmin();
-  const adminClient = createAdminSupabase();
-
-  const { data: recette } = await adminClient
-    .from("recettes")
-    .select("auteur_id")
-    .eq("id", id)
-    .single();
-
-  const { error } = await adminClient
-    .from("recettes")
-    .update({ approuve: true, raison_rejet: null })
-    .eq("id", id);
-  if (error) throw new Error(error.message);
-
-  if (recette?.auteur_id) {
-    const { checkAndUnlockAchievements } =
-      await import("@/app/actions/achievements");
-    await checkAndUnlockAchievements(recette.auteur_id, "recipe_approved", {
-      authorId: recette.auteur_id,
-    });
-  }
-
-  revalidatePath("/admin");
-  revalidatePath("/recettes");
-  return { success: true };
-}
-
-export async function rejectRecette(id: string, raison: string) {
-  await requireAdmin();
-  const adminClient = createAdminSupabase();
-  const { error } = await adminClient
-    .from("recettes")
-    .update({ approuve: false, raison_rejet: raison || "Non conforme" })
-    .eq("id", id);
-  if (error) throw new Error(error.message);
-  revalidatePath("/admin");
-  return { success: true };
-}
-
-export async function approveComment(id: string) {
-  await requireAdmin();
-  const adminClient = createAdminSupabase();
-
-  const { data: comment } = await adminClient
-    .from("recipe_comments")
-    .select("user_id")
-    .eq("id", id)
-    .single();
-
-  const { error } = await adminClient
-    .from("recipe_comments")
-    .update({ approved: true })
-    .eq("id", id);
-  if (error) throw new Error(error.message);
-
-  if (comment?.user_id) {
-    const { checkAndUnlockAchievements } =
-      await import("@/app/actions/achievements");
-    await checkAndUnlockAchievements(comment.user_id, "comment_approved", {
-      commentUserId: comment.user_id,
-    });
-  }
-
-  revalidatePath("/admin");
-  return { success: true };
-}
-
-export async function deleteComment(id: string) {
-  await requireAdmin();
-  const adminClient = createAdminSupabase();
-  const { error } = await adminClient
-    .from("recipe_comments")
-    .delete()
-    .eq("id", id);
-  if (error) throw new Error(error.message);
-  revalidatePath("/admin");
-  return { success: true };
-}
-
-export async function updateRecette(
-  id: string,
-  updates: Record<string, unknown>,
-) {
-  await requireAdmin();
-  const adminClient = createAdminSupabase();
-  const { error } = await adminClient
-    .from("recettes")
-    .update({ ...updates, updated_at: new Date().toISOString() })
-    .eq("id", id);
-  if (error) throw new Error(error.message);
-  revalidatePath(`/admin/editer/${id}`);
-  revalidatePath("/admin");
-  return { success: true };
-}
-
-export async function deleteRecette(id: string) {
-  await requireAdmin();
-  const adminClient = createAdminSupabase();
-  await adminClient.from("recipe_ratings").delete().eq("recette_id", id);
-  await adminClient.from("recipe_comments").delete().eq("recette_id", id);
-  await adminClient.from("favoris").delete().eq("recette_id", id);
-  await adminClient.from("meal_plans").delete().eq("recette_id", id);
-  const { error } = await adminClient.from("recettes").delete().eq("id", id);
-  if (error) throw new Error(error.message);
-  revalidatePath("/admin");
-  return { success: true };
 }
 </file>
 
@@ -38421,6 +37900,332 @@ export async function getRecettesEnAttente(): Promise<Recette[]> {
 }
 </file>
 
+<file path="next.config.ts">
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  experimental: {
+    staleTimes: {
+      dynamic: 0,
+      static: 0,
+    },
+  },
+  turbopack: {
+    root: __dirname,
+  },
+  images: {
+    // ─── Désactive l'optimisation Vercel ────────────────────────
+    // Les images sont déjà compressées en WebP 1200×800 q80 par
+    // scripts/upload-images.ts (sharp) avant upload sur Supabase.
+    // Inutile de payer une 2e couche d'optim côté Vercel et de
+    // consommer le quota de 5000 transformations/mois du free tier.
+    unoptimized: true,
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "*.supabase.co",
+        pathname: "/storage/v1/object/public/**",
+      },
+      {
+        protocol: "https",
+        hostname: "img.youtube.com",
+        pathname: "/vi/**",
+      },
+    ],
+  },
+  headers: async () => [
+    {
+      source: "/recettes/:slug",
+      headers: [
+        {
+          key: "Cache-Control",
+          value: "public, s-maxage=3600, stale-while-revalidate=86400",
+        },
+      ],
+    },
+    {
+      source: "/_next/image(.*)",
+      headers: [
+        { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
+      ],
+    },
+    {
+      source: "/((?!_next/static|_next/image|favicon.ico).*)",
+      headers: [
+        {
+          key: "Cache-Control",
+          value: "public, s-maxage=0, must-revalidate",
+        },
+      ],
+    },
+  ],
+};
+
+export default nextConfig;
+</file>
+
+<file path="app/actions/admin.ts">
+"use server";
+
+import {
+  createAdminSupabase,
+  createServerSupabase,
+} from "@/lib/supabase/server";
+import { revalidatePath } from "next/cache";
+import { isAdmin } from "@/lib/supabase/queries";
+
+// Helper interne — vérifie admin ou throw
+async function requireAdmin() {
+  const supabase = await createServerSupabase();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Non autorisé");
+  const admin = await isAdmin(user.id);
+  if (!admin) throw new Error("Accès refusé");
+}
+
+// ── Fetch commentaires pour le panel admin (bypass RLS) ──
+
+export async function getAdminPendingComments() {
+  await requireAdmin();
+  const adminClient = createAdminSupabase();
+
+  // Essai avec jointures PostgREST
+  const { data, error } = await adminClient
+    .from("recipe_comments")
+    .select(
+      "*, profils:user_id(pseudo, avatar_url), recettes:recette_id(slug, titre)",
+    )
+    .eq("approved", false)
+    .order("created_at", { ascending: true });
+
+  if (!error) return data || [];
+
+  // Jointure échouée → fallback avec requêtes séparées
+  console.error("[ADMIN] Join échouée pour pending comments:", error.message);
+
+  const { data: raw, error: rawErr } = await adminClient
+    .from("recipe_comments")
+    .select("*")
+    .eq("approved", false)
+    .order("created_at", { ascending: true });
+
+  if (rawErr) throw new Error(`Commentaires inaccessibles: ${rawErr.message}`);
+
+  return await enrichComments(adminClient, raw || []);
+}
+
+export async function getAdminAllComments() {
+  await requireAdmin();
+  const adminClient = createAdminSupabase();
+
+  // FIX: range(0, 9999) au lieu de limit(100) — récupère jusqu'à 10 000 commentaires
+  const { data, error } = await adminClient
+    .from("recipe_comments")
+    .select(
+      "*, profils:user_id(pseudo, avatar_url), recettes:recette_id(slug, titre)",
+    )
+    .order("created_at", { ascending: false })
+    .range(0, 9999);
+
+  if (!error) return data || [];
+
+  console.error("[ADMIN] Join échouée pour all comments:", error.message);
+
+  const { data: raw, error: rawErr } = await adminClient
+    .from("recipe_comments")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .range(0, 9999);
+
+  if (rawErr) throw new Error(`Historique inaccessible: ${rawErr.message}`);
+
+  return await enrichComments(adminClient, raw || []);
+}
+
+/**
+ * Enrichit les commentaires avec profils + recettes
+ * quand la jointure PostgREST ne fonctionne pas
+ */
+async function enrichComments(
+  adminClient: ReturnType<typeof createAdminSupabase>,
+  comments: any[],
+) {
+  if (comments.length === 0) return [];
+
+  const userIds = [...new Set(comments.map((c) => c.user_id))];
+  const recetteIds = [...new Set(comments.map((c) => c.recette_id))];
+
+  const [profilsRes, recettesRes] = await Promise.all([
+    adminClient
+      .from("profils")
+      .select("id, pseudo, avatar_url")
+      .in("id", userIds),
+    adminClient.from("recettes").select("id, slug, titre").in("id", recetteIds),
+  ]);
+
+  const profilMap = new Map((profilsRes.data || []).map((p: any) => [p.id, p]));
+  const recetteMap = new Map(
+    (recettesRes.data || []).map((r: any) => [r.id, r]),
+  );
+
+  return comments.map((c) => ({
+    ...c,
+    profils: profilMap.get(c.user_id) || { pseudo: null, avatar_url: null },
+    recettes: recetteMap.get(c.recette_id) || {
+      slug: "",
+      titre: "Recette supprimée",
+    },
+  }));
+}
+
+// ── Fetch recettes pour le panel admin (bypass RLS) ──
+
+export async function getAdminPendingRecettes() {
+  await requireAdmin();
+  const adminClient = createAdminSupabase();
+
+  const { data, error } = await adminClient
+    .from("recettes")
+    .select("*")
+    .eq("approuve", false)
+    .is("raison_rejet", null)
+    .order("created_at", { ascending: true });
+
+  if (error) throw new Error(error.message);
+  return data || [];
+}
+
+export async function getAdminAllRecettes() {
+  await requireAdmin();
+  const adminClient = createAdminSupabase();
+
+  // FIX: range(0, 9999) au lieu de limit(100) — récupère jusqu'à 10 000 recettes
+  // Le cap de 100 cachait le vrai compteur dans le label "Toutes les recettes (X)"
+  const { data, error } = await adminClient
+    .from("recettes")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .range(0, 9999);
+
+  if (error) throw new Error(error.message);
+  return data || [];
+}
+
+// ── Actions de modération ──
+
+export async function approveRecette(id: string) {
+  await requireAdmin();
+  const adminClient = createAdminSupabase();
+
+  const { data: recette } = await adminClient
+    .from("recettes")
+    .select("auteur_id")
+    .eq("id", id)
+    .single();
+
+  const { error } = await adminClient
+    .from("recettes")
+    .update({ approuve: true, raison_rejet: null })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+
+  if (recette?.auteur_id) {
+    const { checkAndUnlockAchievements } =
+      await import("@/app/actions/achievements");
+    await checkAndUnlockAchievements(recette.auteur_id, "recipe_approved", {
+      authorId: recette.auteur_id,
+    });
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/recettes");
+  return { success: true };
+}
+
+export async function rejectRecette(id: string, raison: string) {
+  await requireAdmin();
+  const adminClient = createAdminSupabase();
+  const { error } = await adminClient
+    .from("recettes")
+    .update({ approuve: false, raison_rejet: raison || "Non conforme" })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/admin");
+  return { success: true };
+}
+
+export async function approveComment(id: string) {
+  await requireAdmin();
+  const adminClient = createAdminSupabase();
+
+  const { data: comment } = await adminClient
+    .from("recipe_comments")
+    .select("user_id")
+    .eq("id", id)
+    .single();
+
+  const { error } = await adminClient
+    .from("recipe_comments")
+    .update({ approved: true })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+
+  if (comment?.user_id) {
+    const { checkAndUnlockAchievements } =
+      await import("@/app/actions/achievements");
+    await checkAndUnlockAchievements(comment.user_id, "comment_approved", {
+      commentUserId: comment.user_id,
+    });
+  }
+
+  revalidatePath("/admin");
+  return { success: true };
+}
+
+export async function deleteComment(id: string) {
+  await requireAdmin();
+  const adminClient = createAdminSupabase();
+  const { error } = await adminClient
+    .from("recipe_comments")
+    .delete()
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/admin");
+  return { success: true };
+}
+
+export async function updateRecette(
+  id: string,
+  updates: Record<string, unknown>,
+) {
+  await requireAdmin();
+  const adminClient = createAdminSupabase();
+  const { error } = await adminClient
+    .from("recettes")
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath(`/admin/editer/${id}`);
+  revalidatePath("/admin");
+  return { success: true };
+}
+
+export async function deleteRecette(id: string) {
+  await requireAdmin();
+  const adminClient = createAdminSupabase();
+  await adminClient.from("recipe_ratings").delete().eq("recette_id", id);
+  await adminClient.from("recipe_comments").delete().eq("recette_id", id);
+  await adminClient.from("favoris").delete().eq("recette_id", id);
+  await adminClient.from("meal_plans").delete().eq("recette_id", id);
+  const { error } = await adminClient.from("recettes").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/admin");
+  return { success: true };
+}
+</file>
+
 <file path="app/actions/recherche.ts">
 "use server";
 
@@ -40927,6 +40732,348 @@ function CircleParam({ icon: Icon, value, unit, label }: any) {
 export { useAuth } from "@/contexts/AuthContext";
 </file>
 
+<file path="components/layout/Navbar.tsx">
+"use client";
+
+import { useState, useEffect, useRef } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { usePathname, useRouter } from "next/navigation";
+import {
+  User,
+  LogOut,
+  Settings,
+  ChevronDown,
+  Shield,
+  Menu,
+  X,
+  Home,
+  BookOpen,
+  Search,
+  PlusCircle,
+  Heart,
+  Calendar,
+  Info,
+  Bell,
+} from "lucide-react";
+import ThemeToggle from "@/components/ui/ThemeToggle";
+import Logo from "@/components/ui/Logo";
+import NotificationBell, {
+  type NotificationBellRef,
+} from "@/components/layout/NotificationBell";
+import { useAuth } from "@/hooks/useAuth";
+import { cn } from "@/lib/utils";
+
+const NAV_LINKS = [
+  { href: "/", label: "Accueil", icon: Home },
+  { href: "/recettes", label: "Recettes", icon: BookOpen },
+  { href: "/planificateur", label: "Planning", icon: Calendar },
+  { href: "/mes-plannings", label: "Mes plannings", icon: Calendar },
+  { href: "/soumettre", label: "Proposer", icon: PlusCircle },
+  { href: "/favoris", label: "Favoris", icon: Heart },
+  { href: "/a-propos", label: "À propos", icon: Info },
+];
+
+export default function Navbar() {
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [visible, setVisible] = useState(true);
+  const { isAdmin, user, signOut, profil } = useAuth();
+  const pathname = usePathname();
+  const router = useRouter();
+  const userMenuRef = useRef<HTMLDivElement>(null);
+  const notificationBellRef = useRef<NotificationBellRef>(null);
+  const lastScrollY = useRef(0);
+  const ticking = useRef(false);
+
+  // Fermer dropdown clic extérieur
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        userMenuRef.current &&
+        !userMenuRef.current.contains(event.target as Node)
+      ) {
+        setUserMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Hide on scroll down, show on scroll up
+  useEffect(() => {
+    const handleScroll = () => {
+      if (ticking.current) return;
+      ticking.current = true;
+      requestAnimationFrame(() => {
+        const currentY = window.scrollY;
+
+        if (mobileOpen || userMenuOpen) {
+          setVisible(true);
+          lastScrollY.current = currentY;
+          ticking.current = false;
+          return;
+        }
+
+        if (currentY < 60) setVisible(true);
+        else if (currentY - lastScrollY.current > 10) {
+          setVisible(false);
+        } else if (lastScrollY.current - currentY > 10) setVisible(true);
+        lastScrollY.current = currentY;
+        ticking.current = false;
+      });
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [mobileOpen, userMenuOpen]);
+
+  const handleLogout = async () => {
+    await signOut();
+    setUserMenuOpen(false);
+    router.push("/");
+  };
+
+  const isActive = (href: string) =>
+    href === "/" ? pathname === "/" : pathname.startsWith(href);
+
+  const avatarUrl = profil?.avatar_url;
+
+  return (
+    <header
+      className={cn(
+        "sticky top-0 z-50 bg-background/99 backdrop-blur-[1px] border-b border-border transition-transform duration-300",
+        visible ? "translate-y-0" : "-translate-y-full",
+      )}
+    >
+      <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16">
+          {/* Logo */}
+          <Link
+            href="/"
+            className="flex items-center gap-2 font-display text-xl font-bold text-accent shrink-0 group"
+          >
+            <Logo className="h-10 w-auto md:h-12" />
+            <span className="hidden sm:inline">Kitchen Mix</span>
+          </Link>
+
+          {/* Desktop Nav Links */}
+          <div className="hidden lg:flex items-center gap-1">
+            {NAV_LINKS.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={cn(
+                  "px-3 py-2 rounded-lg text-sm font-medium transition-all",
+                  isActive(link.href)
+                    ? "bg-accent/15 text-accent shadow-sm shadow-accent/10"
+                    : "bg-background/15 text-foreground/80 hover:text-foreground hover:bg-background/25 backdrop-blur-sm",
+                )}
+              >
+                {link.label}
+              </Link>
+            ))}
+          </div>
+
+          {/* Right side */}
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+
+            {/* Cloche de notifications */}
+            {user && (
+              <NotificationBell
+                ref={notificationBellRef}
+                onToggle={(open) => {
+                  if (open) {
+                    setMobileOpen(false);
+                    setUserMenuOpen(false);
+                  }
+                }}
+              />
+            )}
+
+            {/* Admin button */}
+            {isAdmin && (
+              <Link
+                href="/admin"
+                className={cn(
+                  "p-2 rounded-lg transition-colors hidden sm:flex",
+                  isActive("/admin")
+                    ? "bg-accent/15 text-accent"
+                    : "text-accent/60 hover:text-accent hover:bg-accent/10",
+                )}
+                title="Administration"
+              >
+                <Shield className="w-5 h-5" />
+              </Link>
+            )}
+
+            {/* Profile / Login */}
+            {user ? (
+              <div className="relative" ref={userMenuRef}>
+                <button
+                  onClick={() => {
+                    setUserMenuOpen(!userMenuOpen);
+                    setMobileOpen(false);
+                    notificationBellRef.current?.close();
+                  }}
+                  className="flex items-center gap-2 p-1 rounded-full hover:bg-card-hover transition-colors border border-transparent hover:border-border"
+                >
+                  {avatarUrl ? (
+                    <Image
+                      src={avatarUrl}
+                      alt={profil?.pseudo || "Avatar"}
+                      width={32}
+                      height={32}
+                      className="w-8 h-8 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-accent">
+                      <User className="w-5 h-5" />
+                    </div>
+                  )}
+                  <ChevronDown
+                    className={cn(
+                      "w-4 h-4 text-muted-foreground transition-transform",
+                      userMenuOpen && "rotate-180",
+                    )}
+                  />
+                </button>
+
+                {userMenuOpen && (
+                  <div
+                    className="absolute right-0 mt-2 w-52 rounded-xl shadow-2xl py-1 animate-in fade-in zoom-in duration-200 border border-border"
+                    style={{ backgroundColor: "var(--color-bg)" }}
+                  >
+                    <div className="px-4 py-2.5 border-b border-border mb-1">
+                      <p className="text-xs text-muted-foreground">
+                        Connecté en tant que
+                      </p>
+                      <p className="text-sm font-bold truncate">
+                        {profil?.pseudo || user.email}
+                      </p>
+                    </div>
+                    <Link
+                      href="/profil"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-accent/10 hover:text-accent transition-colors"
+                    >
+                      <User className="w-4 h-4" /> Mon Profil
+                    </Link>
+                    <Link
+                      href={`/profil/${user.id}`}
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-accent/10 hover:text-accent transition-colors"
+                    >
+                      <User className="w-4 h-4 opacity-50" /> Profil public
+                    </Link>
+                    <Link
+                      href="/parametres"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-accent/10 hover:text-accent transition-colors"
+                    >
+                      <Settings className="w-4 h-4" /> Paramètres
+                    </Link>
+                    {isAdmin && (
+                      <Link
+                        href="/admin"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-accent hover:bg-accent/10 transition-colors"
+                      >
+                        <Shield className="w-4 h-4" /> Administration
+                      </Link>
+                    )}
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-error hover:bg-error/10 transition-colors border-t border-border mt-1"
+                    >
+                      <LogOut className="w-4 h-4" /> Se déconnecter
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Link href="/connexion" className="btn-primary py-2 px-4 text-sm">
+                Connexion
+              </Link>
+            )}
+
+            {/* Mobile burger */}
+            <button
+              onClick={() => {
+                setMobileOpen(!mobileOpen);
+                setUserMenuOpen(false);
+                notificationBellRef.current?.close();
+              }}
+              className="lg:hidden p-2 rounded-lg hover:bg-card-hover transition-colors"
+              aria-label={mobileOpen ? "Fermer" : "Menu"}
+            >
+              {mobileOpen ? (
+                <X className="w-5 h-5" />
+              ) : (
+                <Menu className="w-5 h-5" />
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile menu */}
+        {mobileOpen && (
+          <div className="lg:hidden absolute top-16 left-0 right-0 z-50 bg-background border-t border-border shadow-2xl animate-slide-up max-h-[calc(100dvh-4rem)] overflow-y-auto overscroll-contain">
+            <div className="px-4 py-4 space-y-1">
+              {NAV_LINKS.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={() => setMobileOpen(false)}
+                  className={cn(
+                    "flex items-center gap-3 px-4 py-3 rounded-xl text-base font-medium transition-all",
+                    isActive(link.href)
+                      ? "bg-accent/20 text-accent shadow-sm"
+                      : "bg-card text-foreground hover:bg-card-hover",
+                  )}
+                >
+                  <link.icon className="w-5 h-5" />
+                  {link.label}
+                </Link>
+              ))}
+              {user && (
+                <Link
+                  href="/notifications"
+                  onClick={() => setMobileOpen(false)}
+                  className={cn(
+                    "flex items-center gap-3 px-4 py-3 rounded-xl text-base font-medium transition-all",
+                    isActive("/notifications")
+                      ? "bg-accent/20 text-accent shadow-sm"
+                      : "bg-card text-foreground hover:bg-card-hover",
+                  )}
+                >
+                  <Bell className="w-5 h-5" />
+                  Notifications
+                </Link>
+              )}
+              {isAdmin && (
+                <Link
+                  href="/admin"
+                  onClick={() => setMobileOpen(false)}
+                  className={cn(
+                    "flex items-center gap-3 px-4 py-3 rounded-xl text-base font-bold transition-all",
+                    isActive("/admin")
+                      ? "bg-accent/20 text-accent shadow-sm"
+                      : "bg-card text-foreground hover:bg-card-hover",
+                  )}
+                >
+                  <Shield className="w-5 h-5" /> Administration
+                </Link>
+              )}
+            </div>
+          </div>
+        )}
+      </nav>
+    </header>
+  );
+}
+</file>
+
 <file path="app/admin/page.tsx">
 "use client";
 
@@ -41031,7 +41178,7 @@ export default function AdminPage() {
       "Historique commentaires",
     )) as RecipeComment[] | null;
     const usersData = await safeFetch(
-      () => getUsers(50),
+      () => getUsers(5000),
       "Liste des utilisateurs",
     );
     const bannedData = await safeFetch(
@@ -41649,348 +41796,6 @@ function EmptyState({ msg }: { msg: string }) {
       <MessageSquare className="w-12 h-12 mx-auto text-muted-foreground/30 mb-4" />
       <p className="text-muted-foreground">{msg}</p>
     </div>
-  );
-}
-</file>
-
-<file path="components/layout/Navbar.tsx">
-"use client";
-
-import { useState, useEffect, useRef } from "react";
-import Link from "next/link";
-import Image from "next/image";
-import { usePathname, useRouter } from "next/navigation";
-import {
-  User,
-  LogOut,
-  Settings,
-  ChevronDown,
-  Shield,
-  Menu,
-  X,
-  Home,
-  BookOpen,
-  Search,
-  PlusCircle,
-  Heart,
-  Calendar,
-  Info,
-  Bell,
-} from "lucide-react";
-import ThemeToggle from "@/components/ui/ThemeToggle";
-import Logo from "@/components/ui/Logo";
-import NotificationBell, {
-  type NotificationBellRef,
-} from "@/components/layout/NotificationBell";
-import { useAuth } from "@/hooks/useAuth";
-import { cn } from "@/lib/utils";
-
-const NAV_LINKS = [
-  { href: "/", label: "Accueil", icon: Home },
-  { href: "/recettes", label: "Recettes", icon: BookOpen },
-  { href: "/planificateur", label: "Planning", icon: Calendar },
-  { href: "/mes-plannings", label: "Mes plannings", icon: Calendar },
-  { href: "/soumettre", label: "Proposer", icon: PlusCircle },
-  { href: "/favoris", label: "Favoris", icon: Heart },
-  { href: "/a-propos", label: "À propos", icon: Info },
-];
-
-export default function Navbar() {
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [visible, setVisible] = useState(true);
-  const { isAdmin, user, signOut, profil } = useAuth();
-  const pathname = usePathname();
-  const router = useRouter();
-  const userMenuRef = useRef<HTMLDivElement>(null);
-  const notificationBellRef = useRef<NotificationBellRef>(null);
-  const lastScrollY = useRef(0);
-  const ticking = useRef(false);
-
-  // Fermer dropdown clic extérieur
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        userMenuRef.current &&
-        !userMenuRef.current.contains(event.target as Node)
-      ) {
-        setUserMenuOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  // Hide on scroll down, show on scroll up
-  useEffect(() => {
-    const handleScroll = () => {
-      if (ticking.current) return;
-      ticking.current = true;
-      requestAnimationFrame(() => {
-        const currentY = window.scrollY;
-
-        if (mobileOpen || userMenuOpen) {
-          setVisible(true);
-          lastScrollY.current = currentY;
-          ticking.current = false;
-          return;
-        }
-
-        if (currentY < 60) setVisible(true);
-        else if (currentY - lastScrollY.current > 10) {
-          setVisible(false);
-        } else if (lastScrollY.current - currentY > 10) setVisible(true);
-        lastScrollY.current = currentY;
-        ticking.current = false;
-      });
-    };
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [mobileOpen, userMenuOpen]);
-
-  const handleLogout = async () => {
-    await signOut();
-    setUserMenuOpen(false);
-    router.push("/");
-  };
-
-  const isActive = (href: string) =>
-    href === "/" ? pathname === "/" : pathname.startsWith(href);
-
-  const avatarUrl = profil?.avatar_url;
-
-  return (
-    <header
-      className={cn(
-        "sticky top-0 z-50 bg-background/99 backdrop-blur-[1px] border-b border-border transition-transform duration-300",
-        visible ? "translate-y-0" : "-translate-y-full",
-      )}
-    >
-      <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <Link
-            href="/"
-            className="flex items-center gap-2 font-display text-xl font-bold text-accent shrink-0 group"
-          >
-            <Logo className="h-10 w-auto md:h-12" />
-            <span className="hidden sm:inline">Kitchen Mix</span>
-          </Link>
-
-          {/* Desktop Nav Links */}
-          <div className="hidden lg:flex items-center gap-1">
-            {NAV_LINKS.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={cn(
-                  "px-3 py-2 rounded-lg text-sm font-medium transition-all",
-                  isActive(link.href)
-                    ? "bg-accent/15 text-accent shadow-sm shadow-accent/10"
-                    : "bg-background/15 text-foreground/80 hover:text-foreground hover:bg-background/25 backdrop-blur-sm",
-                )}
-              >
-                {link.label}
-              </Link>
-            ))}
-          </div>
-
-          {/* Right side */}
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-
-            {/* Cloche de notifications */}
-            {user && (
-              <NotificationBell
-                ref={notificationBellRef}
-                onToggle={(open) => {
-                  if (open) {
-                    setMobileOpen(false);
-                    setUserMenuOpen(false);
-                  }
-                }}
-              />
-            )}
-
-            {/* Admin button */}
-            {isAdmin && (
-              <Link
-                href="/admin"
-                className={cn(
-                  "p-2 rounded-lg transition-colors hidden sm:flex",
-                  isActive("/admin")
-                    ? "bg-accent/15 text-accent"
-                    : "text-accent/60 hover:text-accent hover:bg-accent/10",
-                )}
-                title="Administration"
-              >
-                <Shield className="w-5 h-5" />
-              </Link>
-            )}
-
-            {/* Profile / Login */}
-            {user ? (
-              <div className="relative" ref={userMenuRef}>
-                <button
-                  onClick={() => {
-                    setUserMenuOpen(!userMenuOpen);
-                    setMobileOpen(false);
-                    notificationBellRef.current?.close();
-                  }}
-                  className="flex items-center gap-2 p-1 rounded-full hover:bg-card-hover transition-colors border border-transparent hover:border-border"
-                >
-                  {avatarUrl ? (
-                    <Image
-                      src={avatarUrl}
-                      alt={profil?.pseudo || "Avatar"}
-                      width={32}
-                      height={32}
-                      className="w-8 h-8 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-accent">
-                      <User className="w-5 h-5" />
-                    </div>
-                  )}
-                  <ChevronDown
-                    className={cn(
-                      "w-4 h-4 text-muted-foreground transition-transform",
-                      userMenuOpen && "rotate-180",
-                    )}
-                  />
-                </button>
-
-                {userMenuOpen && (
-                  <div
-                    className="absolute right-0 mt-2 w-52 rounded-xl shadow-2xl py-1 animate-in fade-in zoom-in duration-200 border border-border"
-                    style={{ backgroundColor: "var(--color-bg)" }}
-                  >
-                    <div className="px-4 py-2.5 border-b border-border mb-1">
-                      <p className="text-xs text-muted-foreground">
-                        Connecté en tant que
-                      </p>
-                      <p className="text-sm font-bold truncate">
-                        {profil?.pseudo || user.email}
-                      </p>
-                    </div>
-                    <Link
-                      href="/profil"
-                      onClick={() => setUserMenuOpen(false)}
-                      className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-accent/10 hover:text-accent transition-colors"
-                    >
-                      <User className="w-4 h-4" /> Mon Profil
-                    </Link>
-                    <Link
-                      href={`/profil/${user.id}`}
-                      onClick={() => setUserMenuOpen(false)}
-                      className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-accent/10 hover:text-accent transition-colors"
-                    >
-                      <User className="w-4 h-4 opacity-50" /> Profil public
-                    </Link>
-                    <Link
-                      href="/parametres"
-                      onClick={() => setUserMenuOpen(false)}
-                      className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-accent/10 hover:text-accent transition-colors"
-                    >
-                      <Settings className="w-4 h-4" /> Paramètres
-                    </Link>
-                    {isAdmin && (
-                      <Link
-                        href="/admin"
-                        onClick={() => setUserMenuOpen(false)}
-                        className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-accent hover:bg-accent/10 transition-colors"
-                      >
-                        <Shield className="w-4 h-4" /> Administration
-                      </Link>
-                    )}
-                    <button
-                      onClick={handleLogout}
-                      className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-error hover:bg-error/10 transition-colors border-t border-border mt-1"
-                    >
-                      <LogOut className="w-4 h-4" /> Se déconnecter
-                    </button>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <Link href="/connexion" className="btn-primary py-2 px-4 text-sm">
-                Connexion
-              </Link>
-            )}
-
-            {/* Mobile burger */}
-            <button
-              onClick={() => {
-                setMobileOpen(!mobileOpen);
-                setUserMenuOpen(false);
-                notificationBellRef.current?.close();
-              }}
-              className="lg:hidden p-2 rounded-lg hover:bg-card-hover transition-colors"
-              aria-label={mobileOpen ? "Fermer" : "Menu"}
-            >
-              {mobileOpen ? (
-                <X className="w-5 h-5" />
-              ) : (
-                <Menu className="w-5 h-5" />
-              )}
-            </button>
-          </div>
-        </div>
-
-        {/* Mobile menu */}
-        {mobileOpen && (
-          <div className="lg:hidden absolute top-16 left-0 right-0 z-50 bg-background border-t border-border shadow-2xl animate-slide-up max-h-[calc(100dvh-4rem)] overflow-y-auto overscroll-contain">
-            <div className="px-4 py-4 space-y-1">
-              {NAV_LINKS.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  onClick={() => setMobileOpen(false)}
-                  className={cn(
-                    "flex items-center gap-3 px-4 py-3 rounded-xl text-base font-medium transition-all",
-                    isActive(link.href)
-                      ? "bg-accent/20 text-accent shadow-sm"
-                      : "bg-card text-foreground hover:bg-card-hover",
-                  )}
-                >
-                  <link.icon className="w-5 h-5" />
-                  {link.label}
-                </Link>
-              ))}
-              {user && (
-                <Link
-                  href="/notifications"
-                  onClick={() => setMobileOpen(false)}
-                  className={cn(
-                    "flex items-center gap-3 px-4 py-3 rounded-xl text-base font-medium transition-all",
-                    isActive("/notifications")
-                      ? "bg-accent/20 text-accent shadow-sm"
-                      : "bg-card text-foreground hover:bg-card-hover",
-                  )}
-                >
-                  <Bell className="w-5 h-5" />
-                  Notifications
-                </Link>
-              )}
-              {isAdmin && (
-                <Link
-                  href="/admin"
-                  onClick={() => setMobileOpen(false)}
-                  className={cn(
-                    "flex items-center gap-3 px-4 py-3 rounded-xl text-base font-bold transition-all",
-                    isActive("/admin")
-                      ? "bg-accent/20 text-accent shadow-sm"
-                      : "bg-card text-foreground hover:bg-card-hover",
-                  )}
-                >
-                  <Shield className="w-5 h-5" /> Administration
-                </Link>
-              )}
-            </div>
-          </div>
-        )}
-      </nav>
-    </header>
   );
 }
 </file>

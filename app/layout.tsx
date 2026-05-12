@@ -25,6 +25,9 @@ const inter = Inter({
 export const metadata: Metadata = {
   ...getDefaultMetadata(),
   icons: { icon: "/favicon.ico" },
+  other: {
+    "p:domain_verify": "9e3db6b632838b4b8ffcbd804903ae82",
+  },
 };
 
 export const viewport: Viewport = {
