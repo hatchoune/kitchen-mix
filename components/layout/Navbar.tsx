@@ -106,7 +106,7 @@ export default function Navbar() {
   return (
     <header
       className={cn(
-        "sticky top-0 z-50 bg-background/99 backdrop-blur-[1px] border-b border-border transition-transform duration-300",
+        "sticky top-0 z-50 bg-background border-b border-border transition-transform duration-300",
         visible ? "translate-y-0" : "-translate-y-full",
       )}
     >
@@ -131,7 +131,7 @@ export default function Navbar() {
                   "px-3 py-2 rounded-lg text-sm font-medium transition-all",
                   isActive(link.href)
                     ? "bg-accent/15 text-accent shadow-sm shadow-accent/10"
-                    : "bg-background/15 text-foreground/80 hover:text-foreground hover:bg-background/25 backdrop-blur-sm",
+                    : "text-foreground/70 hover:text-foreground hover:bg-muted transition-colors",
                 )}
               >
                 {link.label}
