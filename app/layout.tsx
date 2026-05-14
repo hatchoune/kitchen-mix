@@ -100,6 +100,10 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <head>
+        <meta
+          name="p:domain_verify"
+          content="9e3db6b632838b4b8ffcbd804903ae82"
+        />
         <script dangerouslySetInnerHTML={{ __html: antiFlashScript }} />
         <script dangerouslySetInnerHTML={{ __html: chunkRecoveryScript }} />
       </head>
