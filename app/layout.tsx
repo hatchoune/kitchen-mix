@@ -24,7 +24,13 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   ...getDefaultMetadata(),
-  icons: { icon: "/favicon.ico" },
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon-96x96.png", sizes: "96x96", type: "image/png" },
+    ],
+    apple: "/apple-touch-icon.png",
+  },
   other: {
     "p:domain_verify": "9e3db6b632838b4b8ffcbd804903ae82",
   },
