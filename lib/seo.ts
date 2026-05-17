@@ -166,6 +166,12 @@ export function getRecipeJsonLd(recette: Recette): object {
     image: recette.image_url
       ? [recette.image_url]
       : [`${SITE_URL}/recettes/${recette.slug}/opengraph-image`],
+    // thumbnailUrl : champ lu explicitement par Pinterest pour les Rich Pins Recipe
+    thumbnailUrl:
+      recette.image_url ??
+      `${SITE_URL}/recettes/${recette.slug}/opengraph-image`,
+    // url : permet à Pinterest d'associer le schema à la page correcte
+    url: `${SITE_URL}/recettes/${recette.slug}`,
     author: {
       "@type": "Organization",
       name: SITE_NAME,
@@ -175,6 +181,11 @@ export function getRecipeJsonLd(recette: Recette): object {
       "@type": "Organization",
       name: SITE_NAME,
       url: SITE_URL,
+      // logo : requis Google Rich Results, apprécié Pinterest
+      logo: {
+        "@type": "ImageObject",
+        url: `${SITE_URL}/logo.svg`,
+      },
     },
     datePublished: recette.created_at,
     dateModified: recette.updated_at,
@@ -320,6 +331,7 @@ export function getFaqJsonLd(faq: FAQItem[]): object {
     })),
   };
 }
+
 // ─── JSON-LD Organization ────────────────────────────────────
 
 export function getOrganizationJsonLd(): object {
@@ -335,6 +347,7 @@ export function getOrganizationJsonLd(): object {
     description: SITE_DESCRIPTION,
   };
 }
+
 // ─── Helper pour temps lisible dans les schemas ──────────────
 
 export function formatDureeSchema(minutes: number): string {
