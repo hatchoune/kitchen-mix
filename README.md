@@ -1,6 +1,6 @@
 # Kitchen Mix 🍳
 
-**Recettes Thermomix premium** — [mcmalnus.com](https://mcmalnus.com)
+**Recettes Thermomix premium** — [kitchen-mix.com](https://kitchen-mix.com)
 
 ## Stack
 
