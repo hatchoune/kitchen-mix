@@ -150,10 +150,10 @@ export default function RecipePreviewModal({
   return (
     // z-[110] : DOIT passer AU-DESSUS du modal "Ajouter" (z-[100]).
     // h-[100dvh] : borne le wrapper au viewport visible sur iOS.
-    <div className="fixed inset-0 z-[110] h-[100dvh] overscroll-none flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[110] h-[100dvh] overscroll-none flex items-center justify-center p-4 pb-[calc(1rem+64px)] md:pb-4">
       <div className="absolute inset-0 bg-black/70" onClick={onClose} />
       <div
-        className="relative z-10 w-full max-w-lg max-h-[90dvh] rounded-2xl flex flex-col animate-scale-in overflow-hidden overscroll-contain"
+        className="relative z-10 w-full max-w-lg max-h-[calc(100dvh-5rem-64px)] md:max-h-[90dvh] rounded-2xl flex flex-col animate-scale-in overflow-hidden overscroll-contain"
         style={{ backgroundColor: "var(--color-bg)" }}
       >
         {/* Header fixe */}
