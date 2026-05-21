@@ -850,7 +850,7 @@ export const SEED_COOK_EXPERT: SeedRecette[] = [
     vues: 0,
   },
   {
-    slug: "taboulé-libanais-cookexpert",
+    slug: "taboule-libanais-cookexpert",
     titre: "Taboulé libanais au persil",
     description:
       "Le vrai taboulé libanais, dominé par le persil frais et la menthe. Léger et parfumé.",

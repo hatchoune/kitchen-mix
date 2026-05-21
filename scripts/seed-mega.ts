@@ -66,18 +66,59 @@ const ALL_RECIPES = [
   ...SEED_SESSION_3,
 ];
 
+/* =============================================================
+   FIX SEED-MEGA.TS — Remplacer la boucle d'upsert existante
+   par celle-ci pour NE PLUS JAMAIS écraser les image_url.
+
+   Le principe :
+     - Avant chaque upsert, on récupère l'image_url existante en base
+     - Si elle est non-null, on la conserve
+     - Si elle est null (nouvelle recette), on garde la valeur du seed
+   ============================================================= */
+
+// ─── REMPLACER cet ancien bloc dans seed-mega.ts ──────────────
+//
+//  for (const recette of ALL_RECIPES) {
+//    process.stdout.write(`  → ${recette.titre}...`);
+//    const { error } = await supabase.from("recettes").upsert(
+//      { ...recette, auteur_id: null, note_moyenne: 0, nombre_notes: 0 },
+//      { onConflict: "slug" },
+//    );
+//    ...
+//  }
+//
+// ─── PAR CE NOUVEAU BLOC ──────────────────────────────────────
+
 async function seed() {
   console.log(`\n🌱 Seed Méga — ${ALL_RECIPES.length} recettes\n`);
 
   let ok = 0;
   let fail = 0;
 
+  // ── Étape 1 : récupérer toutes les image_url existantes en une seule requête
+  const { data: existingImages } = await supabase
+    .from("recettes")
+    .select("slug, image_url, note_moyenne, nombre_notes")
+    .not("image_url", "is", null); // uniquement celles qui ont déjà une image
+
+  // Construire un map slug → image_url pour accès O(1)
+  const imageMap = new Map<string, string>();
+  for (const row of existingImages ?? []) {
+    if (row.image_url) imageMap.set(row.slug, row.image_url);
+  }
+
+  console.log(`  📷 ${imageMap.size} image(s) existante(s) préservée(s)\n`);
+
   for (const recette of ALL_RECIPES) {
     process.stdout.write(`  → ${recette.titre}...`);
+
+    // Préserver l'image existante si elle existe en base
+    const preservedImageUrl = imageMap.get(recette.slug) ?? recette.image_url;
 
     const { error } = await supabase.from("recettes").upsert(
       {
         ...recette,
+        image_url: preservedImageUrl, // ← NE JAMAIS ÉCRASER UNE IMAGE EXISTANTE
         auteur_id: null,
         note_moyenne: 0,
         nombre_notes: 0,
@@ -89,12 +130,25 @@ async function seed() {
       console.log(` ❌ ${error.message}`);
       fail++;
     } else {
-      console.log(" ✅");
+      const hadImage = imageMap.has(recette.slug) ? " 📷" : "";
+      console.log(` ✅${hadImage}`);
       ok++;
     }
   }
 
-  console.log(`\n🎉 Terminé ! ${ok} réussies, ${fail} erreurs.\n`);
+  console.log(`\n✅ ${ok} succès · ❌ ${fail} erreurs\n`);
 }
+
+seed().catch(console.error);
+
+// ─────────────────────────────────────────────────────────────
+// NOTES :
+//   - Cette modification est rétrocompatible : si une recette
+//     n'a pas encore d'image, le comportement est identique
+//   - Les note_moyenne et nombre_notes sont aussi préservables
+//     avec la même logique si besoin un jour
+//   - Copier ce bloc et remplacer la fonction seed() entière
+//     dans scripts/seed-mega.ts
+// ─────────────────────────────────────────────────────────────
 
 seed().catch(console.error);

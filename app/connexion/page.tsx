@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Mail, Lock, UserIcon, Wand2, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, UserIcon, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import Logo from "@/components/ui/Logo";
 import { cn } from "@/lib/utils";
@@ -24,14 +24,7 @@ function ConnexionContent() {
   const [submitting, setSubmitting] = useState(false);
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [showRegisterPassword, setShowRegisterPassword] = useState(false);
-  const {
-    user,
-    loading,
-    signIn,
-    signUp,
-    signInWithMagicLink,
-    signInWithGoogle,
-  } = useAuth();
+  const { user, loading, signIn, signUp, signInWithGoogle } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("next") || "/profil";
@@ -66,21 +59,6 @@ function ConnexionContent() {
     const { error } = await signUp(data.email, data.password, data.pseudo);
     if (error) setError(error.message);
     else setSuccess("Vérifiez votre email pour confirmer votre compte !");
-    setSubmitting(false);
-  };
-
-  const handleMagicLink = async () => {
-    const email =
-      loginForm.getValues("email") || registerForm.getValues("email");
-    if (!email) {
-      setError("Entrez votre email d'abord.");
-      return;
-    }
-    setError("");
-    setSubmitting(true);
-    const { error } = await signInWithMagicLink(email);
-    if (error) setError(error.message);
-    else setSuccess("Un lien magique a été envoyé !");
     setSubmitting(false);
   };
 
@@ -304,13 +282,6 @@ function ConnexionContent() {
             ...
           </svg>
           Continuer avec Google
-        </button>
-        <button
-          onClick={handleMagicLink}
-          disabled={submitting}
-          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-border text-sm hover:bg-card-hover"
-        >
-          <Wand2 className="w-4 h-4" /> Magic Link par email
         </button>
       </div>
     </div>
