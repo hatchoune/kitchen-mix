@@ -48,7 +48,7 @@ export async function generateMetadata({
 
   const title = `Recettes ${cat.label} au robot cuiseur — Kitchen Mix`;
   const description = `Découvrez toutes nos recettes ${cat.label.toLowerCase()} pour robot cuiseur multifonction. Thermomix, Moulinex Companion, Magimix Cook Expert — faciles, rapides et gourmandes.`;
-  const url = `${SITE_URL}/recettes/${cat.value}`;
+  const url = `${SITE_URL}/recettes/categorie/${cat.value}`;
 
   return {
     title,
@@ -146,7 +146,7 @@ export default async function RecetteCategorePage({
         <div className="flex items-center justify-center gap-2 pt-8">
           {currentPage > 1 && (
             <Link
-              href={`/recettes/${cat.value}?page=${currentPage - 1}`}
+              href={`/recettes/categorie/${cat.value}?page=${currentPage - 1}`}
               className="flex items-center gap-1 px-4 py-2 rounded-lg bg-card border border-border text-sm hover:bg-card-hover transition-colors"
             >
               <ChevronLeft className="w-4 h-4" /> Précédent
@@ -157,7 +157,7 @@ export default async function RecetteCategorePage({
           </span>
           {currentPage < totalPages && (
             <Link
-              href={`/recettes/${cat.value}?page=${currentPage + 1}`}
+              href={`/recettes/categorie/${cat.value}?page=${currentPage + 1}`}
               className="flex items-center gap-1 px-4 py-2 rounded-lg bg-card border border-border text-sm hover:bg-card-hover transition-colors"
             >
               Suivant <ChevronRight className="w-4 h-4" />
@@ -173,7 +173,7 @@ export default async function RecetteCategorePage({
           {CATEGORIES.filter((c) => c.value !== cat.value).map((c) => (
             <Link
               key={c.value}
-              href={`/recettes/${c.value}`}
+              href={`/recettes/categorie/${c.value}`}
               className="px-3 py-1.5 rounded-full text-sm border border-border hover:bg-accent/10 hover:text-accent hover:border-accent/20 transition-all"
             >
               {c.label}

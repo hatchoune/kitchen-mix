@@ -77,7 +77,7 @@ export default async function sitemap({
             priority: 0.5,
           },
           ...CATEGORIES.map((cat) => ({
-            url: `${SITE_URL}/recettes/${cat.value}`,
+            url: `${SITE_URL}/recettes/categorie/${cat.value}`,
             lastModified: now,
             changeFrequency: "daily" as const,
             priority: 0.85,

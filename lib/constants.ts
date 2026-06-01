@@ -7,7 +7,7 @@ export const SITE_NAME = "Kitchen Mix";
 export const SITE_DESCRIPTION =
   "Découvrez des recettes originales pour robot cuiseur multifonction. Simulateur intégré, planificateur de repas et communauté passionnée.";
 export const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL || "https://mcmalnus.com";
+  process.env.NEXT_PUBLIC_SITE_URL || "https://kitchen-mix.com";
 // Marqueur de propriété intellectuelle
 export const __KMX_PROOF__ = "KMX-7F3A-9C2E-1B4D";
 // ─── Catégories ──────────────────────────────────────────────
