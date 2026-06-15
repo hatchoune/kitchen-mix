@@ -1,18 +1,18 @@
-// app/recettes/[slug]/pinterest-image/route.tsx
-// Génère une image PNG 1000x1500px (format Pinterest vertical 2:3)
-// URL: https://kitchen-mix.com/recettes/[slug]/pinterest-image
-
 import { ImageResponse } from "next/og";
 import { getRecetteBySlug } from "@/lib/supabase/queries";
 
-export async function GET(
-  _request: Request,
-  { params }: { params: Promise<{ slug: string }> },
-) {
+export const alt = "Kitchen Mix — Recette Pinterest";
+export const size = { width: 1000, height: 1500 };
+export const contentType = "image/png";
+
+export default async function Image({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
   const { slug } = await params;
   const recette = await getRecetteBySlug(slug);
 
-  // Fallback si recette introuvable
   if (!recette) {
     return new ImageResponse(
       <div
@@ -43,7 +43,6 @@ export async function GET(
         ? "🟡"
         : "🔴";
 
-  // Label appareil lisible
   const appareilLabel = (() => {
     const modele = recette.modele_thermomix?.[0] as string;
     const labels: Record<string, string> = {
@@ -70,7 +69,7 @@ export async function GET(
         overflow: "hidden",
       }}
     >
-      {/* === PHOTO RECETTE (60% hauteur) === */}
+      {/* PHOTO */}
       <div
         style={{
           width: "1000px",
@@ -83,11 +82,7 @@ export async function GET(
         {recette.image_url ? (
           <img
             src={recette.image_url}
-            style={{
-              width: "1000px",
-              height: "620px",
-              objectFit: "cover",
-            }}
+            style={{ width: "1000px", height: "620px", objectFit: "cover" }}
           />
         ) : (
           <div
@@ -104,8 +99,7 @@ export async function GET(
             🍳
           </div>
         )}
-
-        {/* Gradient sombre en bas de la photo */}
+        {/* Gradient bas photo */}
         <div
           style={{
             position: "absolute",
@@ -117,8 +111,7 @@ export async function GET(
             display: "flex",
           }}
         />
-
-        {/* Badge appareil en haut à gauche */}
+        {/* Badge appareil */}
         <div
           style={{
             position: "absolute",
@@ -137,7 +130,7 @@ export async function GET(
         </div>
       </div>
 
-      {/* === CONTENU TEXTE === */}
+      {/* CONTENU */}
       <div
         style={{
           flex: 1,
@@ -147,7 +140,6 @@ export async function GET(
           gap: "28px",
         }}
       >
-        {/* Titre */}
         <div
           style={{
             fontSize: 64,
@@ -160,8 +152,6 @@ export async function GET(
         >
           {recette.titre}
         </div>
-
-        {/* Description courte */}
         <div
           style={{
             fontSize: 28,
@@ -174,19 +164,11 @@ export async function GET(
           {recette.description.length > 100 ? "…" : ""}
         </div>
 
-        {/* Badges infos */}
-        <div
-          style={{
-            display: "flex",
-            gap: "16px",
-            flexWrap: "wrap",
-          }}
-        >
+        {/* Badges */}
+        <div style={{ display: "flex", gap: "16px", flexWrap: "wrap" }}>
           <div
             style={{
               display: "flex",
-              alignItems: "center",
-              gap: "8px",
               backgroundColor: "rgba(245,166,35,0.15)",
               color: "#F5A623",
               padding: "12px 24px",
@@ -201,8 +183,6 @@ export async function GET(
           <div
             style={{
               display: "flex",
-              alignItems: "center",
-              gap: "8px",
               backgroundColor: "rgba(255,255,255,0.07)",
               color: "#F5F5F0",
               padding: "12px 24px",
@@ -216,8 +196,6 @@ export async function GET(
           <div
             style={{
               display: "flex",
-              alignItems: "center",
-              gap: "8px",
               backgroundColor: "rgba(255,255,255,0.07)",
               color: "#F5F5F0",
               padding: "12px 24px",
@@ -228,23 +206,6 @@ export async function GET(
           >
             👥 {recette.nombre_portions} portions
           </div>
-          {recette.note_moyenne > 0 && (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                backgroundColor: "rgba(255,255,255,0.07)",
-                color: "#F5F5F0",
-                padding: "12px 24px",
-                borderRadius: "14px",
-                fontSize: 26,
-                border: "1px solid rgba(255,255,255,0.1)",
-              }}
-            >
-              ⭐ {recette.note_moyenne.toFixed(1)}
-            </div>
-          )}
         </div>
 
         {/* Séparateur */}
@@ -256,7 +217,7 @@ export async function GET(
           }}
         />
 
-        {/* Footer branding */}
+        {/* Footer */}
         <div
           style={{
             display: "flex",
@@ -266,22 +227,13 @@ export async function GET(
         >
           <div
             style={{
+              fontSize: 36,
+              fontWeight: 800,
+              color: "#F5A623",
               display: "flex",
-              alignItems: "center",
-              gap: "12px",
             }}
           >
-            <div
-              style={{
-                fontSize: 36,
-                fontWeight: 800,
-                color: "#F5A623",
-                letterSpacing: "-0.5px",
-                display: "flex",
-              }}
-            >
-              🍳 Kitchen Mix
-            </div>
+            🍳 Kitchen Mix
           </div>
           <div
             style={{
@@ -295,7 +247,7 @@ export async function GET(
         </div>
       </div>
 
-      {/* Accent gradient décoratif */}
+      {/* Accent décoratif */}
       <div
         style={{
           position: "absolute",
