@@ -103,6 +103,8 @@ app/
     page.tsx
   recettes/
     [slug]/
+      pinterest-image/
+        route.tsx
       loading.tsx
       opengraph-image.tsx
       page.tsx
@@ -265,6 +267,7 @@ types/
   css.d.ts
   index.ts
 .gitignore
+download-images.ts
 LICENSE
 logs.txt
 ma_sauvegarde.sql
@@ -1548,6 +1551,327 @@ export default function ProfilLayout({ children }: { children: React.ReactNode }
 }
 </file>
 
+<file path="app/recettes/[slug]/pinterest-image/route.tsx">
+// app/recettes/[slug]/pinterest-image/route.tsx
+// Génère une image PNG 1000x1500px (format Pinterest vertical 2:3)
+// URL: https://kitchen-mix.com/recettes/[slug]/pinterest-image
+
+import { ImageResponse } from "next/og";
+import { getRecetteBySlug } from "@/lib/supabase/queries";
+
+export const runtime = "edge";
+
+export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ slug: string }> }
+) {
+  const { slug } = await params;
+  const recette = await getRecetteBySlug(slug);
+
+  // Fallback si recette introuvable
+  if (!recette) {
+    return new ImageResponse(
+      (
+        <div
+          style={{
+            width: "1000px",
+            height: "1500px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: "#141414",
+            color: "#F5A623",
+            fontSize: 48,
+            fontWeight: 700,
+            fontFamily: "system-ui, sans-serif",
+          }}
+        >
+          🍳 Kitchen Mix
+        </div>
+      ),
+      { width: 1000, height: 1500 }
+    );
+  }
+
+  const totalMin = recette.temps_preparation + recette.temps_cuisson;
+  const diffEmoji =
+    recette.difficulte === "facile"
+      ? "🟢"
+      : recette.difficulte === "moyen"
+        ? "🟡"
+        : "🔴";
+
+  // Label appareil lisible
+  const appareilLabel =
+    recette.modele_thermomix?.[0] === "COMPANION"
+      ? "Moulinex Companion"
+      : recette.modele_thermomix?.[0] === "COOK_EXPERT"
+        ? "Magimix Cook Expert"
+        : recette.modele_thermomix?.[0] === "COOKEO"
+          ? "Cookeo"
+          : recette.modele_thermomix?.[0]?.replace(/_/g, " ") ?? "Robot cuiseur";
+
+  return new ImageResponse(
+    (
+      <div
+        style={{
+          width: "1000px",
+          height: "1500px",
+          display: "flex",
+          flexDirection: "column",
+          backgroundColor: "#141414",
+          fontFamily: "system-ui, sans-serif",
+          position: "relative",
+          overflow: "hidden",
+        }}
+      >
+        {/* === PHOTO RECETTE (60% hauteur) === */}
+        <div
+          style={{
+            width: "1000px",
+            height: "620px",
+            position: "relative",
+            display: "flex",
+            overflow: "hidden",
+          }}
+        >
+          {recette.image_url ? (
+            <img
+              src={recette.image_url}
+              style={{
+                width: "1000px",
+                height: "620px",
+                objectFit: "cover",
+              }}
+            />
+          ) : (
+            <div
+              style={{
+                width: "1000px",
+                height: "620px",
+                backgroundColor: "#1E1E1E",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 80,
+              }}
+            >
+              🍳
+            </div>
+          )}
+
+          {/* Gradient sombre en bas de la photo */}
+          <div
+            style={{
+              position: "absolute",
+              bottom: 0,
+              left: 0,
+              right: 0,
+              height: "200px",
+              background:
+                "linear-gradient(to bottom, transparent, #141414)",
+              display: "flex",
+            }}
+          />
+
+          {/* Badge appareil en haut à gauche */}
+          <div
+            style={{
+              position: "absolute",
+              top: "24px",
+              left: "24px",
+              backgroundColor: "rgba(245,166,35,0.9)",
+              color: "#141414",
+              padding: "8px 20px",
+              borderRadius: "100px",
+              fontSize: 22,
+              fontWeight: 700,
+              display: "flex",
+            }}
+          >
+            {appareilLabel}
+          </div>
+        </div>
+
+        {/* === CONTENU TEXTE === */}
+        <div
+          style={{
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            padding: "40px 56px 0px 56px",
+            gap: "28px",
+          }}
+        >
+          {/* Titre */}
+          <div
+            style={{
+              fontSize: 64,
+              fontWeight: 800,
+              color: "#F5F5F0",
+              lineHeight: 1.05,
+              letterSpacing: "-1.5px",
+              display: "flex",
+            }}
+          >
+            {recette.titre}
+          </div>
+
+          {/* Description courte */}
+          <div
+            style={{
+              fontSize: 28,
+              color: "rgba(245,245,240,0.65)",
+              lineHeight: 1.45,
+              display: "flex",
+            }}
+          >
+            {recette.description.slice(0, 100)}
+            {recette.description.length > 100 ? "…" : ""}
+          </div>
+
+          {/* Badges infos */}
+          <div
+            style={{
+              display: "flex",
+              gap: "16px",
+              flexWrap: "wrap",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                backgroundColor: "rgba(245,166,35,0.15)",
+                color: "#F5A623",
+                padding: "12px 24px",
+                borderRadius: "14px",
+                fontSize: 26,
+                fontWeight: 600,
+                border: "1px solid rgba(245,166,35,0.3)",
+              }}
+            >
+              ⏱ {totalMin} min
+            </div>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                backgroundColor: "rgba(255,255,255,0.07)",
+                color: "#F5F5F0",
+                padding: "12px 24px",
+                borderRadius: "14px",
+                fontSize: 26,
+                border: "1px solid rgba(255,255,255,0.1)",
+              }}
+            >
+              {diffEmoji} {recette.difficulte}
+            </div>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                backgroundColor: "rgba(255,255,255,0.07)",
+                color: "#F5F5F0",
+                padding: "12px 24px",
+                borderRadius: "14px",
+                fontSize: 26,
+                border: "1px solid rgba(255,255,255,0.1)",
+              }}
+            >
+              👥 {recette.nombre_portions} portions
+            </div>
+            {recette.note_moyenne > 0 && (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  backgroundColor: "rgba(255,255,255,0.07)",
+                  color: "#F5F5F0",
+                  padding: "12px 24px",
+                  borderRadius: "14px",
+                  fontSize: 26,
+                  border: "1px solid rgba(255,255,255,0.1)",
+                }}
+              >
+                ⭐ {recette.note_moyenne.toFixed(1)}
+              </div>
+            )}
+          </div>
+
+          {/* Séparateur */}
+          <div
+            style={{
+              height: "1px",
+              backgroundColor: "rgba(255,255,255,0.1)",
+              display: "flex",
+            }}
+          />
+
+          {/* Footer branding */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "12px",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 36,
+                  fontWeight: 800,
+                  color: "#F5A623",
+                  letterSpacing: "-0.5px",
+                  display: "flex",
+                }}
+              >
+                🍳 Kitchen Mix
+              </div>
+            </div>
+            <div
+              style={{
+                fontSize: 26,
+                color: "rgba(245,245,240,0.4)",
+                display: "flex",
+              }}
+            >
+              kitchen-mix.com
+            </div>
+          </div>
+        </div>
+
+        {/* Accent gradient décoratif */}
+        <div
+          style={{
+            position: "absolute",
+            bottom: "-80px",
+            right: "-80px",
+            width: "300px",
+            height: "300px",
+            borderRadius: "50%",
+            background:
+              "radial-gradient(circle, rgba(245,166,35,0.12) 0%, transparent 70%)",
+            display: "flex",
+          }}
+        />
+      </div>
+    ),
+    { width: 1000, height: 1500 }
+  );
+}
+</file>
+
 <file path="app/recettes/[slug]/loading.tsx">
 export default function Loading() {
   return (
@@ -1580,230 +1904,6 @@ export default function Loading() {
         </div>
       </div>
     </div>
-  );
-}
-</file>
-
-<file path="app/recettes/[slug]/opengraph-image.tsx">
-import { ImageResponse } from "next/og";
-import { getRecetteBySlug } from "@/lib/supabase/queries";
-
-export const runtime = "edge";
-export const alt = "Kitchen Mix — Recette Thermomix";
-export const size = { width: 1200, height: 630 };
-export const contentType = "image/png";
-
-export default async function Image({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
-  const { slug } = await params;
-  const recette = await getRecetteBySlug(slug);
-
-  if (!recette) {
-    return new ImageResponse(
-      (
-        <div
-          style={{
-            width: "100%",
-            height: "100%",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: "#141414",
-            color: "#F5A623",
-            fontSize: 48,
-            fontWeight: 700,
-          }}
-        >
-          Kitchen Mix
-        </div>
-      ),
-      { ...size }
-    );
-  }
-
-  const totalMin = recette.temps_preparation + recette.temps_cuisson;
-  const diffEmoji =
-    recette.difficulte === "facile"
-      ? "🟢"
-      : recette.difficulte === "moyen"
-        ? "🟡"
-        : "🔴";
-
-  return new ImageResponse(
-    (
-      <div
-        style={{
-          width: "100%",
-          height: "100%",
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "space-between",
-          backgroundColor: "#141414",
-          padding: "60px",
-          fontFamily: "system-ui, sans-serif",
-          position: "relative",
-          overflow: "hidden",
-        }}
-      >
-        {/* Background accent gradient */}
-        <div
-          style={{
-            position: "absolute",
-            top: "-100px",
-            right: "-100px",
-            width: "400px",
-            height: "400px",
-            borderRadius: "50%",
-            background: "radial-gradient(circle, rgba(245,166,35,0.15) 0%, transparent 70%)",
-            display: "flex",
-          }}
-        />
-
-        {/* Top: branding */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "12px",
-          }}
-        >
-          <div
-            style={{
-              fontSize: 24,
-              fontWeight: 700,
-              color: "#F5A623",
-              letterSpacing: "-0.5px",
-              display: "flex",
-            }}
-          >
-            🍳 Kitchen Mix
-          </div>
-          <div
-            style={{
-              fontSize: 16,
-              color: "rgba(245,245,240,0.5)",
-              display: "flex",
-            }}
-          >
-            mcmalnus.com
-          </div>
-        </div>
-
-        {/* Middle: title + description */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "16px", flex: 1, justifyContent: "center" }}>
-          <div
-            style={{
-              fontSize: 52,
-              fontWeight: 700,
-              color: "#F5F5F0",
-              lineHeight: 1.15,
-              letterSpacing: "-1px",
-              display: "flex",
-              maxWidth: "900px",
-            }}
-          >
-            {recette.titre}
-          </div>
-          <div
-            style={{
-              fontSize: 22,
-              color: "rgba(245,245,240,0.6)",
-              lineHeight: 1.4,
-              maxWidth: "800px",
-              display: "flex",
-            }}
-          >
-            {recette.description.slice(0, 120)}
-            {recette.description.length > 120 ? "…" : ""}
-          </div>
-        </div>
-
-        {/* Bottom: badges */}
-        <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              backgroundColor: "rgba(245,166,35,0.15)",
-              color: "#F5A623",
-              padding: "8px 16px",
-              borderRadius: "12px",
-              fontSize: 18,
-              fontWeight: 600,
-            }}
-          >
-            ⏱ {totalMin} min
-          </div>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              backgroundColor: "rgba(255,255,255,0.06)",
-              color: "#F5F5F0",
-              padding: "8px 16px",
-              borderRadius: "12px",
-              fontSize: 18,
-            }}
-          >
-            {diffEmoji} {recette.difficulte}
-          </div>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              backgroundColor: "rgba(255,255,255,0.06)",
-              color: "#F5F5F0",
-              padding: "8px 16px",
-              borderRadius: "12px",
-              fontSize: 18,
-            }}
-          >
-            👥 {recette.nombre_portions} portions
-          </div>
-          {recette.modele_thermomix.map((m) => (
-            <div
-              key={m}
-              style={{
-                display: "flex",
-                backgroundColor: "rgba(245,166,35,0.15)",
-                color: "#F5A623",
-                padding: "8px 16px",
-                borderRadius: "12px",
-                fontSize: 18,
-                fontWeight: 600,
-              }}
-            >
-              {m}
-            </div>
-          ))}
-          {recette.note_moyenne > 0 && (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-                backgroundColor: "rgba(255,255,255,0.06)",
-                color: "#F5F5F0",
-                padding: "8px 16px",
-                borderRadius: "12px",
-                fontSize: 18,
-              }}
-            >
-              ⭐ {recette.note_moyenne.toFixed(1)}
-            </div>
-          )}
-        </div>
-      </div>
-    ),
-    {
-      ...size,
-    }
   );
 }
 </file>
@@ -14489,6 +14589,78 @@ v1.43.3
 declare module "*.css";
 </file>
 
+<file path="download-images.ts">
+import { createClient } from '@supabase/supabase-js'
+import * as fs from 'fs'
+import * as path from 'path'
+import * as https from 'https'
+
+const supabase = createClient(
+  'https://ivsuhfllmxyfquypgkzg.supabase.co',
+  process.env.SUPABASE_SERVICE_KEY!
+)
+
+const OUTPUT_DIR = './images-recettes'
+
+function downloadFile(url: string, dest: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const file = fs.createWriteStream(dest)
+    https.get(url, (res) => {
+      if (res.statusCode !== 200) {
+        reject(new Error(`HTTP ${res.statusCode} pour ${url}`))
+        return
+      }
+      res.pipe(file)
+      file.on('finish', () => { file.close(); resolve() })
+    }).on('error', reject)
+  })
+}
+
+async function downloadAllImages() {
+  // Créer le dossier de sortie
+  if (!fs.existsSync(OUTPUT_DIR)) fs.mkdirSync(OUTPUT_DIR)
+
+  const { data: recettes, error } = await supabase
+    .from('recettes')
+    .select('titre, image_url')
+    .not('image_url', 'is', null)
+    .order('titre')
+
+  if (error) { console.error('Erreur Supabase:', error.message); return }
+
+  console.log(`\n📦 ${recettes.length} images à télécharger...\n`)
+
+  let ok = 0, fail = 0
+
+  for (const r of recettes) {
+    const url = r.image_url
+    // Extrait le nom de fichier depuis l'URL
+    const filename = path.basename(url)
+    const dest = path.join(OUTPUT_DIR, filename)
+
+    if (fs.existsSync(dest)) {
+      console.log(`⏭️  Déjà présent : ${filename}`)
+      ok++
+      continue
+    }
+
+    try {
+      await downloadFile(url, dest)
+      console.log(`✅ ${filename}`)
+      ok++
+    } catch (e: any) {
+      console.log(`❌ ERREUR ${r.titre} : ${e.message}`)
+      fail++
+    }
+  }
+
+  console.log(`\n🎉 Terminé : ${ok} OK, ${fail} erreurs`)
+  console.log(`📁 Images dans : ${path.resolve(OUTPUT_DIR)}`)
+}
+
+downloadAllImages()
+</file>
+
 <file path="LICENSE">
 # Licence Propriétaire - Kitchen Mix
 
@@ -23430,132 +23602,6 @@ export default config;
 }
 </file>
 
-<file path="app/a-propos/page.tsx">
-// app/a-propos/page.tsx
-import type { Metadata } from "next";
-import Link from "next/link";
-import { ChefHat, Heart, Sparkles, Users } from "lucide-react";
-import Logo from "@/components/ui/Logo";
-import { SITE_NAME, SITE_URL } from "@/lib/constants";
-import { getPageMetadata } from "@/lib/seo";
-
-export const metadata: Metadata = getPageMetadata({
-  title: `À propos de ${SITE_NAME}`,
-  description: `Découvrez l'histoire et la mission de ${SITE_NAME} : partager des recettes originales et fiables pour robots cuiseurs multifonction, avec simulateur intégré et planificateur de repas.`,
-  path: "/a-propos",
-});
-
-export default function AProposPage() {
-  return (
-    <div className="max-w-3xl mx-auto py-8 space-y-12 animate-fade-in">
-      {/* Hero */}
-      <section className="text-center space-y-6">
-        <div className="flex justify-center">
-          <Logo className="w-20 h-auto" />
-        </div>
-        <h1 className="font-display font-bold text-4xl">
-          À propos de <span className="text-accent">{SITE_NAME}</span>
-        </h1>
-        <p className="text-muted-foreground text-lg max-w-2xl mx-auto leading-relaxed">
-          La cuisine maison, sans stress et avec passion.
-        </p>
-      </section>
-
-      {/* Notre histoire */}
-      <section className="glass-card p-8 space-y-4">
-        <h2 className="font-display font-bold text-2xl flex items-center gap-3">
-          <ChefHat className="w-6 h-6 text-accent" />
-          Notre histoire
-        </h2>
-        <div className="space-y-4 text-muted-foreground leading-relaxed">
-          <p>
-            <strong>{SITE_NAME}</strong> est né d&apos;une passion commune pour
-            la cuisine au robot multifonction. Nous avons constaté que les
-            recettes disponibles en ligne étaient souvent mal adaptées, peu
-            fiables ou difficiles à suivre pour des débutants.
-          </p>
-          <p>
-            Nous avons donc décidé de créer un espace où chaque recette est
-            testée, détaillée et accompagnée d&apos;instructions claires pour
-            votre robot. Notre objectif : vous faire gagner du temps et vous
-            donner envie de cuisiner chaque jour.
-          </p>
-          <p>
-            Aujourd&apos;hui, {SITE_NAME} est une communauté de passionnés qui
-            partagent leurs meilleures créations, avec un simulateur intégré et
-            un planificateur de repas pour simplifier votre quotidien.
-          </p>
-        </div>
-      </section>
-
-      {/* Nos valeurs */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <ValueCard
-          icon={<Sparkles className="w-6 h-6" />}
-          title="Fiabilité"
-          description="Chaque recette est vérifiée et approuvée avant publication. Vous pouvez cuisiner en toute confiance."
-        />
-        <ValueCard
-          icon={<Users className="w-6 h-6" />}
-          title="Communauté"
-          description="Partagez vos propres recettes, notez celles des autres et échangez en commentaires."
-        />
-        <ValueCard
-          icon={<Heart className="w-6 h-6" />}
-          title="Passion"
-          description="Nous aimons la bonne cuisine et nous vous transmettons cette passion à travers nos contenus."
-        />
-      </section>
-
-      {/* Contact / techno */}
-      <section className="glass-card p-8 space-y-4">
-        <h2 className="font-display font-bold text-2xl">Technologie</h2>
-        <p className="text-muted-foreground leading-relaxed">
-          {SITE_NAME} est construit avec les technologies web modernes :
-          Next.js, Supabase, Tailwind CSS. Le site est hébergé sur Vercel et
-          optimisé pour une expérience rapide et fluide, que vous soyez sur
-          mobile, tablette ou ordinateur.
-        </p>
-        {/* <p className="text-muted-foreground leading-relaxed">
-          Une question, une suggestion ? N&apos;hésitez pas à nous contacter via
-          les réseaux sociaux ou à nous écrire à{" "}
-          <a
-            href="mailto:contact@mcmalnus.com"
-            className="text-accent hover:underline"
-          >
-            contact@mcmalnus.com
-          </a>
-          .
-        </p> */}
-      </section>
-    </div>
-  );
-}
-
-// Petit composant interne
-function ValueCard({
-  icon,
-  title,
-  description,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-}) {
-  return (
-    <div className="glass-card p-6 text-center space-y-3">
-      <div className="w-12 h-12 rounded-full bg-accent/15 text-accent flex items-center justify-center mx-auto">
-        {icon}
-      </div>
-      <h3 className="font-display font-semibold text-lg">{title}</h3>
-      <p className="text-sm text-muted-foreground leading-relaxed">
-        {description}
-      </p>
-    </div>
-  );
-}
-</file>
-
 <file path="app/actions/achievements.ts">
 "use server";
 
@@ -25514,6 +25560,235 @@ export default async function ProfilPublicPage({
         </section>
       )}
     </div>
+  );
+}
+</file>
+
+<file path="app/recettes/[slug]/opengraph-image.tsx">
+import { ImageResponse } from "next/og";
+import { getRecetteBySlug } from "@/lib/supabase/queries";
+
+export const runtime = "edge";
+export const alt = "Kitchen Mix — Recette Thermomix";
+export const size = { width: 1200, height: 630 };
+export const contentType = "image/png";
+
+export default async function Image({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+  const recette = await getRecetteBySlug(slug);
+
+  if (!recette) {
+    return new ImageResponse(
+      <div
+        style={{
+          width: "100%",
+          height: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: "#141414",
+          color: "#F5A623",
+          fontSize: 48,
+          fontWeight: 700,
+        }}
+      >
+        Kitchen Mix
+      </div>,
+      { ...size },
+    );
+  }
+
+  const totalMin = recette.temps_preparation + recette.temps_cuisson;
+  const diffEmoji =
+    recette.difficulte === "facile"
+      ? "🟢"
+      : recette.difficulte === "moyen"
+        ? "🟡"
+        : "🔴";
+
+  return new ImageResponse(
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "space-between",
+        backgroundColor: "#141414",
+        padding: "60px",
+        fontFamily: "system-ui, sans-serif",
+        position: "relative",
+        overflow: "hidden",
+      }}
+    >
+      {/* Background accent gradient */}
+      <div
+        style={{
+          position: "absolute",
+          top: "-100px",
+          right: "-100px",
+          width: "400px",
+          height: "400px",
+          borderRadius: "50%",
+          background:
+            "radial-gradient(circle, rgba(245,166,35,0.15) 0%, transparent 70%)",
+          display: "flex",
+        }}
+      />
+
+      {/* Top: branding */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "12px",
+        }}
+      >
+        <div
+          style={{
+            fontSize: 24,
+            fontWeight: 700,
+            color: "#F5A623",
+            letterSpacing: "-0.5px",
+            display: "flex",
+          }}
+        >
+          🍳 Kitchen Mix
+        </div>
+        <div
+          style={{
+            fontSize: 16,
+            color: "rgba(245,245,240,0.5)",
+            display: "flex",
+          }}
+        >
+          kitchen-mix.com
+        </div>
+      </div>
+
+      {/* Middle: title + description */}
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "16px",
+          flex: 1,
+          justifyContent: "center",
+        }}
+      >
+        <div
+          style={{
+            fontSize: 52,
+            fontWeight: 700,
+            color: "#F5F5F0",
+            lineHeight: 1.15,
+            letterSpacing: "-1px",
+            display: "flex",
+            maxWidth: "900px",
+          }}
+        >
+          {recette.titre}
+        </div>
+        <div
+          style={{
+            fontSize: 22,
+            color: "rgba(245,245,240,0.6)",
+            lineHeight: 1.4,
+            maxWidth: "800px",
+            display: "flex",
+          }}
+        >
+          {recette.description.slice(0, 120)}
+          {recette.description.length > 120 ? "…" : ""}
+        </div>
+      </div>
+
+      {/* Bottom: badges */}
+      <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            backgroundColor: "rgba(245,166,35,0.15)",
+            color: "#F5A623",
+            padding: "8px 16px",
+            borderRadius: "12px",
+            fontSize: 18,
+            fontWeight: 600,
+          }}
+        >
+          ⏱ {totalMin} min
+        </div>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            backgroundColor: "rgba(255,255,255,0.06)",
+            color: "#F5F5F0",
+            padding: "8px 16px",
+            borderRadius: "12px",
+            fontSize: 18,
+          }}
+        >
+          {diffEmoji} {recette.difficulte}
+        </div>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            backgroundColor: "rgba(255,255,255,0.06)",
+            color: "#F5F5F0",
+            padding: "8px 16px",
+            borderRadius: "12px",
+            fontSize: 18,
+          }}
+        >
+          👥 {recette.nombre_portions} portions
+        </div>
+        {recette.modele_thermomix.map((m) => (
+          <div
+            key={m}
+            style={{
+              display: "flex",
+              backgroundColor: "rgba(245,166,35,0.15)",
+              color: "#F5A623",
+              padding: "8px 16px",
+              borderRadius: "12px",
+              fontSize: 18,
+              fontWeight: 600,
+            }}
+          >
+            {m}
+          </div>
+        ))}
+        {recette.note_moyenne > 0 && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              backgroundColor: "rgba(255,255,255,0.06)",
+              color: "#F5F5F0",
+              padding: "8px 16px",
+              borderRadius: "12px",
+              fontSize: 18,
+            }}
+          >
+            ⭐ {recette.note_moyenne.toFixed(1)}
+          </div>
+        )}
+      </div>
+    </div>,
+    {
+      ...size,
+    },
   );
 }
 </file>
@@ -34523,6 +34798,133 @@ scripts/          → Seed data
 ## License
 
 Propriétaire — Tous droits réservés.
+</file>
+
+<file path="app/a-propos/page.tsx">
+// app/a-propos/page.tsx
+import type { Metadata } from "next";
+import Link from "next/link";
+import { ChefHat, Heart, Sparkles, Users } from "lucide-react";
+import Logo from "@/components/ui/Logo";
+import { SITE_NAME, SITE_URL } from "@/lib/constants";
+import { getPageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = getPageMetadata({
+  title: `À propos de ${SITE_NAME}`,
+  description: `Découvrez l'histoire et la mission de ${SITE_NAME} : partager des recettes originales et fiables pour robots cuiseurs multifonction, avec simulateur intégré et planificateur de repas.`,
+  path: "/a-propos",
+});
+
+export default function AProposPage() {
+  return (
+    <div className="max-w-3xl mx-auto py-8 space-y-12 animate-fade-in">
+      {/* Hero */}
+      <section className="text-center space-y-6">
+        <div className="flex justify-center">
+          <Logo className="w-20 h-auto" />
+        </div>
+        <h1 className="font-display font-bold text-4xl">
+          À propos de <span className="text-accent">{SITE_NAME}</span>
+        </h1>
+        <p className="text-muted-foreground text-lg max-w-2xl mx-auto leading-relaxed">
+          La cuisine maison, sans stress et avec passion.
+        </p>
+      </section>
+
+      {/* Notre histoire */}
+      <section className="glass-card p-8 space-y-4">
+        <h2 className="font-display font-bold text-2xl flex items-center gap-3">
+          <ChefHat className="w-6 h-6 text-accent" />
+          Notre histoire
+        </h2>
+        <div className="space-y-4 text-muted-foreground leading-relaxed">
+          <p>
+            <strong>{SITE_NAME}</strong> est né d&apos;une passion commune pour
+            la cuisine au robot multifonction. Nous avons constaté que les
+            recettes disponibles en ligne étaient souvent mal adaptées, peu
+            fiables ou difficiles à suivre pour des débutants.
+          </p>
+          <p>
+            Nous avons donc décidé de créer un espace où chaque recette est
+            testée, détaillée et accompagnée d&apos;instructions claires pour
+            votre robot. Notre objectif : vous faire gagner du temps et vous
+            donner envie de cuisiner chaque jour.
+          </p>
+          <p>
+            Aujourd&apos;hui, {SITE_NAME} est une communauté de passionnés qui
+            partagent leurs meilleures créations, avec un simulateur intégré et
+            un planificateur de repas pour simplifier votre quotidien.
+          </p>
+        </div>
+      </section>
+
+      {/* Nos valeurs */}
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <ValueCard
+          icon={<Sparkles className="w-6 h-6" />}
+          title="Fiabilité"
+          description="Chaque recette est vérifiée et approuvée avant publication. Vous pouvez cuisiner en toute confiance."
+        />
+        <ValueCard
+          icon={<Users className="w-6 h-6" />}
+          title="Communauté"
+          description="Partagez vos propres recettes, notez celles des autres et échangez en commentaires."
+        />
+        <ValueCard
+          icon={<Heart className="w-6 h-6" />}
+          title="Passion"
+          description="Nous aimons la bonne cuisine et nous vous transmettons cette passion à travers nos contenus."
+        />
+      </section>
+
+      {/* Contact / techno */}
+      <section className="glass-card p-8 space-y-4">
+        <h2 className="font-display font-bold text-2xl">Technologie</h2>
+        <p className="text-muted-foreground leading-relaxed">
+          {SITE_NAME} est construit avec les technologies web modernes :
+          Next.js, Supabase, Tailwind CSS. Le site est hébergé sur Vercel et
+          optimisé pour une expérience rapide et fluide, que vous soyez sur
+          mobile, tablette ou ordinateur.
+        </p>
+        {/* <p className="text-muted-foreground leading-relaxed">
+          Une question, une suggestion ? N&apos;hésitez pas à nous contacter via
+          les réseaux sociaux ou à nous écrire à{" "}
+          <a
+            href="mailto:contact@kitchen-mix.com"
+            className="text-accent hover:underline"
+          >
+            contact@kitchen-mix.com
+
+          </a>
+          .
+        </p> */}
+      </section>
+    </div>
+  );
+}
+
+// Petit composant interne
+function ValueCard({
+  icon,
+  title,
+  description,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="glass-card p-6 text-center space-y-3">
+      <div className="w-12 h-12 rounded-full bg-accent/15 text-accent flex items-center justify-center mx-auto">
+        {icon}
+      </div>
+      <h3 className="font-display font-semibold text-lg">{title}</h3>
+      <p className="text-sm text-muted-foreground leading-relaxed">
+        {description}
+      </p>
+    </div>
+  );
+}
 </file>
 
 <file path="app/actions/favoris.ts">
@@ -46630,8 +47032,9 @@ export default function PlanificateurPage() {
   const [favorisLoading, setFavorisLoading] = useState(false);
 
   // ═══ Pending Recipe (ajout depuis une page recette) ═══
-  const [pendingRecipe, setPendingRecipeState] =
-    useState<PendingRecipe | null>(null);
+  const [pendingRecipe, setPendingRecipeState] = useState<PendingRecipe | null>(
+    null,
+  );
 
   // Hydrate le pendingRecipe au mount si ?pending=1
   useEffect(() => {
@@ -46956,9 +47359,7 @@ export default function PlanificateurPage() {
         if (!newPlan[dayIdx]) newPlan[dayIdx] = [null, null, null];
         newPlan[dayIdx][slotIdx] = data as RecetteMin;
 
-        const countAfter = Object.values(newPlan)
-          .flat()
-          .filter(Boolean).length;
+        const countAfter = Object.values(newPlan).flat().filter(Boolean).length;
 
         await savePlan(newPlan);
 
@@ -47186,7 +47587,7 @@ export default function PlanificateurPage() {
     if (!win) return;
     win.document.write(`<html><head><title>Liste de courses</title>
     <style>body{font-family:system-ui;padding:2rem;max-width:600px;margin:0 auto}h1{font-size:1.5rem}h2{font-size:1.1rem;margin-top:1.5rem;color:#666;border-bottom:1px solid #ddd;padding-bottom:4px}ul{list-style:none;padding:0}li{padding:4px 0;display:flex;justify-content:space-between}li span:last-child{font-weight:600}.footer{margin-top:2rem;font-size:.8rem;color:#999}</style>
-    </head><body><h1>🛒 Liste de courses</h1><p style="color:#888;font-size:.9rem">${daysStr}</p>${html}<p class="footer">Kitchen Mix — mcmalnus.com</p></body></html>`);
+    </head><body><h1>🛒 Liste de courses</h1><p style="color:#888;font-size:.9rem">${daysStr}</p>${html}<p class="footer">Kitchen Mix — kitchen-mix.com</p></body></html>`);
     win.document.close();
     win.print();
   };
