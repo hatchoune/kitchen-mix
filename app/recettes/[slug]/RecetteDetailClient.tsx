@@ -109,17 +109,30 @@ export default function RecetteDetailClient({
           </button>
         </div>
       </div>
-
-      {/* Simulator CTA */}
+      // APRÈS
+      {/* Simulator CTA — auth requise */}
       <button
         type="button"
-        onClick={() => setSimulateurOpen(true)}
+        onClick={() => {
+          if (!user) {
+            window.location.href = "/connexion";
+            return;
+          }
+          setSimulateurOpen(true);
+        }}
         className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-accent text-black font-display font-bold text-sm hover:bg-accent-hover transition-colors no-print"
       >
         <PlayCircle className="w-5 h-5" />
         Lancer la recette guidée
       </button>
-
+      {simulateurOpen && (
+        <SimulateurThermomix
+          isOpen={simulateurOpen}
+          onClose={handleSimulateurClose}
+          etapes={recette.etapes}
+          titre={recette.titre}
+        />
+      )}
       {/* Simulator Modal — ouverture directe, pas de gate auth */}
       {simulateurOpen && (
         <SimulateurThermomix
