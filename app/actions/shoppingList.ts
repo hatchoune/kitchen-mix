@@ -1,7 +1,7 @@
 "use server";
 
 import { createServerSupabase } from "@/lib/supabase/server";
-import type { Ingredient, ListeCoursesItem } from "@/types";
+import type { Ingredient } from "@/types";
 
 export async function getShoppingListForDays(
   weekStart: string,
@@ -12,89 +12,98 @@ export async function getShoppingListForDays(
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) {
-    throw new Error("Non autorisé");
-  }
+  if (!user) throw new Error("Non autorisé");
+  if (dayIndices.length === 0) return [];
 
-  if (dayIndices.length === 0) {
-    return [];
-  }
-
-  // Récupérer toutes les lignes meal_plans pour les jours demandés
+  // 1. Récupérer les recettes du planning
   const { data: rows, error } = await supabase
     .from("meal_plans")
-    .select("recette_id, portions_count")
+    .select("recette_id")
     .eq("user_id", user.id)
     .eq("week_start", weekStart)
     .in("day_index", dayIndices);
 
-  if (error) throw new Error(error.message);
-  if (!rows || rows.length === 0) return [];
-
-  const idCounts = new Map<string, number>();
-  for (const row of rows) {
-    if (!row.recette_id) continue;
-    const p = (row.portions_count as number) ?? 1;
-    idCounts.set(row.recette_id, (idCounts.get(row.recette_id) ?? 0) + p);
+  if (error) {
+    console.error("[shoppingList] DB error:", error.message);
+    throw new Error(error.message);
   }
 
-  const recetteIds = Array.from(idCounts.keys());
-  if (recetteIds.length === 0) return [];
+  if (!rows || rows.length === 0) return [];
 
-  // Récupérer les ingrédients (une seule fois par recette, on multipliera après)
+  // 2. Compter les occurrences de chaque recette
+  const recetteCounts = new Map<string, number>();
+  for (const row of rows) {
+    if (row.recette_id) {
+      recetteCounts.set(
+        row.recette_id,
+        (recetteCounts.get(row.recette_id) || 0) + 1,
+      );
+    }
+  }
+
+  // 3. Récupérer les ingrédients
+  const recetteIds = Array.from(recetteCounts.keys());
   const { data: recettes, error: recError } = await supabase
     .from("recettes")
-    .select("id, ingredients")
+    .select("id, ingredients, nombre_portions")
     .in("id", recetteIds);
 
   if (recError) throw new Error(recError.message);
-  if (!recettes) return [];
+  if (!recettes || recettes.length === 0) return [];
 
-  // Index par ID pour accès direct
-  const ingredientsById = new Map<string, Ingredient[]>();
-  for (const r of recettes) {
-    ingredientsById.set(r.id, (r.ingredients as Ingredient[]) ?? []);
-  }
+  // 4. Agrégation des ingrédients
+  const aggregated = new Map<
+    string,
+    {
+      nom: string;
+      quantite: number;
+      unite: string;
+      categorie: string;
+    }
+  >();
 
-  // Agrégation : clé normalisée (nom + unité trim + lowercase),
-  // quantité castée en Number() (au cas où stockée en string dans le JSON),
-  // multipliée par le nombre d'occurrences de la recette.
-  const aggregated = new Map<string, ListeCoursesItem>();
+  for (const recette of recettes) {
+    const occurrences = recetteCounts.get(recette.id) || 1;
+    const portionsBase = recette.nombre_portions || 4;
+    const ratio = occurrences / portionsBase;
 
-  for (const [recetteId, count] of idCounts) {
-    const ingredients = ingredientsById.get(recetteId);
+    const ingredients = recette.ingredients as Ingredient[];
     if (!ingredients) continue;
 
     for (const ing of ingredients) {
       if (!ing?.nom) continue;
 
       const qty = Number(ing.quantite);
-      if (!Number.isFinite(qty)) continue;
+      if (isNaN(qty)) continue;
 
-      const nomKey = ing.nom.trim().toLowerCase();
-      const uniteKey = (ing.unite ?? "").trim().toLowerCase();
-      const key = `${nomKey}|${uniteKey}`;
+      const adjustedQty = qty * ratio;
+      const key = `${ing.nom}|${ing.unite || ""}`;
 
-      const addQty = qty * count;
       const existing = aggregated.get(key);
       if (existing) {
-        existing.quantite += addQty;
+        existing.quantite += adjustedQty;
       } else {
         aggregated.set(key, {
           nom: ing.nom,
-          quantite: addQty,
-          unite: ing.unite ?? "",
+          quantite: adjustedQty,
+          unite: ing.unite || "",
           categorie: ing.categorie || "Autre",
         });
       }
     }
   }
 
-  const items = Array.from(aggregated.values());
+  // 5. Arrondir et trier
+  const items = Array.from(aggregated.values()).map((item) => ({
+    ...item,
+    quantite: Math.round(item.quantite * 10) / 10,
+  }));
+
   items.sort(
     (a, b) =>
       a.categorie.localeCompare(b.categorie) || a.nom.localeCompare(b.nom),
   );
 
+  console.log("[shoppingList] Generated", items.length, "items");
   return items;
 }

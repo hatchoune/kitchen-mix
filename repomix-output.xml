@@ -3240,461 +3240,6 @@ export default function SaveReminder({
 }
 </file>
 
-<file path="components/recettes/AddToPlanningButton.tsx">
-"use client";
-
-import { useState } from "react";
-import Link from "next/link";
-import { CalendarPlus } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
-import AddToPlanningModal from "./AddToPlanningModal";
-import type { Recette } from "@/types";
-
-interface Props {
-  recette: Pick<Recette, "id" | "slug" | "titre" | "image_url">;
-}
-
-/* =============================================================
-   AddToPlanningButton
-   -------------------------------------------------------------
-   Bouton sur la page recette → ouvre AddToPlanningModal.
-   Si non connecté, redirige vers la page de connexion avec
-   retour sur la recette.
-   ============================================================= */
-
-export default function AddToPlanningButton({ recette }: Props) {
-  const { user } = useAuth();
-  const [open, setOpen] = useState(false);
-
-  if (!user) {
-    return (
-      <Link
-        href={`/connexion?next=/recettes/${recette.slug}`}
-        className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-card border border-border hover:bg-card-hover transition-colors no-print"
-        title="Connectez-vous pour ajouter cette recette à un planning"
-        aria-label="Ajouter au planning (connexion requise)"
-      >
-        <CalendarPlus className="w-4 h-4" />
-        <span className="hidden sm:inline">Ajouter au planning</span>
-        <span className="sm:hidden">Planning</span>
-      </Link>
-    );
-  }
-
-  return (
-    <>
-      <button
-        onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-accent/10 text-accent hover:bg-accent/20 border border-accent/25 transition-colors no-print"
-        aria-label="Ajouter cette recette à un planning"
-      >
-        <CalendarPlus className="w-4 h-4" />
-        <span className="hidden sm:inline">Ajouter au planning</span>
-        <span className="sm:hidden">Planning</span>
-      </button>
-
-      {open && (
-        <AddToPlanningModal
-          recette={recette}
-          onClose={() => setOpen(false)}
-        />
-      )}
-    </>
-  );
-}
-</file>
-
-<file path="components/recettes/AddToPlanningModal.tsx">
-"use client";
-
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import {
-  X,
-  Calendar,
-  Plus,
-  Globe,
-  Lock,
-  Loader2,
-  ThumbsUp,
-  Sparkles,
-} from "lucide-react";
-import Image from "next/image";
-import { createClient } from "@/lib/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
-import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
-import { setPendingRecipe } from "@/lib/pending-recipe";
-import { cn } from "@/lib/utils";
-import type { Recette } from "@/types";
-
-interface UserPlanning {
-  id: string;
-  name: string;
-  description: string | null;
-  is_public: boolean;
-  week_start: string;
-  likes_count: number;
-  created_at: string;
-}
-
-interface Props {
-  recette: Pick<Recette, "id" | "slug" | "titre" | "image_url">;
-  onClose: () => void;
-}
-
-/* =============================================================
-   AddToPlanningModal
-   -------------------------------------------------------------
-   - Liste scrollable des plannings sauvegardés de l'utilisateur
-     (séparation privés / publics comme /mes-plannings)
-   - Bouton "Nouveau planning" toujours en tête de liste
-   - Au clic : stocke la recette en sessionStorage (pont mémoire)
-     et redirige vers /planificateur avec le bon contexte :
-       • Planning existant → ?load={id}&pending=1
-       • Nouveau planning  → ?new=1&pending=1
-   - Le planificateur reconnaît ?pending=1, affiche une bannière
-     "Recette à placer" et l'assigne au slot cliqué par l'utilisateur.
-   ============================================================= */
-
-export default function AddToPlanningModal({ recette, onClose }: Props) {
-  const { user } = useAuth();
-  const router = useRouter();
-  const [supabase] = useState(() => createClient());
-  const [plannings, setPlannings] = useState<UserPlanning[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  // Scroll lock du body tant que le modal est ouvert (iOS-safe).
-  useBodyScrollLock(true);
-
-  // Fermeture au clavier (Échap)
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
-
-  // Charge les plannings de l'utilisateur
-  useEffect(() => {
-    if (!user) {
-      setLoading(false);
-      return;
-    }
-    let cancelled = false;
-    const load = async () => {
-      const { data } = await supabase
-        .from("user_plannings")
-        .select(
-          "id, name, description, is_public, week_start, likes_count, created_at",
-        )
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
-      if (cancelled) return;
-      setPlannings((data || []) as UserPlanning[]);
-      setLoading(false);
-    };
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, [user, supabase]);
-
-  const handleSelectPlanning = (planningId: string) => {
-    setPendingRecipe({
-      id: recette.id,
-      slug: recette.slug,
-      titre: recette.titre,
-      image_url: recette.image_url,
-    });
-    onClose();
-    router.push(`/planificateur?load=${planningId}&pending=1`);
-  };
-
-  const handleCreateNew = () => {
-    setPendingRecipe({
-      id: recette.id,
-      slug: recette.slug,
-      titre: recette.titre,
-      image_url: recette.image_url,
-    });
-    onClose();
-    router.push(`/planificateur?new=1&pending=1`);
-  };
-
-  const prives = plannings.filter((p) => !p.is_public);
-  const publics = plannings.filter((p) => p.is_public);
-  const hasAny = plannings.length > 0;
-
-  return (
-    <div className="fixed inset-0 z-[100] h-[100dvh] overscroll-none flex items-end sm:items-center justify-center">
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
-
-      {/* Bottom sheet mobile / modal centré desktop */}
-      <div
-        className="relative z-10 w-full h-[85dvh] sm:h-auto sm:max-h-[85dvh] sm:max-w-md sm:mx-4 rounded-t-2xl sm:rounded-2xl flex flex-col animate-slide-up pb-safe"
-        style={{ backgroundColor: "var(--color-bg)" }}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Ajouter à un planning"
-      >
-        {/* Poignée mobile */}
-        <div className="absolute top-2 left-1/2 -translate-x-1/2 w-10 h-1 rounded-full bg-border sm:hidden" />
-
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-border shrink-0">
-          <div className="flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-accent" />
-            <h3 className="font-display font-bold text-lg">
-              Ajouter à un planning
-            </h3>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 -mr-2 rounded-lg hover:bg-card-hover transition-colors"
-            aria-label="Fermer"
-          >
-            <X className="w-5 h-5 text-muted-foreground" />
-          </button>
-        </div>
-
-        {/* Bandeau recette sélectionnée */}
-        <div className="px-5 py-3 border-b border-border shrink-0 flex items-center gap-3 bg-accent/5">
-          <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 bg-accent/10 flex items-center justify-center">
-            {recette.image_url ? (
-              <div className="relative w-full h-full">
-                <Image
-                  src={recette.image_url}
-                  alt={recette.titre}
-                  fill
-                  className="object-cover"
-                  sizes="40px"
-                />
-              </div>
-            ) : (
-              <span className="text-lg">🍽️</span>
-            )}
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-accent flex items-center gap-1">
-              <Sparkles className="w-3 h-3" />
-              Recette à ajouter
-            </p>
-            <p className="text-sm font-medium truncate">{recette.titre}</p>
-          </div>
-        </div>
-
-        {/* Contenu scrollable */}
-        <div className="flex-1 overflow-y-auto overscroll-contain px-5 py-4 space-y-4">
-          {/* Nouveau planning — toujours visible en tête */}
-          <button
-            onClick={handleCreateNew}
-            className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl border-2 border-dashed border-accent/40 hover:border-accent hover:bg-accent/5 transition-all group"
-          >
-            <div className="w-10 h-10 rounded-full bg-accent/15 flex items-center justify-center text-accent shrink-0 group-hover:scale-110 transition-transform">
-              <Plus className="w-5 h-5" />
-            </div>
-            <div className="flex-1 text-left">
-              <p className="font-display font-bold text-sm">
-                Nouveau planning
-              </p>
-              <p className="text-[11px] text-muted-foreground leading-tight">
-                {hasAny
-                  ? "Démarrer une semaine vierge avec cette recette"
-                  : "Démarrez votre première semaine avec cette recette"}
-              </p>
-            </div>
-          </button>
-
-          {/* Loading */}
-          {loading && (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="w-5 h-5 animate-spin text-accent" />
-            </div>
-          )}
-
-          {/* État vide */}
-          {!loading && !hasAny && (
-            <div className="text-center py-4 text-xs text-muted-foreground">
-              Aucun planning sauvegardé pour le moment.
-            </div>
-          )}
-
-          {/* Plannings privés */}
-          {!loading && prives.length > 0 && (
-            <section className="space-y-2">
-              <h4 className="font-display font-semibold text-[11px] flex items-center gap-1.5 text-muted-foreground uppercase tracking-wider">
-                <Lock className="w-3 h-3" />
-                Privés ({prives.length})
-              </h4>
-              <div className="space-y-1.5">
-                {prives.map((p) => (
-                  <PlanningChoice
-                    key={p.id}
-                    planning={p}
-                    onSelect={() => handleSelectPlanning(p.id)}
-                  />
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* Plannings publics */}
-          {!loading && publics.length > 0 && (
-            <section className="space-y-2">
-              <h4 className="font-display font-semibold text-[11px] flex items-center gap-1.5 text-muted-foreground uppercase tracking-wider">
-                <Globe className="w-3 h-3" />
-                Publics ({publics.length})
-              </h4>
-              <div className="space-y-1.5">
-                {publics.map((p) => (
-                  <PlanningChoice
-                    key={p.id}
-                    planning={p}
-                    onSelect={() => handleSelectPlanning(p.id)}
-                  />
-                ))}
-              </div>
-            </section>
-          )}
-        </div>
-
-        {/* Footer info */}
-        <div className="px-5 py-2.5 border-t border-border shrink-0">
-          <p className="text-[10px] text-muted-foreground text-center leading-snug">
-            Vous choisirez le jour et le repas dans le planificateur.
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ─── Ligne de choix ─────────────────────────────────────── */
-
-function PlanningChoice({
-  planning,
-  onSelect,
-}: {
-  planning: UserPlanning;
-  onSelect: () => void;
-}) {
-  return (
-    <button
-      onClick={onSelect}
-      className={cn(
-        "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border border-border",
-        "hover:border-accent/40 hover:bg-accent/5 transition-all text-left group",
-      )}
-    >
-      <div className="w-9 h-9 rounded-lg bg-accent/10 flex items-center justify-center shrink-0 group-hover:bg-accent/20 transition-colors">
-        <Calendar className="w-4 h-4 text-accent" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="font-display font-semibold text-sm truncate group-hover:text-accent transition-colors">
-          {planning.name}
-        </p>
-        <div className="flex items-center gap-2 text-[10px] text-muted-foreground mt-0.5">
-          <span>
-            {new Date(planning.created_at).toLocaleDateString("fr-FR", {
-              day: "numeric",
-              month: "short",
-            })}
-          </span>
-          {planning.is_public && (
-            <span className="flex items-center gap-0.5">
-              <ThumbsUp className="w-2.5 h-2.5" />
-              {planning.likes_count}
-            </span>
-          )}
-          {planning.description && (
-            <span className="truncate">· {planning.description}</span>
-          )}
-        </div>
-      </div>
-    </button>
-  );
-}
-</file>
-
-<file path="components/recettes/IngredientsAjustables.tsx">
-"use client";
-
-import { useState } from "react";
-import { Minus, Plus, Users } from "lucide-react";
-import type { Ingredient } from "@/types";
-import { cn } from "@/lib/utils";
-
-interface IngredientsAjustablesProps {
-  ingredients: Ingredient[];
-  portionsBase: number;
-}
-
-export default function IngredientsAjustables({
-  ingredients,
-  portionsBase,
-}: IngredientsAjustablesProps) {
-  const [portions, setPortions] = useState(portionsBase);
-  const ratio = portions / portionsBase;
-
-  const adjustQuantite = (quantite: number): string => {
-    const adjusted = quantite * ratio;
-    if (adjusted === Math.floor(adjusted)) return adjusted.toString();
-    return adjusted.toFixed(1).replace(/\.0$/, "");
-  };
-
-  return (
-    <div className="space-y-4">
-      {/* Portion control */}
-      <div className="flex items-center justify-between">
-        <h3 className="font-display font-bold text-lg">Ingrédients</h3>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setPortions(Math.max(1, portions - 1))}
-            disabled={portions <= 1}
-            className="p-1.5 rounded-lg bg-card border border-border hover:bg-card-hover disabled:opacity-40 transition-colors"
-            aria-label="Réduire les portions"
-          >
-            <Minus className="w-4 h-4" />
-          </button>
-          <span className="flex items-center gap-1.5 min-w-[5rem] justify-center font-display font-semibold">
-            <Users className="w-4 h-4 text-accent" />
-            {portions} {portions > 1 ? "portions" : "portion"}
-          </span>
-          <button
-            onClick={() => setPortions(Math.min(20, portions + 1))}
-            disabled={portions >= 20}
-            className="p-1.5 rounded-lg bg-card border border-border hover:bg-card-hover disabled:opacity-40 transition-colors"
-            aria-label="Augmenter les portions"
-          >
-            <Plus className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-
-      {/* Ingredients list */}
-      <ul className="space-y-2">
-        {ingredients.map((ing, i) => (
-          <li
-            key={`${ing.nom}-${i}`}
-            className={cn(
-              "flex items-center justify-between py-2 px-3 rounded-lg",
-              i % 2 === 0 ? "bg-card/50" : "bg-transparent"
-            )}
-          >
-            <span className="text-sm">{ing.nom}</span>
-            <span className="text-sm font-medium text-accent tabular-nums">
-              {adjustQuantite(ing.quantite)} {ing.unite}
-            </span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-</file>
-
 <file path="components/recettes/RecetteCard.tsx">
 import Link from "next/link";
 import Image from "next/image";
@@ -5859,83 +5404,6 @@ export function formatTimeMMSS(totalSeconds: number): string {
   const m = Math.floor(totalSeconds / 60);
   const s = totalSeconds % 60;
   return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
-}
-</file>
-
-<file path="lib/pending-recipe.ts">
-/* =============================================================
-   Kitchen Mix — Pending Recipe
-   -------------------------------------------------------------
-   Pont mémoire pour "Ajouter au planning" depuis une page recette.
-   Stocke temporairement (sessionStorage, TTL 30 min) la recette
-   que l'utilisateur souhaite placer dans son planning, le temps
-   qu'il sélectionne le jour / créneau cible dans le planificateur.
-
-   Pourquoi sessionStorage :
-   - Se purge automatiquement à la fermeture de l'onglet
-   - Pas d'effet fantôme entre sessions différentes
-   - Sécurité : données sensibles de navigation non persistées
-
-   Note : les helpers de rappel de sauvegarde (getSaveReminderCount,
-   canShowSaveBellNotif, incrementSaveReminderCount) ont été retirés
-   suite à la refonte auto-save du planificateur. L'enregistrement
-   d'un planning est désormais proposé directement au premier ajout
-   de recette, plus besoin de rappels.
-   ============================================================= */
-
-const PENDING_RECIPE_KEY = "kmx-pending-recipe";
-const TTL_MS = 30 * 60 * 1000; // 30 minutes
-
-export interface PendingRecipe {
-  id: string;
-  slug: string;
-  titre: string;
-  image_url: string | null;
-  timestamp: number;
-}
-
-/** Enregistre une recette en attente de placement. */
-export function setPendingRecipe(
-  recipe: Omit<PendingRecipe, "timestamp">,
-): void {
-  if (typeof window === "undefined") return;
-  try {
-    const payload: PendingRecipe = { ...recipe, timestamp: Date.now() };
-    sessionStorage.setItem(PENDING_RECIPE_KEY, JSON.stringify(payload));
-  } catch {
-    // sessionStorage indispo, quota plein, ou mode privé : on ignore
-  }
-}
-
-/** Lit la recette en attente, ou null si expirée / absente. */
-export function getPendingRecipe(): PendingRecipe | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = sessionStorage.getItem(PENDING_RECIPE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as PendingRecipe;
-    if (!parsed.id || !parsed.timestamp) {
-      clearPendingRecipe();
-      return null;
-    }
-    if (Date.now() - parsed.timestamp > TTL_MS) {
-      clearPendingRecipe();
-      return null;
-    }
-    return parsed;
-  } catch {
-    return null;
-  }
-}
-
-/** Efface la recette en attente (après placement ou annulation). */
-export function clearPendingRecipe(): void {
-  if (typeof window === "undefined") return;
-  try {
-    sessionStorage.removeItem(PENDING_RECIPE_KEY);
-  } catch {
-    // ignore
-  }
 }
 </file>
 
@@ -25729,6 +25197,453 @@ export default function SavePlanningModal({
 }
 </file>
 
+<file path="components/recettes/AddToPlanningButton.tsx">
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { CalendarPlus } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import AddToPlanningModal from "./AddToPlanningModal";
+import type { Recette } from "@/types";
+
+interface Props {
+  recette: Pick<Recette, "id" | "slug" | "titre" | "image_url">;
+  portions?: number;
+}
+
+export default function AddToPlanningButton({ recette, portions = 1 }: Props) {
+  const { user } = useAuth();
+  const [open, setOpen] = useState(false);
+
+  if (!user) {
+    return (
+      <Link
+        href={`/connexion?next=/recettes/${recette.slug}`}
+        className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-card border border-border hover:bg-card-hover transition-colors no-print"
+        title="Connectez-vous pour ajouter cette recette à un planning"
+        aria-label="Ajouter au planning (connexion requise)"
+      >
+        <CalendarPlus className="w-4 h-4" />
+        <span className="hidden sm:inline">Ajouter au planning</span>
+        <span className="sm:hidden">Planning</span>
+      </Link>
+    );
+  }
+
+  return (
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-accent/10 text-accent hover:bg-accent/20 border border-accent/25 transition-colors no-print"
+        aria-label="Ajouter cette recette à un planning"
+      >
+        <CalendarPlus className="w-4 h-4" />
+        <span className="hidden sm:inline">Ajouter au planning</span>
+        <span className="sm:hidden">Planning</span>
+      </button>
+
+      {open && (
+        <AddToPlanningModal
+          recette={recette}
+          portions={portions}
+          onClose={() => setOpen(false)}
+        />
+      )}
+    </>
+  );
+}
+</file>
+
+<file path="components/recettes/AddToPlanningModal.tsx">
+"use client";
+
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import {
+  X,
+  Calendar,
+  Plus,
+  Globe,
+  Lock,
+  Loader2,
+  ThumbsUp,
+  Sparkles,
+} from "lucide-react";
+import Image from "next/image";
+import { createClient } from "@/lib/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
+import { setPendingRecipe } from "@/lib/pending-recipe";
+import { cn } from "@/lib/utils";
+import type { Recette } from "@/types";
+
+interface UserPlanning {
+  id: string;
+  name: string;
+  description: string | null;
+  is_public: boolean;
+  week_start: string;
+  likes_count: number;
+  created_at: string;
+}
+
+interface Props {
+  recette: Pick<Recette, "id" | "slug" | "titre" | "image_url">;
+  portions?: number;
+  onClose: () => void;
+}
+
+export default function AddToPlanningModal({
+  recette,
+  portions = 1,
+  onClose,
+}: Props) {
+  const { user } = useAuth();
+  const router = useRouter();
+  const [supabase] = useState(() => createClient());
+  const [plannings, setPlannings] = useState<UserPlanning[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Scroll lock du body tant que le modal est ouvert (iOS-safe).
+  useBodyScrollLock(true);
+
+  // Fermeture au clavier (Échap)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  // Charge les plannings de l'utilisateur
+  useEffect(() => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
+    const load = async () => {
+      const { data } = await supabase
+        .from("user_plannings")
+        .select(
+          "id, name, description, is_public, week_start, likes_count, created_at",
+        )
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+      if (cancelled) return;
+      setPlannings((data || []) as UserPlanning[]);
+      setLoading(false);
+    };
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [user, supabase]);
+
+  const handleSelectPlanning = (planningId: string) => {
+    setPendingRecipe({
+      id: recette.id,
+      slug: recette.slug,
+      titre: recette.titre,
+      image_url: recette.image_url,
+      portions,
+    });
+    onClose();
+    router.push(`/planificateur?load=${planningId}&pending=1`);
+  };
+
+  const handleCreateNew = () => {
+    setPendingRecipe({
+      id: recette.id,
+      slug: recette.slug,
+      titre: recette.titre,
+      image_url: recette.image_url,
+      portions,
+    });
+    onClose();
+    router.push(`/planificateur?new=1&pending=1`);
+  };
+
+  const prives = plannings.filter((p) => !p.is_public);
+  const publics = plannings.filter((p) => p.is_public);
+  const hasAny = plannings.length > 0;
+
+  return (
+    <div className="fixed inset-0 z-[100] h-[100dvh] overscroll-none flex items-end sm:items-center justify-center">
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
+
+      {/* Bottom sheet mobile / modal centré desktop */}
+      <div
+        className="relative z-10 w-full h-[85dvh] sm:h-auto sm:max-h-[85dvh] sm:max-w-md sm:mx-4 rounded-t-2xl sm:rounded-2xl flex flex-col animate-slide-up pb-safe"
+        style={{ backgroundColor: "var(--color-bg)" }}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Ajouter à un planning"
+      >
+        {/* Poignée mobile */}
+        <div className="absolute top-2 left-1/2 -translate-x-1/2 w-10 h-1 rounded-full bg-border sm:hidden" />
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-border shrink-0">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-5 h-5 text-accent" />
+            <h3 className="font-display font-bold text-lg">
+              Ajouter à un planning
+            </h3>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 -mr-2 rounded-lg hover:bg-card-hover transition-colors"
+            aria-label="Fermer"
+          >
+            <X className="w-5 h-5 text-muted-foreground" />
+          </button>
+        </div>
+
+        {/* Bandeau recette sélectionnée */}
+        <div className="px-5 py-3 border-b border-border shrink-0 flex items-center gap-3 bg-accent/5">
+          <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 bg-accent/10 flex items-center justify-center">
+            {recette.image_url ? (
+              <div className="relative w-full h-full">
+                <Image
+                  src={recette.image_url}
+                  alt={recette.titre}
+                  fill
+                  className="object-cover"
+                  sizes="40px"
+                />
+              </div>
+            ) : (
+              <span className="text-lg">🍽️</span>
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-accent flex items-center gap-1">
+              <Sparkles className="w-3 h-3" />
+              Recette à ajouter
+            </p>
+            <p className="text-sm font-medium truncate">{recette.titre}</p>
+          </div>
+        </div>
+
+        {/* Contenu scrollable */}
+        <div className="flex-1 overflow-y-auto overscroll-contain px-5 py-4 space-y-4">
+          {/* Nouveau planning — toujours visible en tête */}
+          <button
+            onClick={handleCreateNew}
+            className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl border-2 border-dashed border-accent/40 hover:border-accent hover:bg-accent/5 transition-all group"
+          >
+            <div className="w-10 h-10 rounded-full bg-accent/15 flex items-center justify-center text-accent shrink-0 group-hover:scale-110 transition-transform">
+              <Plus className="w-5 h-5" />
+            </div>
+            <div className="flex-1 text-left">
+              <p className="font-display font-bold text-sm">Nouveau planning</p>
+              <p className="text-[11px] text-muted-foreground leading-tight">
+                {hasAny
+                  ? "Démarrer une semaine vierge avec cette recette"
+                  : "Démarrez votre première semaine avec cette recette"}
+              </p>
+            </div>
+          </button>
+
+          {/* Loading */}
+          {loading && (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-5 h-5 animate-spin text-accent" />
+            </div>
+          )}
+
+          {/* État vide */}
+          {!loading && !hasAny && (
+            <div className="text-center py-4 text-xs text-muted-foreground">
+              Aucun planning sauvegardé pour le moment.
+            </div>
+          )}
+
+          {/* Plannings privés */}
+          {!loading && prives.length > 0 && (
+            <section className="space-y-2">
+              <h4 className="font-display font-semibold text-[11px] flex items-center gap-1.5 text-muted-foreground uppercase tracking-wider">
+                <Lock className="w-3 h-3" />
+                Privés ({prives.length})
+              </h4>
+              <div className="space-y-1.5">
+                {prives.map((p) => (
+                  <PlanningChoice
+                    key={p.id}
+                    planning={p}
+                    onSelect={() => handleSelectPlanning(p.id)}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Plannings publics */}
+          {!loading && publics.length > 0 && (
+            <section className="space-y-2">
+              <h4 className="font-display font-semibold text-[11px] flex items-center gap-1.5 text-muted-foreground uppercase tracking-wider">
+                <Globe className="w-3 h-3" />
+                Publics ({publics.length})
+              </h4>
+              <div className="space-y-1.5">
+                {publics.map((p) => (
+                  <PlanningChoice
+                    key={p.id}
+                    planning={p}
+                    onSelect={() => handleSelectPlanning(p.id)}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+        </div>
+
+        {/* Footer info */}
+        <div className="px-5 py-2.5 border-t border-border shrink-0">
+          <p className="text-[10px] text-muted-foreground text-center leading-snug">
+            Vous choisirez le jour et le repas dans le planificateur.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Ligne de choix ─────────────────────────────────────── */
+
+function PlanningChoice({
+  planning,
+  onSelect,
+}: {
+  planning: UserPlanning;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      onClick={onSelect}
+      className={cn(
+        "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border border-border",
+        "hover:border-accent/40 hover:bg-accent/5 transition-all text-left group",
+      )}
+    >
+      <div className="w-9 h-9 rounded-lg bg-accent/10 flex items-center justify-center shrink-0 group-hover:bg-accent/20 transition-colors">
+        <Calendar className="w-4 h-4 text-accent" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="font-display font-semibold text-sm truncate group-hover:text-accent transition-colors">
+          {planning.name}
+        </p>
+        <div className="flex items-center gap-2 text-[10px] text-muted-foreground mt-0.5">
+          <span>
+            {new Date(planning.created_at).toLocaleDateString("fr-FR", {
+              day: "numeric",
+              month: "short",
+            })}
+          </span>
+          {planning.is_public && (
+            <span className="flex items-center gap-0.5">
+              <ThumbsUp className="w-2.5 h-2.5" />
+              {planning.likes_count}
+            </span>
+          )}
+          {planning.description && (
+            <span className="truncate">· {planning.description}</span>
+          )}
+        </div>
+      </div>
+    </button>
+  );
+}
+</file>
+
+<file path="components/recettes/IngredientsAjustables.tsx">
+"use client";
+
+import { useState } from "react";
+import { Minus, Plus, Users } from "lucide-react";
+import type { Ingredient } from "@/types";
+import { cn } from "@/lib/utils";
+
+interface IngredientsAjustablesProps {
+  ingredients: Ingredient[];
+  portionsBase: number;
+  onPortionsChange?: (portions: number) => void;
+}
+
+export default function IngredientsAjustables({
+  ingredients,
+  portionsBase,
+  onPortionsChange,
+}: IngredientsAjustablesProps) {
+  const [portions, setPortions] = useState(portionsBase);
+
+  const updatePortions = (val: number) => {
+    setPortions(val);
+    onPortionsChange?.(val);
+  };
+  const ratio = portions / portionsBase;
+
+  const adjustQuantite = (quantite: number): string => {
+    const adjusted = quantite * ratio;
+    if (adjusted === Math.floor(adjusted)) return adjusted.toString();
+    return adjusted.toFixed(1).replace(/\.0$/, "");
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Portion control */}
+      <div className="flex items-center justify-between">
+        <h3 className="font-display font-bold text-lg">Ingrédients</h3>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => updatePortions(Math.max(1, portions - 1))}
+            disabled={portions <= 1}
+            className="p-1.5 rounded-lg bg-card border border-border hover:bg-card-hover disabled:opacity-40 transition-colors"
+            aria-label="Réduire les portions"
+          >
+            <Minus className="w-4 h-4" />
+          </button>
+          <span className="flex items-center gap-1.5 min-w-[5rem] justify-center font-display font-semibold">
+            <Users className="w-4 h-4 text-accent" />
+            {portions} {portions > 1 ? "portions" : "portion"}
+          </span>
+          <button
+            onClick={() => updatePortions(Math.min(20, portions + 1))}
+            disabled={portions >= 20}
+            className="p-1.5 rounded-lg bg-card border border-border hover:bg-card-hover disabled:opacity-40 transition-colors"
+            aria-label="Augmenter les portions"
+          >
+            <Plus className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* Ingredients list */}
+      <ul className="space-y-2">
+        {ingredients.map((ing, i) => (
+          <li
+            key={`${ing.nom}-${i}`}
+            className={cn(
+              "flex items-center justify-between py-2 px-3 rounded-lg",
+              i % 2 === 0 ? "bg-card/50" : "bg-transparent",
+            )}
+          >
+            <span className="text-sm">{ing.nom}</span>
+            <span className="text-sm font-medium text-accent tabular-nums">
+              {adjustQuantite(ing.quantite)} {ing.unite}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+</file>
+
 <file path="components/recettes/RecetteFiltres.tsx">
 "use client";
 
@@ -27086,6 +27001,84 @@ export function formatRelativeTime(iso: string): string {
   if (diffMo < 12) return `il y a ${diffMo} mois`;
   const diffAn = Math.floor(diffJ / 365);
   return `il y a ${diffAn} an${diffAn > 1 ? "s" : ""}`;
+}
+</file>
+
+<file path="lib/pending-recipe.ts">
+/* =============================================================
+   Kitchen Mix — Pending Recipe
+   -------------------------------------------------------------
+   Pont mémoire pour "Ajouter au planning" depuis une page recette.
+   Stocke temporairement (sessionStorage, TTL 30 min) la recette
+   que l'utilisateur souhaite placer dans son planning, le temps
+   qu'il sélectionne le jour / créneau cible dans le planificateur.
+
+   Pourquoi sessionStorage :
+   - Se purge automatiquement à la fermeture de l'onglet
+   - Pas d'effet fantôme entre sessions différentes
+   - Sécurité : données sensibles de navigation non persistées
+
+   Note : les helpers de rappel de sauvegarde (getSaveReminderCount,
+   canShowSaveBellNotif, incrementSaveReminderCount) ont été retirés
+   suite à la refonte auto-save du planificateur. L'enregistrement
+   d'un planning est désormais proposé directement au premier ajout
+   de recette, plus besoin de rappels.
+   ============================================================= */
+
+const PENDING_RECIPE_KEY = "kmx-pending-recipe";
+const TTL_MS = 30 * 60 * 1000; // 30 minutes
+
+export interface PendingRecipe {
+  id: string;
+  slug: string;
+  titre: string;
+  image_url: string | null;
+  portions: number;
+  timestamp: number;
+}
+
+/** Enregistre une recette en attente de placement. */
+export function setPendingRecipe(
+  recipe: Omit<PendingRecipe, "timestamp">,
+): void {
+  if (typeof window === "undefined") return;
+  try {
+    const payload: PendingRecipe = { ...recipe, timestamp: Date.now() };
+    sessionStorage.setItem(PENDING_RECIPE_KEY, JSON.stringify(payload));
+  } catch {
+    // sessionStorage indispo, quota plein, ou mode privé : on ignore
+  }
+}
+
+/** Lit la recette en attente, ou null si expirée / absente. */
+export function getPendingRecipe(): PendingRecipe | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = sessionStorage.getItem(PENDING_RECIPE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as PendingRecipe;
+    if (!parsed.id || !parsed.timestamp) {
+      clearPendingRecipe();
+      return null;
+    }
+    if (Date.now() - parsed.timestamp > TTL_MS) {
+      clearPendingRecipe();
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+/** Efface la recette en attente (après placement ou annulation). */
+export function clearPendingRecipe(): void {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.removeItem(PENDING_RECIPE_KEY);
+  } catch {
+    // ignore
+  }
 }
 </file>
 
@@ -34602,110 +34595,6 @@ export async function soumettreRecette(rawData: unknown) {
 }
 </file>
 
-<file path="app/actions/shoppingList.ts">
-"use server";
-
-import { createServerSupabase } from "@/lib/supabase/server";
-import type { Ingredient, ListeCoursesItem } from "@/types";
-
-export async function getShoppingListForDays(
-  weekStart: string,
-  dayIndices: number[],
-) {
-  const supabase = await createServerSupabase();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    throw new Error("Non autorisé");
-  }
-
-  if (dayIndices.length === 0) {
-    return [];
-  }
-
-  // Récupérer toutes les lignes meal_plans pour les jours demandés
-  const { data: rows, error } = await supabase
-    .from("meal_plans")
-    .select("recette_id")
-    .eq("user_id", user.id)
-    .eq("week_start", weekStart)
-    .in("day_index", dayIndices);
-
-  if (error) throw new Error(error.message);
-  if (!rows || rows.length === 0) return [];
-
-  // Compter les occurrences de chaque recette : une même recette placée
-  // plusieurs fois dans la semaine doit multiplier ses ingrédients.
-  const idCounts = new Map<string, number>();
-  for (const row of rows) {
-    if (!row.recette_id) continue;
-    idCounts.set(row.recette_id, (idCounts.get(row.recette_id) ?? 0) + 1);
-  }
-
-  const recetteIds = Array.from(idCounts.keys());
-  if (recetteIds.length === 0) return [];
-
-  // Récupérer les ingrédients (une seule fois par recette, on multipliera après)
-  const { data: recettes, error: recError } = await supabase
-    .from("recettes")
-    .select("id, ingredients")
-    .in("id", recetteIds);
-
-  if (recError) throw new Error(recError.message);
-  if (!recettes) return [];
-
-  // Index par ID pour accès direct
-  const ingredientsById = new Map<string, Ingredient[]>();
-  for (const r of recettes) {
-    ingredientsById.set(r.id, (r.ingredients as Ingredient[]) ?? []);
-  }
-
-  // Agrégation : clé normalisée (nom + unité trim + lowercase),
-  // quantité castée en Number() (au cas où stockée en string dans le JSON),
-  // multipliée par le nombre d'occurrences de la recette.
-  const aggregated = new Map<string, ListeCoursesItem>();
-
-  for (const [recetteId, count] of idCounts) {
-    const ingredients = ingredientsById.get(recetteId);
-    if (!ingredients) continue;
-
-    for (const ing of ingredients) {
-      if (!ing?.nom) continue;
-
-      const qty = Number(ing.quantite);
-      if (!Number.isFinite(qty)) continue;
-
-      const nomKey = ing.nom.trim().toLowerCase();
-      const uniteKey = (ing.unite ?? "").trim().toLowerCase();
-      const key = `${nomKey}|${uniteKey}`;
-
-      const addQty = qty * count;
-      const existing = aggregated.get(key);
-      if (existing) {
-        existing.quantite += addQty;
-      } else {
-        aggregated.set(key, {
-          nom: ing.nom,
-          quantite: addQty,
-          unite: ing.unite ?? "",
-          categorie: ing.categorie || "Autre",
-        });
-      }
-    }
-  }
-
-  const items = Array.from(aggregated.values());
-  items.sort(
-    (a, b) =>
-      a.categorie.localeCompare(b.categorie) || a.nom.localeCompare(b.nom),
-  );
-
-  return items;
-}
-</file>
-
 <file path="app/actions/users.ts">
 "use server";
 
@@ -40011,156 +39900,6 @@ function ToggleOption({
 }
 </file>
 
-<file path="app/recettes/[slug]/RecetteDetailClient.tsx">
-"use client";
-
-import { useState, useCallback } from "react";
-import { Heart, Printer, Share2, PlayCircle } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
-import { useFavoris } from "@/hooks/useFavoris";
-import { useRatings } from "@/hooks/useRatings";
-import StarRating from "@/components/ui/StarRating";
-import SimulateurThermomix from "@/components/recettes/SimulateurThermomix";
-import AddToPlanningButton from "@/components/recettes/AddToPlanningButton";
-import type { Recette } from "@/types";
-import { cn } from "@/lib/utils";
-
-interface RecetteDetailClientProps {
-  recette: Recette;
-}
-
-export default function RecetteDetailClient({
-  recette,
-}: RecetteDetailClientProps) {
-  const { user } = useAuth();
-  const { isFavori, toggleFavori } = useFavoris(user?.id ?? null);
-  const { userRating, rate } = useRatings(recette.id, user?.id ?? null);
-  const [simulateurOpen, setSimulateurOpen] = useState(false);
-
-  const handleShare = async () => {
-    const url = window.location.href;
-    if (navigator.share) {
-      await navigator.share({
-        title: recette.titre,
-        text: recette.description,
-        url,
-      });
-    } else {
-      await navigator.clipboard.writeText(url);
-    }
-  };
-
-  const handlePrint = () => window.print();
-  const favori = isFavori(recette.id);
-
-  // IMPORTANT : onClose DOIT être stable (useCallback sans deps)
-  // Sinon l'effet `useEffect([isOpen, onClose])` dans SimulateurThermomix
-  // se rejoue à chaque render du parent → cleanup fait history.back() →
-  // Next.js App Router POST la page → re-render → boucle infinie de POSTs.
-  const handleSimulateurClose = useCallback(() => {
-    setSimulateurOpen(false);
-  }, []);
-
-  return (
-    <>
-      <div className="flex flex-wrap items-center gap-4">
-        {/* Star Rating */}
-        <StarRating
-          rating={recette.note_moyenne}
-          count={recette.nombre_notes}
-          interactive={!!user}
-          userRating={userRating}
-          onRate={rate}
-          size="lg"
-        />
-
-        <div className="flex items-center gap-2 ml-auto flex-wrap">
-          {/* Ajouter au planning — gère lui-même le cas non connecté */}
-          <AddToPlanningButton
-            recette={{
-              id: recette.id,
-              slug: recette.slug,
-              titre: recette.titre,
-              image_url: recette.image_url,
-            }}
-          />
-
-          {/* Favori */}
-          {user && (
-            <button
-              onClick={() => toggleFavori(recette.id)}
-              className={cn(
-                "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all",
-                favori
-                  ? "bg-accent/15 text-accent"
-                  : "bg-card border border-border hover:bg-card-hover",
-              )}
-            >
-              <Heart
-                className="w-4 h-4"
-                fill={favori ? "currentColor" : "none"}
-              />
-              {favori ? "Favori" : "Ajouter"}
-            </button>
-          )}
-
-          {/* Print */}
-          <button
-            onClick={handlePrint}
-            className="p-2 rounded-lg bg-card border border-border hover:bg-card-hover transition-colors no-print"
-            aria-label="Imprimer"
-          >
-            <Printer className="w-4 h-4" />
-          </button>
-
-          {/* Share */}
-          <button
-            onClick={handleShare}
-            className="p-2 rounded-lg bg-card border border-border hover:bg-card-hover transition-colors no-print"
-            aria-label="Partager"
-          >
-            <Share2 className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-      // APRÈS
-      {/* Simulator CTA — auth requise */}
-      <button
-        type="button"
-        onClick={() => {
-          if (!user) {
-            window.location.href = `/connexion?next=/recettes/${recette.slug}#guidee`;
-            return;
-          }
-          setSimulateurOpen(true);
-        }}
-        className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-accent text-black font-display font-bold text-sm hover:bg-accent-hover transition-colors no-print"
-      >
-        <PlayCircle className="w-5 h-5" />
-        Lancer la recette guidée
-      </button>
-      {simulateurOpen && (
-        <SimulateurThermomix
-          isOpen={simulateurOpen}
-          onClose={handleSimulateurClose}
-          etapes={recette.etapes}
-          titre={recette.titre}
-        />
-      )}
-      {/* Simulator Modal — ouverture directe, pas de gate auth */}
-      {simulateurOpen && (
-        <SimulateurThermomix
-          isOpen={simulateurOpen}
-          onClose={handleSimulateurClose}
-          etapes={recette.etapes}
-          titre={recette.titre}
-        />
-      )}
-    </>
-  );
-}
-</file>
-
 <file path="app/recettes/page.tsx">
 import type { Metadata } from "next";
 import { Suspense } from "react";
@@ -42213,6 +41952,109 @@ export async function rechercherRecettes(
 }
 </file>
 
+<file path="app/actions/shoppingList.ts">
+"use server";
+
+import { createServerSupabase } from "@/lib/supabase/server";
+import type { Ingredient, ListeCoursesItem } from "@/types";
+
+export async function getShoppingListForDays(
+  weekStart: string,
+  dayIndices: number[],
+) {
+  const supabase = await createServerSupabase();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("Non autorisé");
+  }
+
+  if (dayIndices.length === 0) {
+    return [];
+  }
+
+  // Récupérer toutes les lignes meal_plans pour les jours demandés
+  const { data: rows, error } = await supabase
+    .from("meal_plans")
+    .select("recette_id, portions_count")
+    .eq("user_id", user.id)
+    .eq("week_start", weekStart)
+    .in("day_index", dayIndices);
+
+  if (error) throw new Error(error.message);
+  if (!rows || rows.length === 0) return [];
+
+  const idCounts = new Map<string, number>();
+  for (const row of rows) {
+    if (!row.recette_id) continue;
+    const p = (row.portions_count as number) ?? 1;
+    idCounts.set(row.recette_id, (idCounts.get(row.recette_id) ?? 0) + p);
+  }
+
+  const recetteIds = Array.from(idCounts.keys());
+  if (recetteIds.length === 0) return [];
+
+  // Récupérer les ingrédients (une seule fois par recette, on multipliera après)
+  const { data: recettes, error: recError } = await supabase
+    .from("recettes")
+    .select("id, ingredients")
+    .in("id", recetteIds);
+
+  if (recError) throw new Error(recError.message);
+  if (!recettes) return [];
+
+  // Index par ID pour accès direct
+  const ingredientsById = new Map<string, Ingredient[]>();
+  for (const r of recettes) {
+    ingredientsById.set(r.id, (r.ingredients as Ingredient[]) ?? []);
+  }
+
+  // Agrégation : clé normalisée (nom + unité trim + lowercase),
+  // quantité castée en Number() (au cas où stockée en string dans le JSON),
+  // multipliée par le nombre d'occurrences de la recette.
+  const aggregated = new Map<string, ListeCoursesItem>();
+
+  for (const [recetteId, count] of idCounts) {
+    const ingredients = ingredientsById.get(recetteId);
+    if (!ingredients) continue;
+
+    for (const ing of ingredients) {
+      if (!ing?.nom) continue;
+
+      const qty = Number(ing.quantite);
+      if (!Number.isFinite(qty)) continue;
+
+      const nomKey = ing.nom.trim().toLowerCase();
+      const uniteKey = (ing.unite ?? "").trim().toLowerCase();
+      const key = `${nomKey}|${uniteKey}`;
+
+      const addQty = qty * count;
+      const existing = aggregated.get(key);
+      if (existing) {
+        existing.quantite += addQty;
+      } else {
+        aggregated.set(key, {
+          nom: ing.nom,
+          quantite: addQty,
+          unite: ing.unite ?? "",
+          categorie: ing.categorie || "Autre",
+        });
+      }
+    }
+  }
+
+  const items = Array.from(aggregated.values());
+  items.sort(
+    (a, b) =>
+      a.categorie.localeCompare(b.categorie) || a.nom.localeCompare(b.nom),
+  );
+
+  return items;
+}
+</file>
+
 <file path="app/connexion/page.tsx">
 "use client";
 
@@ -43112,6 +42954,158 @@ export default function ProfilPage() {
         Déconnexion
       </button>
     </div>
+  );
+}
+</file>
+
+<file path="app/recettes/[slug]/RecetteDetailClient.tsx">
+"use client";
+
+import { useState, useCallback } from "react";
+import { Heart, Printer, Share2, PlayCircle } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { useFavoris } from "@/hooks/useFavoris";
+import { useRatings } from "@/hooks/useRatings";
+import StarRating from "@/components/ui/StarRating";
+import SimulateurThermomix from "@/components/recettes/SimulateurThermomix";
+import AddToPlanningButton from "@/components/recettes/AddToPlanningButton";
+import type { Recette } from "@/types";
+import { cn } from "@/lib/utils";
+
+interface RecetteDetailClientProps {
+  recette: Recette;
+}
+
+export default function RecetteDetailClient({
+  recette,
+}: RecetteDetailClientProps) {
+  const { user } = useAuth();
+  const { isFavori, toggleFavori } = useFavoris(user?.id ?? null);
+  const { userRating, rate } = useRatings(recette.id, user?.id ?? null);
+  const [simulateurOpen, setSimulateurOpen] = useState(false);
+  const [portions, setPortions] = useState(recette.nombre_portions);
+
+  const handleShare = async () => {
+    const url = window.location.href;
+    if (navigator.share) {
+      await navigator.share({
+        title: recette.titre,
+        text: recette.description,
+        url,
+      });
+    } else {
+      await navigator.clipboard.writeText(url);
+    }
+  };
+
+  const handlePrint = () => window.print();
+  const favori = isFavori(recette.id);
+
+  // IMPORTANT : onClose DOIT être stable (useCallback sans deps)
+  // Sinon l'effet `useEffect([isOpen, onClose])` dans SimulateurThermomix
+  // se rejoue à chaque render du parent → cleanup fait history.back() →
+  // Next.js App Router POST la page → re-render → boucle infinie de POSTs.
+  const handleSimulateurClose = useCallback(() => {
+    setSimulateurOpen(false);
+  }, []);
+
+  return (
+    <>
+      <div className="flex flex-wrap items-center gap-4">
+        {/* Star Rating */}
+        <StarRating
+          rating={recette.note_moyenne}
+          count={recette.nombre_notes}
+          interactive={!!user}
+          userRating={userRating}
+          onRate={rate}
+          size="lg"
+        />
+
+        <div className="flex items-center gap-2 ml-auto flex-wrap">
+          {/* Ajouter au planning — gère lui-même le cas non connecté */}
+          <AddToPlanningButton
+            recette={{
+              id: recette.id,
+              slug: recette.slug,
+              titre: recette.titre,
+              image_url: recette.image_url,
+            }}
+            portions={portions}
+          />
+
+          {/* Favori */}
+          {user && (
+            <button
+              onClick={() => toggleFavori(recette.id)}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all",
+                favori
+                  ? "bg-accent/15 text-accent"
+                  : "bg-card border border-border hover:bg-card-hover",
+              )}
+            >
+              <Heart
+                className="w-4 h-4"
+                fill={favori ? "currentColor" : "none"}
+              />
+              {favori ? "Favori" : "Ajouter"}
+            </button>
+          )}
+
+          {/* Print */}
+          <button
+            onClick={handlePrint}
+            className="p-2 rounded-lg bg-card border border-border hover:bg-card-hover transition-colors no-print"
+            aria-label="Imprimer"
+          >
+            <Printer className="w-4 h-4" />
+          </button>
+
+          {/* Share */}
+          <button
+            onClick={handleShare}
+            className="p-2 rounded-lg bg-card border border-border hover:bg-card-hover transition-colors no-print"
+            aria-label="Partager"
+          >
+            <Share2 className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+      // APRÈS
+      {/* Simulator CTA — auth requise */}
+      <button
+        type="button"
+        onClick={() => {
+          if (!user) {
+            window.location.href = `/connexion?next=/recettes/${recette.slug}#guidee`;
+            return;
+          }
+          setSimulateurOpen(true);
+        }}
+        className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-accent text-black font-display font-bold text-sm hover:bg-accent-hover transition-colors no-print"
+      >
+        <PlayCircle className="w-5 h-5" />
+        Lancer la recette guidée
+      </button>
+      {simulateurOpen && (
+        <SimulateurThermomix
+          isOpen={simulateurOpen}
+          onClose={handleSimulateurClose}
+          etapes={recette.etapes}
+          titre={recette.titre}
+        />
+      )}
+      {/* Simulator Modal — ouverture directe, pas de gate auth */}
+      {simulateurOpen && (
+        <SimulateurThermomix
+          isOpen={simulateurOpen}
+          onClose={handleSimulateurClose}
+          etapes={recette.etapes}
+          titre={recette.titre}
+        />
+      )}
+    </>
   );
 }
 </file>
@@ -46897,6 +46891,7 @@ export interface RecetteMin {
   titre: string;
   ingredients: Ingredient[];
   image_url?: string | null;
+  portions?: number;
 }
 
 type DaySlots = (RecetteMin | null)[];
@@ -47103,6 +47098,7 @@ export default function PlanificateurPage() {
         day_index: number;
         slot: number;
         recette_id: string;
+        portions_count: number;
       }[] = [];
 
       for (let d = 0; d < 7; d++) {
@@ -47115,13 +47111,14 @@ export default function PlanificateurPage() {
               recette_id: r.id,
               recettes: r,
             });
-            dbRows.push({
-              user_id: user.id,
-              week_start: semaine,
-              day_index: d,
-              slot: s,
-              recette_id: r.id,
-            });
+            const dbRows: {
+              user_id: string;
+              week_start: string;
+              day_index: number;
+              slot: number;
+              recette_id: string;
+              portions_count: number;
+            }[] = [];
           }
         }
       }
@@ -47241,13 +47238,14 @@ export default function PlanificateurPage() {
           for (let s = 0; s < MAX_SLOTS; s++) {
             const r = loaded[d]?.[s];
             if (r) {
-              dbRows.push({
-                user_id: user.id,
-                week_start: semaine,
-                day_index: d,
-                slot: s,
-                recette_id: r.id,
-              });
+              const dbRows: {
+                user_id: string;
+                week_start: string;
+                day_index: number;
+                slot: number;
+                recette_id: string;
+                portions_count: number;
+              }[] = [];
             }
           }
         }
