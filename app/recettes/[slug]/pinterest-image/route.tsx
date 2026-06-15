@@ -1,17 +1,21 @@
 import { ImageResponse } from "next/og";
-import { getRecetteBySlug } from "@/lib/supabase/queries";
-
-export const alt = "Kitchen Mix — Recette Pinterest";
-export const size = { width: 1000, height: 1500 };
-export const contentType = "image/png";
-
-export default async function Image({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
+import { createServerSupabase } from "@/lib/supabase/server";
+export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ slug: string }> },
+) {
   const { slug } = await params;
-  const recette = await getRecetteBySlug(slug);
+
+  const supabase = await createServerSupabase();
+  const { data: recette } = await supabase
+    .from("recettes")
+    .select(
+      "titre, description, image_url, temps_preparation, temps_cuisson, difficulte, nombre_portions, modele_thermomix, note_moyenne",
+    )
+    .eq("slug", slug)
+    .eq("approuve", true)
+    .eq("publie", true)
+    .single();
 
   if (!recette) {
     return new ImageResponse(
@@ -42,7 +46,6 @@ export default async function Image({
       : recette.difficulte === "moyen"
         ? "🟡"
         : "🔴";
-
   const appareilLabel = (() => {
     const modele = recette.modele_thermomix?.[0] as string;
     const labels: Record<string, string> = {
@@ -99,7 +102,6 @@ export default async function Image({
             🍳
           </div>
         )}
-        {/* Gradient bas photo */}
         <div
           style={{
             position: "absolute",
@@ -111,7 +113,6 @@ export default async function Image({
             display: "flex",
           }}
         />
-        {/* Badge appareil */}
         <div
           style={{
             position: "absolute",
@@ -163,8 +164,6 @@ export default async function Image({
           {recette.description.slice(0, 100)}
           {recette.description.length > 100 ? "…" : ""}
         </div>
-
-        {/* Badges */}
         <div style={{ display: "flex", gap: "16px", flexWrap: "wrap" }}>
           <div
             style={{
@@ -207,8 +206,6 @@ export default async function Image({
             👥 {recette.nombre_portions} portions
           </div>
         </div>
-
-        {/* Séparateur */}
         <div
           style={{
             height: "1px",
@@ -216,8 +213,6 @@ export default async function Image({
             display: "flex",
           }}
         />
-
-        {/* Footer */}
         <div
           style={{
             display: "flex",
@@ -247,7 +242,6 @@ export default async function Image({
         </div>
       </div>
 
-      {/* Accent décoratif */}
       <div
         style={{
           position: "absolute",
