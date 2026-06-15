@@ -9,17 +9,10 @@ import type { Recette } from "@/types";
 
 interface Props {
   recette: Pick<Recette, "id" | "slug" | "titre" | "image_url">;
+  portions?: number;
 }
 
-/* =============================================================
-   AddToPlanningButton
-   -------------------------------------------------------------
-   Bouton sur la page recette → ouvre AddToPlanningModal.
-   Si non connecté, redirige vers la page de connexion avec
-   retour sur la recette.
-   ============================================================= */
-
-export default function AddToPlanningButton({ recette }: Props) {
+export default function AddToPlanningButton({ recette, portions = 1 }: Props) {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
 
@@ -53,6 +46,7 @@ export default function AddToPlanningButton({ recette }: Props) {
       {open && (
         <AddToPlanningModal
           recette={recette}
+          portions={portions}
           onClose={() => setOpen(false)}
         />
       )}

@@ -32,24 +32,15 @@ interface UserPlanning {
 
 interface Props {
   recette: Pick<Recette, "id" | "slug" | "titre" | "image_url">;
+  portions?: number;
   onClose: () => void;
 }
 
-/* =============================================================
-   AddToPlanningModal
-   -------------------------------------------------------------
-   - Liste scrollable des plannings sauvegardés de l'utilisateur
-     (séparation privés / publics comme /mes-plannings)
-   - Bouton "Nouveau planning" toujours en tête de liste
-   - Au clic : stocke la recette en sessionStorage (pont mémoire)
-     et redirige vers /planificateur avec le bon contexte :
-       • Planning existant → ?load={id}&pending=1
-       • Nouveau planning  → ?new=1&pending=1
-   - Le planificateur reconnaît ?pending=1, affiche une bannière
-     "Recette à placer" et l'assigne au slot cliqué par l'utilisateur.
-   ============================================================= */
-
-export default function AddToPlanningModal({ recette, onClose }: Props) {
+export default function AddToPlanningModal({
+  recette,
+  portions = 1,
+  onClose,
+}: Props) {
   const { user } = useAuth();
   const router = useRouter();
   const [supabase] = useState(() => createClient());
@@ -99,6 +90,7 @@ export default function AddToPlanningModal({ recette, onClose }: Props) {
       slug: recette.slug,
       titre: recette.titre,
       image_url: recette.image_url,
+      portions,
     });
     onClose();
     router.push(`/planificateur?load=${planningId}&pending=1`);
@@ -110,6 +102,7 @@ export default function AddToPlanningModal({ recette, onClose }: Props) {
       slug: recette.slug,
       titre: recette.titre,
       image_url: recette.image_url,
+      portions,
     });
     onClose();
     router.push(`/planificateur?new=1&pending=1`);
@@ -189,9 +182,7 @@ export default function AddToPlanningModal({ recette, onClose }: Props) {
               <Plus className="w-5 h-5" />
             </div>
             <div className="flex-1 text-left">
-              <p className="font-display font-bold text-sm">
-                Nouveau planning
-              </p>
+              <p className="font-display font-bold text-sm">Nouveau planning</p>
               <p className="text-[11px] text-muted-foreground leading-tight">
                 {hasAny
                   ? "Démarrer une semaine vierge avec cette recette"

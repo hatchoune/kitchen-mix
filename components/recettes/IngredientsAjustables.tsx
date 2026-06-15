@@ -8,13 +8,20 @@ import { cn } from "@/lib/utils";
 interface IngredientsAjustablesProps {
   ingredients: Ingredient[];
   portionsBase: number;
+  onPortionsChange?: (portions: number) => void;
 }
 
 export default function IngredientsAjustables({
   ingredients,
   portionsBase,
+  onPortionsChange,
 }: IngredientsAjustablesProps) {
   const [portions, setPortions] = useState(portionsBase);
+
+  const updatePortions = (val: number) => {
+    setPortions(val);
+    onPortionsChange?.(val);
+  };
   const ratio = portions / portionsBase;
 
   const adjustQuantite = (quantite: number): string => {
@@ -30,7 +37,7 @@ export default function IngredientsAjustables({
         <h3 className="font-display font-bold text-lg">Ingrédients</h3>
         <div className="flex items-center gap-3">
           <button
-            onClick={() => setPortions(Math.max(1, portions - 1))}
+            onClick={() => updatePortions(Math.max(1, portions - 1))}
             disabled={portions <= 1}
             className="p-1.5 rounded-lg bg-card border border-border hover:bg-card-hover disabled:opacity-40 transition-colors"
             aria-label="Réduire les portions"
@@ -42,7 +49,7 @@ export default function IngredientsAjustables({
             {portions} {portions > 1 ? "portions" : "portion"}
           </span>
           <button
-            onClick={() => setPortions(Math.min(20, portions + 1))}
+            onClick={() => updatePortions(Math.min(20, portions + 1))}
             disabled={portions >= 20}
             className="p-1.5 rounded-lg bg-card border border-border hover:bg-card-hover disabled:opacity-40 transition-colors"
             aria-label="Augmenter les portions"
@@ -59,7 +66,7 @@ export default function IngredientsAjustables({
             key={`${ing.nom}-${i}`}
             className={cn(
               "flex items-center justify-between py-2 px-3 rounded-lg",
-              i % 2 === 0 ? "bg-card/50" : "bg-transparent"
+              i % 2 === 0 ? "bg-card/50" : "bg-transparent",
             )}
           >
             <span className="text-sm">{ing.nom}</span>

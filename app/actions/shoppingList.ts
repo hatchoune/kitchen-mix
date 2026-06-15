@@ -23,7 +23,7 @@ export async function getShoppingListForDays(
   // Récupérer toutes les lignes meal_plans pour les jours demandés
   const { data: rows, error } = await supabase
     .from("meal_plans")
-    .select("recette_id")
+    .select("recette_id, portions_count")
     .eq("user_id", user.id)
     .eq("week_start", weekStart)
     .in("day_index", dayIndices);
@@ -36,7 +36,8 @@ export async function getShoppingListForDays(
   const idCounts = new Map<string, number>();
   for (const row of rows) {
     if (!row.recette_id) continue;
-    idCounts.set(row.recette_id, (idCounts.get(row.recette_id) ?? 0) + 1);
+    const p = row.portions_count ?? 1;
+    idCounts.set(row.recette_id, (idCounts.get(row.recette_id) ?? 0) + p);
   }
 
   const recetteIds = Array.from(idCounts.keys());

@@ -22,6 +22,7 @@ export default function RecetteDetailClient({
   const { isFavori, toggleFavori } = useFavoris(user?.id ?? null);
   const { userRating, rate } = useRatings(recette.id, user?.id ?? null);
   const [simulateurOpen, setSimulateurOpen] = useState(false);
+  const [portions, setPortions] = useState(recette.nombre_portions);
 
   const handleShare = async () => {
     const url = window.location.href;
@@ -69,6 +70,7 @@ export default function RecetteDetailClient({
               titre: recette.titre,
               image_url: recette.image_url,
             }}
+            portions={portions}
           />
 
           {/* Favori */}

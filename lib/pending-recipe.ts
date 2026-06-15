@@ -26,6 +26,7 @@ export interface PendingRecipe {
   slug: string;
   titre: string;
   image_url: string | null;
+  portions: number;
   timestamp: number;
 }
 

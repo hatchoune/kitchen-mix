@@ -45,6 +45,7 @@ export interface RecetteMin {
   titre: string;
   ingredients: Ingredient[];
   image_url?: string | null;
+  portions?: number;
 }
 
 type DaySlots = (RecetteMin | null)[];
@@ -251,6 +252,7 @@ export default function PlanificateurPage() {
         day_index: number;
         slot: number;
         recette_id: string;
+        portions_count: number;
       }[] = [];
 
       for (let d = 0; d < 7; d++) {
@@ -263,13 +265,14 @@ export default function PlanificateurPage() {
               recette_id: r.id,
               recettes: r,
             });
-            dbRows.push({
-              user_id: user.id,
-              week_start: semaine,
-              day_index: d,
-              slot: s,
-              recette_id: r.id,
-            });
+            const dbRows: {
+              user_id: string;
+              week_start: string;
+              day_index: number;
+              slot: number;
+              recette_id: string;
+              portions_count: number;
+            }[] = [];
           }
         }
       }
@@ -389,13 +392,14 @@ export default function PlanificateurPage() {
           for (let s = 0; s < MAX_SLOTS; s++) {
             const r = loaded[d]?.[s];
             if (r) {
-              dbRows.push({
-                user_id: user.id,
-                week_start: semaine,
-                day_index: d,
-                slot: s,
-                recette_id: r.id,
-              });
+              const dbRows: {
+                user_id: string;
+                week_start: string;
+                day_index: number;
+                slot: number;
+                recette_id: string;
+                portions_count: number;
+              }[] = [];
             }
           }
         }
