@@ -192,8 +192,9 @@ export default function PlanificateurPage() {
   const [favorisLoading, setFavorisLoading] = useState(false);
 
   // ═══ Pending Recipe (ajout depuis une page recette) ═══
-  const [pendingRecipe, setPendingRecipeState] =
-    useState<PendingRecipe | null>(null);
+  const [pendingRecipe, setPendingRecipeState] = useState<PendingRecipe | null>(
+    null,
+  );
 
   // Hydrate le pendingRecipe au mount si ?pending=1
   useEffect(() => {
@@ -518,9 +519,7 @@ export default function PlanificateurPage() {
         if (!newPlan[dayIdx]) newPlan[dayIdx] = [null, null, null];
         newPlan[dayIdx][slotIdx] = data as RecetteMin;
 
-        const countAfter = Object.values(newPlan)
-          .flat()
-          .filter(Boolean).length;
+        const countAfter = Object.values(newPlan).flat().filter(Boolean).length;
 
         await savePlan(newPlan);
 
@@ -748,7 +747,7 @@ export default function PlanificateurPage() {
     if (!win) return;
     win.document.write(`<html><head><title>Liste de courses</title>
     <style>body{font-family:system-ui;padding:2rem;max-width:600px;margin:0 auto}h1{font-size:1.5rem}h2{font-size:1.1rem;margin-top:1.5rem;color:#666;border-bottom:1px solid #ddd;padding-bottom:4px}ul{list-style:none;padding:0}li{padding:4px 0;display:flex;justify-content:space-between}li span:last-child{font-weight:600}.footer{margin-top:2rem;font-size:.8rem;color:#999}</style>
-    </head><body><h1>🛒 Liste de courses</h1><p style="color:#888;font-size:.9rem">${daysStr}</p>${html}<p class="footer">Kitchen Mix — mcmalnus.com</p></body></html>`);
+    </head><body><h1>🛒 Liste de courses</h1><p style="color:#888;font-size:.9rem">${daysStr}</p>${html}<p class="footer">Kitchen Mix — kitchen-mix.com</p></body></html>`);
     win.document.close();
     win.print();
   };

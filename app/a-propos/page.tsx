@@ -87,10 +87,11 @@ export default function AProposPage() {
           Une question, une suggestion ? N&apos;hésitez pas à nous contacter via
           les réseaux sociaux ou à nous écrire à{" "}
           <a
-            href="mailto:contact@mcmalnus.com"
+            href="mailto:contact@kitchen-mix.com"
             className="text-accent hover:underline"
           >
-            contact@mcmalnus.com
+            contact@kitchen-mix.com
+
           </a>
           .
         </p> */}
