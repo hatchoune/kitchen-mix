@@ -31,12 +31,10 @@ export async function getShoppingListForDays(
   if (error) throw new Error(error.message);
   if (!rows || rows.length === 0) return [];
 
-  // Compter les occurrences de chaque recette : une même recette placée
-  // plusieurs fois dans la semaine doit multiplier ses ingrédients.
   const idCounts = new Map<string, number>();
   for (const row of rows) {
     if (!row.recette_id) continue;
-    const p = row.portions_count ?? 1;
+    const p = (row.portions_count as number) ?? 1;
     idCounts.set(row.recette_id, (idCounts.get(row.recette_id) ?? 0) + p);
   }
 
