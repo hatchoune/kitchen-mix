@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Mail, Lock, UserIcon, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, UserIcon, Eye, EyeOff, PlayCircle, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import Logo from "@/components/ui/Logo";
 import { cn } from "@/lib/utils";
@@ -28,6 +28,8 @@ function ConnexionContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("next") || "/profil";
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
+  const isRecetteNext = redirectTo.includes("/recettes/");
 
   // Formulaires séparés
   const loginForm = useForm<LoginFormData>({
@@ -41,8 +43,14 @@ function ConnexionContent() {
   });
 
   useEffect(() => {
-    if (!loading && user) router.push(redirectTo);
-  }, [user, loading, router, redirectTo]);
+    if (!loading && user) {
+      if (isRecetteNext) {
+        setShowWelcomeModal(true);
+      } else {
+        router.push(redirectTo);
+      }
+    }
+  }, [user, loading, router, redirectTo, isRecetteNext]);
 
   const handleLogin = async (data: LoginFormData) => {
     setError("");
@@ -284,6 +292,47 @@ function ConnexionContent() {
           Continuer avec Google
         </button>
       </div>
+      {/* Modal bienvenue post-connexion */}
+      {showWelcomeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="glass-card w-full max-w-sm p-7 space-y-5 relative">
+            <button
+              onClick={() => router.push("/profil")}
+              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Fermer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="text-center space-y-2">
+              <Logo className="w-10 h-auto mx-auto" />
+              <h2 className="font-display font-bold text-xl">
+                Bienvenue sur Kitchen Mix !
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Votre compte est prêt. Que souhaitez-vous faire ?
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <button
+                onClick={() => router.push(redirectTo)}
+                className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-accent text-black font-display font-bold text-sm hover:bg-accent-hover transition-colors"
+              >
+                <PlayCircle className="w-4 h-4" />
+                Continuer vers la recette
+              </button>
+              <button
+                onClick={() => router.push("/profil")}
+                className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-card border border-border text-sm font-medium hover:bg-card-hover transition-colors"
+              >
+                <UserIcon className="w-4 h-4" />
+                Voir mon profil
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

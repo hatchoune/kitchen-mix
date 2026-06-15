@@ -320,12 +320,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signInWithGoogle = useCallback(async () => {
+    const params = new URLSearchParams(window.location.search);
+    const next = params.get("next") || "/profil";
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/profil`,
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
         queryParams: {
-          prompt: "select_account", // 🔑 Force le choix du compte Google
+          prompt: "select_account",
         },
       },
     });

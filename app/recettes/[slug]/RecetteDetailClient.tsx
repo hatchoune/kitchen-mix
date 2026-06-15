@@ -115,7 +115,7 @@ export default function RecetteDetailClient({
         type="button"
         onClick={() => {
           if (!user) {
-            window.location.href = "/connexion";
+            window.location.href = `/connexion?next=/recettes/${recette.slug}#guidee`;
             return;
           }
           setSimulateurOpen(true);
