@@ -41952,109 +41952,6 @@ export async function rechercherRecettes(
 }
 </file>
 
-<file path="app/actions/shoppingList.ts">
-"use server";
-
-import { createServerSupabase } from "@/lib/supabase/server";
-import type { Ingredient, ListeCoursesItem } from "@/types";
-
-export async function getShoppingListForDays(
-  weekStart: string,
-  dayIndices: number[],
-) {
-  const supabase = await createServerSupabase();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    throw new Error("Non autorisé");
-  }
-
-  if (dayIndices.length === 0) {
-    return [];
-  }
-
-  // Récupérer toutes les lignes meal_plans pour les jours demandés
-  const { data: rows, error } = await supabase
-    .from("meal_plans")
-    .select("recette_id, portions_count")
-    .eq("user_id", user.id)
-    .eq("week_start", weekStart)
-    .in("day_index", dayIndices);
-
-  if (error) throw new Error(error.message);
-  if (!rows || rows.length === 0) return [];
-
-  const idCounts = new Map<string, number>();
-  for (const row of rows) {
-    if (!row.recette_id) continue;
-    const p = (row.portions_count as number) ?? 1;
-    idCounts.set(row.recette_id, (idCounts.get(row.recette_id) ?? 0) + p);
-  }
-
-  const recetteIds = Array.from(idCounts.keys());
-  if (recetteIds.length === 0) return [];
-
-  // Récupérer les ingrédients (une seule fois par recette, on multipliera après)
-  const { data: recettes, error: recError } = await supabase
-    .from("recettes")
-    .select("id, ingredients")
-    .in("id", recetteIds);
-
-  if (recError) throw new Error(recError.message);
-  if (!recettes) return [];
-
-  // Index par ID pour accès direct
-  const ingredientsById = new Map<string, Ingredient[]>();
-  for (const r of recettes) {
-    ingredientsById.set(r.id, (r.ingredients as Ingredient[]) ?? []);
-  }
-
-  // Agrégation : clé normalisée (nom + unité trim + lowercase),
-  // quantité castée en Number() (au cas où stockée en string dans le JSON),
-  // multipliée par le nombre d'occurrences de la recette.
-  const aggregated = new Map<string, ListeCoursesItem>();
-
-  for (const [recetteId, count] of idCounts) {
-    const ingredients = ingredientsById.get(recetteId);
-    if (!ingredients) continue;
-
-    for (const ing of ingredients) {
-      if (!ing?.nom) continue;
-
-      const qty = Number(ing.quantite);
-      if (!Number.isFinite(qty)) continue;
-
-      const nomKey = ing.nom.trim().toLowerCase();
-      const uniteKey = (ing.unite ?? "").trim().toLowerCase();
-      const key = `${nomKey}|${uniteKey}`;
-
-      const addQty = qty * count;
-      const existing = aggregated.get(key);
-      if (existing) {
-        existing.quantite += addQty;
-      } else {
-        aggregated.set(key, {
-          nom: ing.nom,
-          quantite: addQty,
-          unite: ing.unite ?? "",
-          categorie: ing.categorie || "Autre",
-        });
-      }
-    }
-  }
-
-  const items = Array.from(aggregated.values());
-  items.sort(
-    (a, b) =>
-      a.categorie.localeCompare(b.categorie) || a.nom.localeCompare(b.nom),
-  );
-
-  return items;
-}
-</file>
-
 <file path="app/connexion/page.tsx">
 "use client";
 
@@ -42954,158 +42851,6 @@ export default function ProfilPage() {
         Déconnexion
       </button>
     </div>
-  );
-}
-</file>
-
-<file path="app/recettes/[slug]/RecetteDetailClient.tsx">
-"use client";
-
-import { useState, useCallback } from "react";
-import { Heart, Printer, Share2, PlayCircle } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
-import { useFavoris } from "@/hooks/useFavoris";
-import { useRatings } from "@/hooks/useRatings";
-import StarRating from "@/components/ui/StarRating";
-import SimulateurThermomix from "@/components/recettes/SimulateurThermomix";
-import AddToPlanningButton from "@/components/recettes/AddToPlanningButton";
-import type { Recette } from "@/types";
-import { cn } from "@/lib/utils";
-
-interface RecetteDetailClientProps {
-  recette: Recette;
-}
-
-export default function RecetteDetailClient({
-  recette,
-}: RecetteDetailClientProps) {
-  const { user } = useAuth();
-  const { isFavori, toggleFavori } = useFavoris(user?.id ?? null);
-  const { userRating, rate } = useRatings(recette.id, user?.id ?? null);
-  const [simulateurOpen, setSimulateurOpen] = useState(false);
-  const [portions, setPortions] = useState(recette.nombre_portions);
-
-  const handleShare = async () => {
-    const url = window.location.href;
-    if (navigator.share) {
-      await navigator.share({
-        title: recette.titre,
-        text: recette.description,
-        url,
-      });
-    } else {
-      await navigator.clipboard.writeText(url);
-    }
-  };
-
-  const handlePrint = () => window.print();
-  const favori = isFavori(recette.id);
-
-  // IMPORTANT : onClose DOIT être stable (useCallback sans deps)
-  // Sinon l'effet `useEffect([isOpen, onClose])` dans SimulateurThermomix
-  // se rejoue à chaque render du parent → cleanup fait history.back() →
-  // Next.js App Router POST la page → re-render → boucle infinie de POSTs.
-  const handleSimulateurClose = useCallback(() => {
-    setSimulateurOpen(false);
-  }, []);
-
-  return (
-    <>
-      <div className="flex flex-wrap items-center gap-4">
-        {/* Star Rating */}
-        <StarRating
-          rating={recette.note_moyenne}
-          count={recette.nombre_notes}
-          interactive={!!user}
-          userRating={userRating}
-          onRate={rate}
-          size="lg"
-        />
-
-        <div className="flex items-center gap-2 ml-auto flex-wrap">
-          {/* Ajouter au planning — gère lui-même le cas non connecté */}
-          <AddToPlanningButton
-            recette={{
-              id: recette.id,
-              slug: recette.slug,
-              titre: recette.titre,
-              image_url: recette.image_url,
-            }}
-            portions={portions}
-          />
-
-          {/* Favori */}
-          {user && (
-            <button
-              onClick={() => toggleFavori(recette.id)}
-              className={cn(
-                "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all",
-                favori
-                  ? "bg-accent/15 text-accent"
-                  : "bg-card border border-border hover:bg-card-hover",
-              )}
-            >
-              <Heart
-                className="w-4 h-4"
-                fill={favori ? "currentColor" : "none"}
-              />
-              {favori ? "Favori" : "Ajouter"}
-            </button>
-          )}
-
-          {/* Print */}
-          <button
-            onClick={handlePrint}
-            className="p-2 rounded-lg bg-card border border-border hover:bg-card-hover transition-colors no-print"
-            aria-label="Imprimer"
-          >
-            <Printer className="w-4 h-4" />
-          </button>
-
-          {/* Share */}
-          <button
-            onClick={handleShare}
-            className="p-2 rounded-lg bg-card border border-border hover:bg-card-hover transition-colors no-print"
-            aria-label="Partager"
-          >
-            <Share2 className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-      // APRÈS
-      {/* Simulator CTA — auth requise */}
-      <button
-        type="button"
-        onClick={() => {
-          if (!user) {
-            window.location.href = `/connexion?next=/recettes/${recette.slug}#guidee`;
-            return;
-          }
-          setSimulateurOpen(true);
-        }}
-        className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-accent text-black font-display font-bold text-sm hover:bg-accent-hover transition-colors no-print"
-      >
-        <PlayCircle className="w-5 h-5" />
-        Lancer la recette guidée
-      </button>
-      {simulateurOpen && (
-        <SimulateurThermomix
-          isOpen={simulateurOpen}
-          onClose={handleSimulateurClose}
-          etapes={recette.etapes}
-          titre={recette.titre}
-        />
-      )}
-      {/* Simulator Modal — ouverture directe, pas de gate auth */}
-      {simulateurOpen && (
-        <SimulateurThermomix
-          isOpen={simulateurOpen}
-          onClose={handleSimulateurClose}
-          etapes={recette.etapes}
-          titre={recette.titre}
-        />
-      )}
-    </>
   );
 }
 </file>
@@ -44562,6 +44307,157 @@ export async function GET(
 }
 </file>
 
+<file path="app/recettes/[slug]/RecetteDetailClient.tsx">
+"use client";
+
+import { useState, useCallback } from "react";
+import { Heart, Printer, Share2, PlayCircle } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { useFavoris } from "@/hooks/useFavoris";
+import { useRatings } from "@/hooks/useRatings";
+import StarRating from "@/components/ui/StarRating";
+import SimulateurThermomix from "@/components/recettes/SimulateurThermomix";
+import AddToPlanningButton from "@/components/recettes/AddToPlanningButton";
+import type { Recette } from "@/types";
+import { cn } from "@/lib/utils";
+
+interface RecetteDetailClientProps {
+  recette: Recette;
+}
+
+export default function RecetteDetailClient({
+  recette,
+}: RecetteDetailClientProps) {
+  const { user } = useAuth();
+  const { isFavori, toggleFavori } = useFavoris(user?.id ?? null);
+  const { userRating, rate } = useRatings(recette.id, user?.id ?? null);
+  const [simulateurOpen, setSimulateurOpen] = useState(false);
+  const [portions, setPortions] = useState(recette.nombre_portions);
+
+  const handleShare = async () => {
+    const url = window.location.href;
+    if (navigator.share) {
+      await navigator.share({
+        title: recette.titre,
+        text: recette.description,
+        url,
+      });
+    } else {
+      await navigator.clipboard.writeText(url);
+    }
+  };
+
+  const handlePrint = () => window.print();
+  const favori = isFavori(recette.id);
+
+  // IMPORTANT : onClose DOIT être stable (useCallback sans deps)
+  // Sinon l'effet `useEffect([isOpen, onClose])` dans SimulateurThermomix
+  // se rejoue à chaque render du parent → cleanup fait history.back() →
+  // Next.js App Router POST la page → re-render → boucle infinie de POSTs.
+  const handleSimulateurClose = useCallback(() => {
+    setSimulateurOpen(false);
+  }, []);
+
+  return (
+    <>
+      <div className="flex flex-wrap items-center gap-4">
+        {/* Star Rating */}
+        <StarRating
+          rating={recette.note_moyenne}
+          count={recette.nombre_notes}
+          interactive={!!user}
+          userRating={userRating}
+          onRate={rate}
+          size="lg"
+        />
+
+        <div className="flex items-center gap-2 ml-auto flex-wrap">
+          {/* Ajouter au planning — gère lui-même le cas non connecté */}
+          <AddToPlanningButton
+            recette={{
+              id: recette.id,
+              slug: recette.slug,
+              titre: recette.titre,
+              image_url: recette.image_url,
+            }}
+            portions={portions}
+          />
+
+          {/* Favori */}
+          {user && (
+            <button
+              onClick={() => toggleFavori(recette.id)}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all",
+                favori
+                  ? "bg-accent/15 text-accent"
+                  : "bg-card border border-border hover:bg-card-hover",
+              )}
+            >
+              <Heart
+                className="w-4 h-4"
+                fill={favori ? "currentColor" : "none"}
+              />
+              {favori ? "Favori" : "Ajouter"}
+            </button>
+          )}
+
+          {/* Print */}
+          <button
+            onClick={handlePrint}
+            className="p-2 rounded-lg bg-card border border-border hover:bg-card-hover transition-colors no-print"
+            aria-label="Imprimer"
+          >
+            <Printer className="w-4 h-4" />
+          </button>
+
+          {/* Share */}
+          <button
+            onClick={handleShare}
+            className="p-2 rounded-lg bg-card border border-border hover:bg-card-hover transition-colors no-print"
+            aria-label="Partager"
+          >
+            <Share2 className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+      {/* Simulator CTA — auth requise */}
+      <button
+        type="button"
+        onClick={() => {
+          if (!user) {
+            window.location.href = `/connexion?next=/recettes/${recette.slug}#guidee`;
+            return;
+          }
+          setSimulateurOpen(true);
+        }}
+        className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-accent text-black font-display font-bold text-sm hover:bg-accent-hover transition-colors no-print"
+      >
+        <PlayCircle className="w-5 h-5" />
+        Lancer la recette guidée
+      </button>
+      {simulateurOpen && (
+        <SimulateurThermomix
+          isOpen={simulateurOpen}
+          onClose={handleSimulateurClose}
+          etapes={recette.etapes}
+          titre={recette.titre}
+        />
+      )}
+      {/* Simulator Modal — ouverture directe, pas de gate auth */}
+      {simulateurOpen && (
+        <SimulateurThermomix
+          isOpen={simulateurOpen}
+          onClose={handleSimulateurClose}
+          etapes={recette.etapes}
+          titre={recette.titre}
+        />
+      )}
+    </>
+  );
+}
+</file>
+
 <file path="app/layout.tsx">
 // KITCHENMIX-2026-04-08-PROOF-OWNERSHIP
 import type { Metadata, Viewport } from "next";
@@ -45773,6 +45669,94 @@ export function useAuth() {
 
 <file path="hooks/useAuth.ts">
 export { useAuth } from "@/contexts/AuthContext";
+</file>
+
+<file path="app/actions/shoppingList.ts">
+"use server";
+
+import { createServerSupabase } from "@/lib/supabase/server";
+import type { Ingredient } from "@/types";
+
+export async function getShoppingListForDays(
+  weekStart: string,
+  dayIndices: number[],
+) {
+  const supabase = await createServerSupabase();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Non autorisé");
+  if (dayIndices.length === 0) return [];
+
+  console.log("[shoppingList] weekStart =", weekStart);
+  console.log("[shoppingList] dayIndices =", dayIndices);
+
+  // 1. Récupérer les recettes du planning
+  const { data: rows, error } = await supabase
+    .from("meal_plans")
+    .select("recette_id")
+    .eq("user_id", user.id)
+    .eq("week_start", weekStart)
+    .in("day_index", dayIndices);
+
+  if (error) {
+    console.error("[shoppingList] DB error:", error);
+    return [];
+  }
+  console.log("[shoppingList] meal_plans rows =", rows);
+
+  if (!rows || rows.length === 0) {
+    console.log(
+      "[shoppingList] Aucune recette dans le planning pour ces jours",
+    );
+    return [];
+  }
+
+  // 2. Compter les occurrences de chaque recette
+  const counts: Record<string, number> = {};
+  for (const r of rows) {
+    if (r.recette_id) {
+      counts[r.recette_id] = (counts[r.recette_id] || 0) + 1;
+    }
+  }
+  console.log("[shoppingList] counts =", counts);
+
+  // 3. Récupérer les ingrédients
+  const ids = Object.keys(counts);
+  const { data: recettes, error: recError } = await supabase
+    .from("recettes")
+    .select("id, ingredients, nombre_portions")
+    .in("id", ids);
+
+  if (recError) {
+    console.error("[shoppingList] Erreur recettes:", recError);
+    return [];
+  }
+  console.log("[shoppingList] recettes trouvées =", recettes?.length);
+
+  // 4. Agrégation
+  const aggregated: any[] = [];
+  for (const rec of recettes || []) {
+    const occurrences = counts[rec.id];
+    const portionsBase = rec.nombre_portions || 4;
+    const ratio = occurrences / portionsBase;
+    const ingredients = rec.ingredients as Ingredient[];
+    if (!ingredients) continue;
+
+    for (const ing of ingredients) {
+      if (!ing.nom) continue;
+      const qty = (ing.quantite || 0) * ratio;
+      aggregated.push({
+        nom: ing.nom,
+        quantite: Math.round(qty * 10) / 10,
+        unite: ing.unite || "",
+        categorie: ing.categorie || "Autre",
+      });
+    }
+  }
+  console.log("[shoppingList] items générés =", aggregated.length);
+  return aggregated;
+}
 </file>
 
 <file path="app/admin/page.tsx">
