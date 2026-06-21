@@ -84,6 +84,10 @@ app/
   mes-plannings/
     layout.tsx
     page.tsx
+  newsletter/
+    confirmer/
+      [token]/
+        route.ts
   notifications/
     layout.tsx
     page.tsx
@@ -201,6 +205,7 @@ lib/
   constants.ts
   notifications.ts
   pending-recipe.ts
+  resend.ts
   seed-data-companion-lot1.ts
   seed-data-cook-expert.ts
   seed-data-lot2.ts
@@ -300,42 +305,6 @@ export default function AProposLayout({
   children: React.ReactNode;
 }) {
   return <>{children}</>;
-}
-</file>
-
-<file path="app/actions/newsletter.ts">
-"use server";
-
-import { createServerSupabase } from "@/lib/supabase/server";
-
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-export async function subscribeToNewsletter(
-  email: string,
-  source: string = "website",
-) {
-  const trimmedEmail = email.trim().toLowerCase();
-
-  if (!trimmedEmail || !EMAIL_REGEX.test(trimmedEmail)) {
-    throw new Error("Adresse email invalide.");
-  }
-
-  const supabase = await createServerSupabase();
-
-  // Upsert : si l'email existe déjà, on ne fait rien de visible
-  const { error } = await supabase
-    .from("newsletter_subscribers")
-    .upsert(
-      { email: trimmedEmail, source, confirmed: false },
-      { onConflict: "email", ignoreDuplicates: true },
-    );
-
-  if (error) {
-    console.error("Newsletter subscribe error:", error.message);
-    throw new Error("Une erreur est survenue. Réessayez.");
-  }
-
-  return { success: true, message: "Inscription réussie !" };
 }
 </file>
 
@@ -1171,6 +1140,34 @@ export default function MesPlanningsLayout({
   children: React.ReactNode;
 }) {
   return <>{children}</>;
+}
+</file>
+
+<file path="app/newsletter/confirmer/[token]/route.ts">
+import { NextResponse } from "next/server";
+import { createAdminSupabase } from "@/lib/supabase/server";
+import { SITE_URL } from "@/lib/constants";
+
+export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ token: string }> },
+) {
+  const { token } = await params;
+
+  const supabase = createAdminSupabase();
+
+  const { data, error } = await supabase
+    .from("newsletter_subscribers")
+    .update({ confirmed: true })
+    .eq("confirm_token", token)
+    .select("email")
+    .single();
+
+  if (error || !data) {
+    return NextResponse.redirect(`${SITE_URL}/?newsletter=erreur`);
+  }
+
+  return NextResponse.redirect(`${SITE_URL}/?newsletter=confirme`);
 }
 </file>
 
@@ -5405,6 +5402,18 @@ export function formatTimeMMSS(totalSeconds: number): string {
   const s = totalSeconds % 60;
   return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
 }
+</file>
+
+<file path="lib/resend.ts">
+/* =============================================================
+   Kitchen Mix — Client Resend (emails transactionnels)
+   ============================================================= */
+
+import { Resend } from "resend";
+
+export const resend = new Resend(process.env.RESEND_API_KEY);
+
+export const EMAIL_FROM = "Kitchen Mix <newsletter@kitchen-mix.com>";
 </file>
 
 <file path="lib/seed-data-companion-lot1.ts">
@@ -23084,6 +23093,86 @@ export async function getUserAchievements(userId: string) {
     .order("unlocked_at", { ascending: false });
 
   return data || [];
+}
+</file>
+
+<file path="app/actions/newsletter.ts">
+"use server";
+
+import { createAdminSupabase } from "@/lib/supabase/server";
+import { resend, EMAIL_FROM } from "@/lib/resend";
+import { SITE_URL } from "@/lib/constants";
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export async function subscribeToNewsletter(
+  email: string,
+  source: string = "website",
+) {
+  const trimmedEmail = email.trim().toLowerCase();
+
+  if (!trimmedEmail || !EMAIL_REGEX.test(trimmedEmail)) {
+    throw new Error("Adresse email invalide.");
+  }
+
+  // Client admin requis : on doit relire le token juste après l'upsert,
+  // et la policy RLS bloque toute lecture publique sur cette table.
+  const supabase = createAdminSupabase();
+
+  const { error: upsertError } = await supabase
+    .from("newsletter_subscribers")
+    .upsert(
+      { email: trimmedEmail, source, confirmed: false },
+      { onConflict: "email", ignoreDuplicates: true },
+    );
+
+  if (upsertError) {
+    console.error("Newsletter subscribe error:", upsertError.message);
+    throw new Error("Une erreur est survenue. Réessayez.");
+  }
+
+  const { data: subscriber, error: fetchError } = await supabase
+    .from("newsletter_subscribers")
+    .select("confirm_token, confirmed")
+    .eq("email", trimmedEmail)
+    .single();
+
+  if (fetchError || !subscriber) {
+    console.error("Newsletter fetch error:", fetchError?.message);
+    return { success: true, message: "Inscription réussie !" };
+  }
+
+  // Déjà confirmé → rien à renvoyer.
+  if (subscriber.confirmed) {
+    return { success: true, message: "Inscription réussie !" };
+  }
+
+  const confirmUrl = `${SITE_URL}/newsletter/confirmer/${subscriber.confirm_token}`;
+
+  try {
+    await resend.emails.send({
+      from: EMAIL_FROM,
+      to: trimmedEmail,
+      subject: "Confirmez votre inscription à la newsletter Kitchen Mix",
+      html: `
+        <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
+          <h2>Plus qu'une étape !</h2>
+          <p>Cliquez sur le bouton ci-dessous pour confirmer votre inscription à la newsletter Kitchen Mix et recevoir nos meilleures recettes.</p>
+          <p style="text-align: center; margin: 32px 0;">
+            <a href="${confirmUrl}" style="background:#F5A623; color:#141414; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:bold;">
+              Confirmer mon inscription
+            </a>
+          </p>
+          <p style="color:#888; font-size:13px;">Si vous n'êtes pas à l'origine de cette inscription, ignorez simplement cet email.</p>
+        </div>
+      `,
+    });
+  } catch (err) {
+    // On ne bloque pas l'inscription si l'envoi échoue — l'email est déjà en base.
+    console.error("Newsletter confirmation email error:", err);
+  }
+
+  return { success: true, message: "Inscription réussie !" };
 }
 </file>
 
@@ -43984,60 +44073,6 @@ function CommentNode({
 }
 </file>
 
-<file path="package.json">
-{
-  "name": "kitchen-mix",
-  "version": "1.0.0",
-  "private": true,
-  "description": "Kitchen Mix — Recettes Thermomix premium",
-  "scripts": {
-    "dev": "next dev --turbopack",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint",
-    "seed": "npx tsx scripts/seed.ts",
-    "seed:lot2": "npx tsx scripts/seed-lot2.ts",
-    "seed:companion": "npx tsx scripts/seed-companion.ts",
-    "seed:cook-expert": "npx tsx scripts/seed-cook-expert.ts",
-    "reset:recettes": "npx tsx scripts/reset-recettes.ts",
-    "type-check": "tsc --noEmit",
-    "seed:mega": "npx tsx scripts/seed-mega.ts",
-    "seed:one": "npx tsx scripts/seed-one.ts",
-    "images": "npx tsx scripts/upload-images.ts",
-    "images:one": "npx tsx scripts/upload-image-one.ts"
-  },
-  "dependencies": {
-    "@hookform/resolvers": "^3.10.0",
-    "@supabase/ssr": "^0.6.1",
-    "@supabase/supabase-js": "^2.49.4",
-    "@tanstack/react-query": "^5.97.0",
-    "browser-image-compression": "^2.0.2",
-    "dotenv": "^17.4.0",
-    "framer-motion": "^12.38.0",
-    "lucide-react": "^0.474.0",
-    "next": "^15.3.1",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
-    "react-hook-form": "^7.54.2",
-    "react-image-crop": "^11.0.10",
-    "zod": "^3.24.2"
-  },
-  "devDependencies": {
-    "@types/node": "^22.14.1",
-    "@types/react": "^19.1.2",
-    "@types/react-dom": "^19.1.2",
-    "autoprefixer": "^10.4.21",
-    "eslint": "^9.25.0",
-    "eslint-config-next": "^15.3.1",
-    "postcss": "^8.5.3",
-    "sharp": "^0.34.5",
-    "tailwindcss": "^3.4.17",
-    "tsx": "^4.19.3",
-    "typescript": "^5.8.3"
-  }
-}
-</file>
-
 <file path="app/recettes/[slug]/pinterest-image/route.tsx">
 import { ImageResponse } from "next/og";
 import { createClient } from "@supabase/supabase-js";
@@ -44944,6 +44979,61 @@ export interface NotificationEnriched extends Notification {
   actor: Pick<Profil, "pseudo" | "avatar_url"> | null;
   recette: Pick<Recette, "slug" | "titre" | "approuve" | "publie"> | null;
   comment: Pick<RecipeComment, "content" | "parent_id"> | null;
+}
+</file>
+
+<file path="package.json">
+{
+  "name": "kitchen-mix",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Kitchen Mix — Recettes Thermomix premium",
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "seed": "npx tsx scripts/seed.ts",
+    "seed:lot2": "npx tsx scripts/seed-lot2.ts",
+    "seed:companion": "npx tsx scripts/seed-companion.ts",
+    "seed:cook-expert": "npx tsx scripts/seed-cook-expert.ts",
+    "reset:recettes": "npx tsx scripts/reset-recettes.ts",
+    "type-check": "tsc --noEmit",
+    "seed:mega": "npx tsx scripts/seed-mega.ts",
+    "seed:one": "npx tsx scripts/seed-one.ts",
+    "images": "npx tsx scripts/upload-images.ts",
+    "images:one": "npx tsx scripts/upload-image-one.ts"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "^3.10.0",
+    "@supabase/ssr": "^0.6.1",
+    "@supabase/supabase-js": "^2.49.4",
+    "@tanstack/react-query": "^5.97.0",
+    "browser-image-compression": "^2.0.2",
+    "dotenv": "^17.4.0",
+    "framer-motion": "^12.38.0",
+    "lucide-react": "^0.474.0",
+    "next": "^15.1.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-hook-form": "^7.54.2",
+    "react-image-crop": "^11.0.10",
+    "resend": "^6.14.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.1",
+    "@types/react": "^19.1.2",
+    "@types/react-dom": "^19.1.2",
+    "autoprefixer": "^10.4.21",
+    "eslint": "^9.25.0",
+    "eslint-config-next": "^15.3.1",
+    "postcss": "^8.5.3",
+    "sharp": "^0.34.5",
+    "tailwindcss": "^3.4.17",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.3"
+  }
 }
 </file>
 
