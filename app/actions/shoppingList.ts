@@ -51,7 +51,7 @@ export async function getShoppingListForDays(
   const ids = Object.keys(counts);
   const { data: recettes, error: recError } = await supabase
     .from("recettes")
-    .select("id, ingredients, nombre_portions")
+    .select("id, ingredients")
     .in("id", ids);
 
   if (recError) {
@@ -71,14 +71,12 @@ export async function getShoppingListForDays(
 
   for (const rec of recettes || []) {
     const occurrences = counts[rec.id];
-    const portionsBase = rec.nombre_portions || 4;
-    const ratio = occurrences / portionsBase;
     const ingredients = rec.ingredients as Ingredient[];
     if (!ingredients) continue;
 
     for (const ing of ingredients) {
       if (!ing.nom) continue;
-      const qty = (ing.quantite || 0) * ratio;
+      const qty = (ing.quantite || 0) * occurrences;
       const unite = ing.unite || "";
       const key = `${ing.nom.trim().toLowerCase()}|${unite.trim().toLowerCase()}`;
 
