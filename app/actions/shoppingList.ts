@@ -60,8 +60,15 @@ export async function getShoppingListForDays(
   }
   console.log("[shoppingList] recettes trouvées =", recettes?.length);
 
-  // 4. Agrégation
-  const aggregated: any[] = [];
+  // 4. Agrégation (fusionne les ingrédients identiques entre toutes les recettes/jours)
+  type AggregatedItem = {
+    nom: string;
+    quantite: number;
+    unite: string;
+    categorie: string;
+  };
+  const aggregatedMap = new Map<string, AggregatedItem>();
+
   for (const rec of recettes || []) {
     const occurrences = counts[rec.id];
     const portionsBase = rec.nombre_portions || 4;
@@ -72,14 +79,28 @@ export async function getShoppingListForDays(
     for (const ing of ingredients) {
       if (!ing.nom) continue;
       const qty = (ing.quantite || 0) * ratio;
-      aggregated.push({
-        nom: ing.nom,
-        quantite: Math.round(qty * 10) / 10,
-        unite: ing.unite || "",
-        categorie: ing.categorie || "Autre",
-      });
+      const unite = ing.unite || "";
+      const key = `${ing.nom.trim().toLowerCase()}|${unite.trim().toLowerCase()}`;
+
+      const existing = aggregatedMap.get(key);
+      if (existing) {
+        existing.quantite += qty;
+      } else {
+        aggregatedMap.set(key, {
+          nom: ing.nom,
+          quantite: qty,
+          unite,
+          categorie: ing.categorie || "Autre",
+        });
+      }
     }
   }
+
+  const aggregated = Array.from(aggregatedMap.values()).map((item) => ({
+    ...item,
+    quantite: Math.round(item.quantite * 10) / 10,
+  }));
+
   console.log("[shoppingList] items générés =", aggregated.length);
   return aggregated;
 }
