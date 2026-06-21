@@ -111,7 +111,6 @@ export default function RecetteDetailClient({
           </button>
         </div>
       </div>
-      // APRÈS
       {/* Simulator CTA — auth requise */}
       <button
         type="button"
