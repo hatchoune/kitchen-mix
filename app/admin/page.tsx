@@ -37,6 +37,7 @@ import {
 import { UserX, Users, Ban, Undo2, Trash2 } from "lucide-react";
 import Image from "next/image";
 import { useToast } from "@/components/ui/Toast";
+import NewsletterAdminTab from "@/components/ui/NewsletterAdminTab";
 
 export default function AdminPage() {
   const { user, loading: authLoading, isAdmin: authIsAdmin } = useAuth();
@@ -54,6 +55,7 @@ export default function AdminPage() {
     | "all_comments"
     | "users"
     | "banned"
+    | "newsletter"
   >("recettes");
   const [searchTerm, setSearchTerm] = useState("");
   const [loadingData, setLoadingData] = useState(true);
@@ -229,6 +231,7 @@ export default function AdminPage() {
             { key: "all_comments", label: "Historique commentaires" },
             { key: "users", label: `Utilisateurs (${users.length})` },
             { key: "banned", label: `Bannis (${bannedUsers.length})` },
+            { key: "newsletter", label: "Newsletter" },
           ] as const
         ).map((t) => (
           <button
@@ -709,6 +712,7 @@ export default function AdminPage() {
           )}
         </div>
       )}
+      {tab === "newsletter" && <NewsletterAdminTab />}
     </div>
   );
 }
