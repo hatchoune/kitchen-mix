@@ -7,6 +7,9 @@ import {
 import { resend, EMAIL_FROM } from "@/lib/resend";
 import { isAdmin } from "@/lib/supabase/queries";
 
+const BATCH_SIZE = 4;
+const DELAY_MS = 1200;
+
 async function requireAdmin() {
   const supabase = await createServerSupabase();
   const {
@@ -39,31 +42,40 @@ export async function sendNewsletter({
     return { sent: 0, errors: 0, total: 0 };
   }
 
-  // Envoi en parallèle — OK jusqu'à ~100 abonnés sur Vercel Hobby
-  const results = await Promise.allSettled(
-    subscribers.map(({ email }) =>
-      resend.emails.send({
-        from: EMAIL_FROM,
-        to: email,
-        subject,
-        html,
-      }),
-    ),
-  );
-
   let sent = 0;
   let errors = 0;
 
-  for (const result of results) {
-    if (result.status === "fulfilled" && !result.value.error) {
-      sent++;
-    } else {
-      errors++;
-      if (result.status === "rejected") {
-        console.error("[NEWSLETTER] Erreur envoi:", result.reason);
-      } else if (result.status === "fulfilled" && result.value.error) {
-        console.error("[NEWSLETTER] Erreur Resend:", result.value.error);
+  // Envoi par lots de BATCH_SIZE, avec une pause DELAY_MS entre chaque lot
+  // pour respecter les limites de débit de l'API Resend.
+  for (let i = 0; i < subscribers.length; i += BATCH_SIZE) {
+    const batch = subscribers.slice(i, i + BATCH_SIZE);
+
+    const results = await Promise.allSettled(
+      batch.map(({ email }) =>
+        resend.emails.send({
+          from: EMAIL_FROM,
+          to: email,
+          subject,
+          html,
+        }),
+      ),
+    );
+
+    for (const result of results) {
+      if (result.status === "fulfilled" && !result.value.error) {
+        sent++;
+      } else {
+        errors++;
+        if (result.status === "rejected") {
+          console.error("[NEWSLETTER] Erreur envoi:", result.reason);
+        } else if (result.status === "fulfilled" && result.value.error) {
+          console.error("[NEWSLETTER] Erreur Resend:", result.value.error);
+        }
       }
+    }
+
+    if (i + BATCH_SIZE < subscribers.length) {
+      await new Promise((resolve) => setTimeout(resolve, DELAY_MS));
     }
   }
 
