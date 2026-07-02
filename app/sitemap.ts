@@ -53,7 +53,7 @@ export default async function sitemap({
   );
 
   const staticUrls: MetadataRoute.Sitemap =
-    id === 0
+    Number(id) === 0
       ? [
           {
             url: SITE_URL,
