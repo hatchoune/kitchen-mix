@@ -32,7 +32,7 @@ const nextConfig: NextConfig = {
   },
   headers: async () => [
     {
-      source: "/recettes/:slug",
+      source: "/recettes/:path*",
       headers: [
         {
           key: "Cache-Control",

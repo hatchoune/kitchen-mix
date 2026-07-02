@@ -4,6 +4,7 @@ import { createAdminSupabase } from "@/lib/supabase/server";
 
 const RECIPES_PER_SITEMAP = 500;
 
+// app/sitemap.ts
 export async function generateSitemaps() {
   const supabase = createAdminSupabase();
   const { count } = await supabase
@@ -13,7 +14,10 @@ export async function generateSitemaps() {
     .eq("publie", true);
 
   const totalRecipes = count || 0;
-  const totalSitemaps = Math.ceil(totalRecipes / RECIPES_PER_SITEMAP);
+  const totalSitemaps = Math.max(
+    1,
+    Math.ceil(totalRecipes / RECIPES_PER_SITEMAP),
+  );
   return Array.from({ length: totalSitemaps }, (_, i) => ({ id: i }));
 }
 
